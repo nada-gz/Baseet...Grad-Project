@@ -13,9 +13,9 @@ They let you split your UI into independent, manageable pieces — improving **r
 ### How It’s Written  
 \`\`\`jsx
 // Example component
-function Welcome() {
-  return <h1>Hello, World!</h1>;
-}
+// function Welcome() {
+//  return <h1>Hello, World!</h1>;
+// }
 \`\`\`
 
 ### When to Use  
@@ -34,7 +34,7 @@ React converts JSX to regular JavaScript using `React.createElement()`.
 ### How It’s Written  
 \`\`\`jsx
 // JSX example
-const element = <h1 className="title">Hello React!</h1>;
+// const element = <h1 className="title">Hello React!</h1>;
 \`\`\`
 
 ### When to Use  
@@ -52,10 +52,10 @@ Props let parent components send data or configuration down to children, keeping
 ### How It’s Written  
 \`\`\`jsx
 // Props example
-function Greeting(props) {
-  return <h2>Hello, {props.name}!</h2>;
-}
-<Greeting name="Nada" />
+// function Greeting(props) {
+//   return <h2>Hello, {props.name}!</h2>;
+// }
+// <Greeting name="Nada" />
 \`\`\`
 
 ### When to Use  
@@ -73,17 +73,17 @@ React re-renders the component whenever its state changes — keeping the UI alw
 ### How It’s Written  
 \`\`\`jsx
 // State example
-import { useState } from 'react';
-
-function Counter() {
-  const [count, setCount] = useState(0);
-  return (
-    <div>
-      <p>You clicked {count} times.</p>
-      <button onClick={() => setCount(count + 1)}>Click</button>
-    </div>
-  );
-}
+// import { useState } from 'react';
+//
+// function Counter() {
+//  const [count, setCount] = useState(0);
+//  return (
+//    <div>
+//      <p>You clicked {count} times.</p>
+//      <button onClick={() => setCount(count + 1)}>Click</button>
+//    </div>
+//  );
+// }
 \`\`\`
 
 ### When to Use  
@@ -98,7 +98,7 @@ React lets you show or hide elements based on conditions.
 ### How It’s Written  
 \`\`\`jsx
 // Conditional rendering example
-{winner ? <p>Winner: {winner}</p> : <p>Next player: X</p>}
+// {winner ? <p>Winner: {winner}</p> : <p>Next player: X</p>}
 \`\`\`
 
 EOF
