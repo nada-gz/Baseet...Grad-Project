@@ -12,7 +12,6 @@ They let you split your UI into independent, manageable pieces — improving **r
 
 ### How It’s Written  
 \`\`\`jsx
-// Example component
 // function Welcome() {
 //  return <h1>Hello, World!</h1>;
 // }
@@ -33,7 +32,6 @@ React converts JSX to regular JavaScript using `React.createElement()`.
 
 ### How It’s Written  
 \`\`\`jsx
-// JSX example
 // const element = <h1 className="title">Hello React!</h1>;
 \`\`\`
 
@@ -51,9 +49,8 @@ Props let parent components send data or configuration down to children, keeping
 
 ### How It’s Written  
 \`\`\`jsx
-// Props example
 // function Greeting(props) {
-//   return <h2>Hello, {props.name}!</h2>;
+//  return <h2>Hello, {props.name}!</h2>;
 // }
 // <Greeting name="Nada" />
 \`\`\`
@@ -72,7 +69,6 @@ React re-renders the component whenever its state changes — keeping the UI alw
 
 ### How It’s Written  
 \`\`\`jsx
-// State example
 // import { useState } from 'react';
 //
 // function Counter() {
@@ -80,7 +76,7 @@ React re-renders the component whenever its state changes — keeping the UI alw
 //  return (
 //    <div>
 //      <p>You clicked {count} times.</p>
-//      <button onClick={() => setCount(count + 1)}>Click</button>
+//      <button onClick = { () => setCount(count + 1) }>Click</button>
 //    </div>
 //  );
 // }
@@ -91,14 +87,71 @@ When you want to track data that changes (like user input, toggle status, or sco
 
 ---
 
+## 🧭 5. Folder Structure & Organization
+### Definition  
+Organizing files properly makes collaboration and scaling easier.
+
+### Why React Uses It  
+React doesn’t enforce structure, but following best practices keeps projects clean and maintainable.
+
+### Example Structure  
+\`\`\`
+// project/
+// ├── src/
+// │   ├── components/
+// │   │   ├── Board.jsx
+// │   │   └── Square.jsx
+// │   ├── App.jsx
+// │   ├── index.js
+// │   └── styles/
+// │       └── main.css
+\`\`\`
+
+### When to Use  
+Always — maintain a clear folder structure for large projects.
+
+---
+
+## ⚡ 6. Data Flow & Immutability
+### Definition  
+Data in React flows **one way** — from parent to child — and state updates must be done **immutably** (without directly changing the existing data).
+
+### Why React Uses It  
+This makes applications predictable, debuggable, and avoids unexpected side effects.
+
+### Example  
+\`\`\`jsx
+// const nextSquares = squares.slice();
+// nextSquares[i] = "X";
+// setSquares(nextSquares);
+\`\`\`
+
+### When to Use  
+Always update arrays/objects by creating a copy first.
+
+---
+
 ## 🧩 7. Conditional Rendering
 ### Definition  
 React lets you show or hide elements based on conditions.
 
 ### How It’s Written  
 \`\`\`jsx
-// Conditional rendering example
 // {winner ? <p>Winner: {winner}</p> : <p>Next player: X</p>}
 \`\`\`
 
+### When to Use  
+When UI elements depend on state or props (e.g., winner messages, error handling).
+
+---
+
+## 🚀 8. Key Takeaways
+- Break UI into **components**
+- Use **JSX** for combining HTML + JS logic
+- Pass data with **props**
+- Store changing data with **state**
+- Keep **data flow one-way**
+- Follow **clean folder structure**
+
 EOF
+
