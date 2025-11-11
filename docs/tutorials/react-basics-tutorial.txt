@@ -146,3 +146,4 @@ When UI elements depend on state or props (e.g., winner messages, error handling
 - Keep data flow one-way  
 - Follow clean folder structure  
 
+EOF
