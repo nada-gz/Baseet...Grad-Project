@@ -1,21 +1,4 @@
 React Basics Tutorial
-=====================
-
-📘 Introduction
----------------
-This short tutorial summarizes the key React concepts learned from the official React Tic-Tac-Toe tutorial.  
-It helps new contributors quickly understand React fundamentals used in the Frontend part of our Grad Project.
-
------------------------
-⚙️ 1. Components
------------------------
-Definition:
-Components are reusable building blocks in React that define parts of the UI (like buttons, headers, or entire sections).
-
-Why React Uses It:
-They let you split your UI into independent, manageable pieces — improving reusability, organization, and maintainability.
-
-Example:
 // function Welcome() {
 //   return <h1>Hello, World!</h1>;
 // }
