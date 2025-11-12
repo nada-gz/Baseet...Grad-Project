@@ -1,20 +1,22 @@
 from sqlmodel import SQLModel, Field, create_engine
 
-# 1️ Define your database URL — this will create a SQLite file
+# Database connection
 DATABASE_URL = "sqlite:///./test.db"
-
-# 2️ Create an engine (connects Python to the database)
 engine = create_engine(DATABASE_URL, echo=True)
 
-# 3️ Define a simple test model
+# Test model
 class TestItem(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str
 
-# 4️ Create tables function
+# Create all tables
 def create_tables():
+    SQLModel.metadata.drop_all(engine)
     SQLModel.metadata.create_all(engine)
-    print("✅ Tables created successfully!")
+    print("✅ Tables recreated successfully!")
 
+
+
+# Call it when file runs directly
 if __name__ == "__main__":
     create_tables()
