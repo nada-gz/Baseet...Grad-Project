@@ -1,4 +1,5 @@
 from sqlmodel import SQLModel, Field, create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Database connection
 DATABASE_URL = "sqlite:///./test.db"
