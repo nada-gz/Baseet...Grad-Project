@@ -1,0 +1,51 @@
+FastAPI Basics Tutorial
+=======================
+
+📘 Introduction
+---------------
+FastAPI is a modern, high-performance web framework for building APIs using Python 3.7+ and standard type hints. It’s known for its speed, automatic documentation, and ease of use. It’s ideal for creating RESTful APIs, backend systems, and machine learning model deployment interfaces.
+
+-----------------------
+🛠️ Installation Steps
+-----------------------
+
+1. Ensure Python 3.7 or later is installed:
+   > python --version
+
+2. (Recommended) Create and activate a virtual environment:
+   > python -m venv venv
+   > source venv/bin/activate    # On Mac/Linux
+   > venv\Scripts\activate       # On Windows
+
+3. Install FastAPI and Uvicorn:
+   > pip install fastapi uvicorn
+
+-----------------------
+📚 Key Concepts to Know
+-----------------------
+
+- **FastAPI app instance:** The main object that handles requests.
+- **Path Operations:** The routes or endpoints that define what happens at each URL.
+- **Decorators:** Used to define HTTP methods such as @app.get(), @app.post(), etc.
+- **Request & Response Models:** Define the data structure of inputs and outputs using Pydantic.
+- **Automatic Docs:** Swagger UI (`/docs`) and ReDoc (`/redoc`) are generated automatically.
+- **Uvicorn:** The ASGI server that runs the FastAPI application.
+- **Dependency Injection:** A built-in system for reusing logic and managing components efficiently.
+
+-----------------------
+🚀 How to Run
+-----------------------
+
+1. Create your main application file, usually named `main.py`.
+2. Run your application with:
+   > uvicorn main:app --reload
+3. Open in your browser:
+   - API: http://127.0.0.1:8000
+   - Interactive Docs: http://127.0.0.1:8000/docs
+   - ReDoc Docs: http://127.0.0.1:8000/redoc
+
+-----------------------
+🎯 Summary
+-----------------------
+FastAPI helps you build modern, production-ready APIs quickly and efficiently.
+It’s easy to start, offers automatic documentation, and is suitable for both small and large projects.
