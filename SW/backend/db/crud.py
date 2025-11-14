@@ -1,6 +1,6 @@
 from sqlmodel import select
 from .database import engine, Session
-from ..models.user import User
+from models.user import User
 
 def create_tables():
     from sqlmodel import SQLModel
