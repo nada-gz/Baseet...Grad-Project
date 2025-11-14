@@ -7,9 +7,9 @@ def create_tables():
     SQLModel.metadata.create_all(engine)
     print("✅ Tables created successfully!")
 
-def add_user(name: str, age: int):
+def add_user(username: str, email: str):
     with Session(engine) as session:
-        user = User(name=name, age=age)
+        user = User(username=username, email=email)
         session.add(user)
         session.commit()
         session.refresh(user)
@@ -21,9 +21,9 @@ def get_all_users():
         results = session.exec(statement)
         return results.all()
 
-def get_user_by_name(name: str):
+def get_user_by_username(username: str):
     with Session(engine) as session:
-        statement = select(User).where(User.name == name)
+        statement = select(User).where(User.username == username)
         results = session.exec(statement)
         return results.first()
 
@@ -31,13 +31,13 @@ def get_user_by_id(user_id: int):
     with Session(engine) as session:
         return session.get(User, user_id)
 
-def update_user(user_id: int, name: str, age: int):
+def update_user(user_id: int, username: str, email: str):
     with Session(engine) as session:
         user = session.get(User, user_id)
         if not user:
             return None
-        user.name = name
-        user.age = age
+        user.username = username
+        user.email = email
         session.add(user)
         session.commit()
         session.refresh(user)

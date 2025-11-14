@@ -1,19 +1,19 @@
 from fastapi import APIRouter, HTTPException
-from ..db.crud import add_user, get_all_users, get_user_by_name, get_user_by_id, update_user, delete_user
+from db.crud import add_user, get_all_users, get_user_by_username, get_user_by_id, update_user, delete_user
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 @router.post("/")
-def create_user_route(name: str, age: int):
-    return add_user(name, age)
+def create_user_route(username: str, email: str):
+    return add_user(username, email)
 
 @router.get("/")
 def get_users_route():
     return get_all_users()
 
-@router.get("/search/{name}")
-def get_user_by_name_route(name: str):
-    user = get_user_by_name(name)
+@router.get("/search/{username}")
+def get_user_by_username_route(username: str):
+    user = get_user_by_username(username)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
@@ -26,8 +26,8 @@ def get_user_route(user_id: int):
     return user
 
 @router.put("/{user_id}")
-def update_user_route(user_id: int, name: str, age: int):
-    user = update_user(user_id, name, age)
+def update_user_route(user_id: int, username: str, email: str):
+    user = update_user(user_id, username, email)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
