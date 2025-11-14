@@ -1,8 +1,16 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from db.crud import create_tables
 from routers.user_router import router as user_router
 
 app = FastAPI(title="My Backend Project")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Create tables on startup
 create_tables()
