@@ -1,5 +1,6 @@
 import logo from './logo.svg';
 import './App.css';
+import TestBackend from './components/TestBackend';
 
 function App() {
   return (
@@ -32,6 +33,9 @@ function App() {
           Click Me
         </button>
       </div>
+
+      {/* Test backend connection */}
+      <TestBackend />
     </div>
   );
 }
