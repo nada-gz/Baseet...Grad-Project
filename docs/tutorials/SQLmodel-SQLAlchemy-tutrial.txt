@@ -1,0 +1,49 @@
+------------------------------
+📘 Key Concepts to Understand
+------------------------------
+
+1️⃣ SQLModel vs SQLAlchemy  
+SQLModel is built on top of SQLAlchemy and Pydantic.  
+- It combines **Pydantic models** (for validation) with **SQLAlchemy models** (for database tables).  
+- You write one class, and it becomes both a DB model and a data validation model.  
+- SQLAlchemy is more low-level; SQLModel adds simplicity and type hints.
+
+🔹 Models & Fields  
+- Each model class represents a table.  
+- Fields define columns; `Field()` can configure primary keys, defaults, constraints.  
+
+🔹 Engine  
+- `create_engine()` connects to the database.  
+- The engine is passed to SQLModel methods or sessions for operations.
+
+🔹 Metadata & Table Creation  
+- `SQLModel.metadata.create_all(engine)` generates all tables defined with `table=True`.  
+
+🔹 Sessions & CRUD Operations  
+- Sessions manage transactions.  
+- `add()`, `commit()`, `refresh()` are used to create and save records.  
+
+🔹 Relationships & Queries  
+- SQLModel supports relationships via foreign keys (like SQLAlchemy).  
+- You can run queries using Session and standard ORM syntax.
+
+
+-----------------------------
+🛠️ Installation Steps
+------------------------------
+1- pip install sqlmodel
+2- Import Required Class (from sqlmodel import SQLModel, Field, create_engine, Session)
+3- Definind the model and creating the dataset engine (engine = create_engine("sqlite:///database.db"))
+4- Create table and do any operation 
+
+To run in terminal: python filename.py
+
+
+-----------------------
+🎯 Summary
+-----------------------
+
+✔ SQLModel combines validation + database models  
+✔ Easy table creation and CRUD operations  
+✔ Compatible with SQLAlchemy features for advanced usage  
+✔ Ideal for projects where type safety and simplicity matter
