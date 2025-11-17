@@ -1,6 +1,6 @@
 import logo from './logo.svg';
 import './App.css';
-import TestBackend from './components/TestBackend';
+import TestBackend from './playground/TestBackend';
 
 function App() {
   return (
