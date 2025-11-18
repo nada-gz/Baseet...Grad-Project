@@ -4,12 +4,17 @@ import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout";
 
 // Pages - Public
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
 
-// Pages - Protected
-import Dashboard from "./pages/Dashboard";
-import Profile from "./pages/Profile";
+// Pages - Protected - Dashboards
+import TeacherDashboard from "./pages/dashboard/TeacherDashboard";
+import StudentDashboard from "./pages/dashboard/StudentDashboard";
+import ParentDashboard from "./pages/dashboard/ParentDashboard";
+import SupervisorDashboard from "./pages/dashboard/SupervisorDashboard";
+
+// Pages - Protected - Profile
+import StudentProfile from "./pages/profile/StudentProfile";
 
 // Protected Route Component
 const ProtectedRoute = () => {
@@ -46,12 +51,24 @@ const router = createBrowserRouter([
         element: <MainLayout />,
         children: [
           {
-            path: "/dashboard/:role",
-            element: <Dashboard />,
+            path: "/dashboard/teacher",
+            element: <TeacherDashboard />,
+          },
+          {
+            path: "/dashboard/student",
+            element: <StudentDashboard />,
+          },
+          {
+            path: "/dashboard/parent",
+            element: <ParentDashboard />,
+          },
+          {
+            path: "/dashboard/supervisor",
+            element: <SupervisorDashboard />,
           },
           {
             path: "/profile/:studentId",
-            element: <Profile />,
+            element: <StudentProfile />,
           },
         ],
       },
