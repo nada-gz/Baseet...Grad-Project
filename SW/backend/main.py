@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from db.crud import create_tables
 from routers.user_router import router as user_router
+from routers.student_router import router as student_router
 
 app = FastAPI(title="My Backend Project")
 
@@ -17,6 +18,7 @@ create_tables()
 
 # Include routers
 app.include_router(user_router)
+app.include_router(student_router)
 
 # Root route
 @app.get("/")
