@@ -1,22 +1,6 @@
 import './App.css';
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import TestBackend from './playground/TestBackend';
-
-// Layout
-import MainLayout from "./layouts/MainLayout";
-
-// Pages
-import Home from "./pages/home";
-
-const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <MainLayout />,
-    children: [
-      { path: "", element: <Home /> },
-    ],
-  },
-]);
+import { RouterProvider } from "react-router-dom";
+import router from './AppRoutes';
 
 function App() {
   return <RouterProvider router={router} />;
