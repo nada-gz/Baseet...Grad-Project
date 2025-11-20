@@ -4,7 +4,7 @@ from utils.auth import hash_password, verify_password, create_access_token
 from db.database import get_session
 from sqlmodel import Session
 from models.user import User
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import APIKeyHeader
 from jose import jwt, JWTError
 from utils.auth import SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES
 from schemas.user_schema import UserCreate, UserLogin, UserRead
@@ -36,11 +36,18 @@ def login(user: UserLogin, db: Session = Depends(get_session)):
     token = create_access_token({"sub": db_user.email}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     return {"access_token": token, "token_type": "bearer"}
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-
+oauth2_scheme = APIKeyHeader(
+    name="Authorization",
+    scheme_name="JWT"
+)
 
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_session)):
+    if not token.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid token format. Expected 'Bearer <token>'.")
+
+    token = token.split(" ")[1]
+    
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         email = payload.get("sub")
