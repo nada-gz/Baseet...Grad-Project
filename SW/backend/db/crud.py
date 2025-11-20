@@ -1,4 +1,4 @@
-from sqlmodel import select
+from sqlmodel import select, SQLModel
 from .database import engine, Session
 from models.user import User
 from models.student import Student
@@ -8,7 +8,7 @@ from models.student import Student
 # ---------------------------
 
 def create_tables():
-    from sqlmodel import SQLModel
+    SQLModel.metadata.drop_all(engine)
     SQLModel.metadata.create_all(engine)
     print("✅ Tables created successfully!")
 
