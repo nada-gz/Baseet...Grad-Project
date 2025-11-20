@@ -6,6 +6,7 @@ import MainLayout from "./layouts/MainLayout";
 // Pages - Public
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
+import NotAllowed from "./pages/general/NotAllowed";
 
 // Pages - Protected - Dashboards
 import TeacherDashboard from "./pages/dashboard/TeacherDashboard";
@@ -42,6 +43,10 @@ const router = createBrowserRouter([
     path: "/register",
     element: <Register />,
   },
+  {
+    path: "/not-allowed",
+    element: <NotAllowed />,
+  },  
   
   // Protected routes with layout
   {
