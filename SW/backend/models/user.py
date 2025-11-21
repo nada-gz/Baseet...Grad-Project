@@ -8,11 +8,10 @@ class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     username: str
     email: str
+    hashed_password: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     # One-to-one relationship
     student: Optional["Student"] = Relationship(back_populates="user")
-
-
 
 from .student import Student
