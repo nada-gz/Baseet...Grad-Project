@@ -1,13 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, status
 from datetime import timedelta
-from utils.auth import hash_password, verify_password, create_access_token
-from db.database import get_session
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
-from models.user import User
 from fastapi.security import APIKeyHeader
 from jose import jwt, JWTError
-from utils.auth import SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES
+
+
+from db.database import get_session
+from models.user import User
 from schemas.user_schema import UserCreate, UserLogin, UserRead
+
+
+from utils.auth import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    SECRET_KEY,
+    ACCESS_TOKEN_EXPIRE_MINUTES
+)
+
 
 
 router = APIRouter(
@@ -21,7 +32,7 @@ def register(user: UserCreate, db: Session = Depends(get_session)):
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     hashed = hash_password(user.password)
-    new_user = User(username=user.username, email=user.email, hashed_password=hashed)
+    new_user = User(username=user.username, email=user.email, hashed_password=hashed, role=user.role)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -34,7 +45,12 @@ def login(user: UserLogin, db: Session = Depends(get_session)):
     if not db_user or not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_access_token({"sub": db_user.email}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    return {"access_token": token, "token_type": "bearer"}
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "role": db_user.role.value,
+        "user_id": db_user.id
+    }
 
 oauth2_scheme = APIKeyHeader(
     name="Authorization",
