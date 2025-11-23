@@ -17,15 +17,20 @@ router = APIRouter(
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 def register(user: UserCreate, db: Session = Depends(get_session)):
-    existing_user = db.query(User).filter(User.email == user.email).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    hashed = hash_password(user.password)
-    new_user = User(username=user.username, email=user.email, hashed_password=hashed)
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return {"message": "User registered successfully"}
+    try:
+        existing_user = db.query(User).filter(User.email == user.email).first()
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        hashed = hash_password(user.password)
+        new_user = User(username=user.username, email=user.email, hashed_password=hashed)
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return {"message": "User registered successfully"}
+    except Exception as e:
+        db.rollback()
+        print(f"Registration error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
 
 @router.post("/login")

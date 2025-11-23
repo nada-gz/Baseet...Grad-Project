@@ -1,12 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { testConnection, createUser } from "../../services/api";
+import { testConnection, register } from "../../services/api";
 
 export default function Register() {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState("checking");
@@ -24,15 +25,34 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // TODO: Implement actual registration API call
-      // For now, test backend and create user
-      await testConnection();
-      await createUser(username, email);
+      // Validate form
+      if (!username || !email || !password || !role) {
+        setError("Please fill in all fields");
+        setLoading(false);
+        return;
+      }
+
+      // Register user with backend (role will be added to backend later)
+      await register(username, email, password);
+      
+      // Store role in localStorage for now (until backend supports it)
+      localStorage.setItem("role", role);
       
       // Navigate to login after successful registration
       navigate("/login");
     } catch (err) {
-      setError("Registration failed. Please check if backend is running and try again.");
+      // Show specific error message from backend if available
+      let errorMessage = "Registration failed. Please check if backend is running and try again.";
+      
+      if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
+        errorMessage = "Cannot connect to backend server. Please make sure the backend is running on http://127.0.0.1:8000";
+      } else if (err.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
       console.error("Registration error:", err);
     } finally {
       setLoading(false);
@@ -105,6 +125,24 @@ export default function Register() {
               placeholder="Enter your password"
               required
             />
+          </div>
+          <div>
+            <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+              Role
+            </label>
+            <select
+              id="role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option value="">Select a role</option>
+              <option value="student">Student</option>
+              <option value="teacher">Teacher</option>
+              <option value="parent">Parent</option>
+              <option value="supervisor">Supervisor</option>
+            </select>
           </div>
           <button
             type="submit"
