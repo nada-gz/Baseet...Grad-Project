@@ -10,7 +10,7 @@ export default function ParentDashboard() {
   useEffect(() => {
     const loadStudents = async () => {
       const data = await getUsers();
-      setStudents(data.filter((u) => u.role === "Student"));
+      setStudents(data.filter((u) => u.role.toLowerCase() === "student"));
     };
     loadStudents();
   }, []);
@@ -31,20 +31,14 @@ export default function ParentDashboard() {
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4">Students</h2>
 
-        <ul className="space-y-2">
-          {students.map((s) => (
-            <li key={s.id} className="flex justify-between border-b pb-2">
-              <span>{s.username} ({s.email})</span>
-              <Link
-                className="text-blue-600 hover:underline"
-                to={`/profile/${s.id}`}
-              >
-                View Profile
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <Link
+          to="/students"
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          View All Students
+        </Link>
       </div>
+
     </div>
   );
 }
