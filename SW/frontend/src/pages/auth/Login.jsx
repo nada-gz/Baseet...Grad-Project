@@ -20,7 +20,7 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
+    // Don't clear error here - let it persist until user types or login succeeds
     setLoading(true);
 
     try {
@@ -33,6 +33,9 @@ export default function Login() {
 
       // Call login API
       const response = await login(email, password);
+      
+      // Clear error only on successful login
+      setError("");
       
       // Store token
       localStorage.setItem("token", response.access_token);
@@ -64,6 +67,15 @@ export default function Login() {
     }
   };
 
+  // Don't clear error when typing - let it persist until successful login
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value);
+  };
+
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value);
+  };
+
   return (
     <FormContainer>
       <Card title="Login">
@@ -88,7 +100,7 @@ export default function Login() {
             id="email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={handleEmailChange}
             placeholder="Enter your email"
             required
           />
@@ -97,7 +109,7 @@ export default function Login() {
             id="password"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={handlePasswordChange}
             placeholder="Enter your password"
             required
           />

@@ -33,14 +33,22 @@ export default function Register() {
         return;
       }
 
-      // Register user with backend (role will be added to backend later)
-      await register(username, email, password);
+      // Register user with backend (includes role)
+      const response = await register(username, email, password, role);
       
-      // Store role in localStorage for now (until backend supports it)
-      localStorage.setItem("role", role);
-      
-      // Navigate to login after successful registration
-      navigate("/login");
+      // If registration returns token (auto-login), store it and navigate to dashboard
+      if (response.access_token) {
+        localStorage.setItem("token", response.access_token);
+        const userRole = response.role || role;
+        localStorage.setItem("role", userRole);
+        
+        // Navigate to dashboard based on role
+        navigate(`/dashboard/${userRole}`);
+      } else {
+        // Fallback: store role and navigate to login
+        localStorage.setItem("role", role);
+        navigate("/login");
+      }
     } catch (err) {
       // Show specific error message from backend if available
       let errorMessage = "Registration failed. Please check if backend is running and try again.";

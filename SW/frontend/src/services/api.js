@@ -63,11 +63,12 @@ export const createUser = async (username, email, role) => {
   return response.data;
 };
 
-export const register = async (username, email, password) => {
+export const register = async (username, email, password, role) => {
   const response = await api.post('/auth/register', {
     username,
     email,
     password,
+    role,
   });
   return response.data;
 };
