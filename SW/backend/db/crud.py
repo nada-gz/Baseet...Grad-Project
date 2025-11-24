@@ -1,7 +1,8 @@
 from sqlmodel import select, SQLModel
 from .database import engine, Session
-from models.user import User
+from models.user import User, RoleEnum
 from models.student import Student
+from utils.auth import hash_password
 
 # ---------------------------
 # Database setup
@@ -17,9 +18,10 @@ def create_tables():
 # User CRUD
 # ---------------------------
     
-def add_user(username: str, email: str):
+def add_user(username: str, email: str, password: str, role: RoleEnum = RoleEnum.student):
     with Session(engine) as session:
-        user = User(username=username, email=email)
+        hashed = hash_password(password)
+        user = User(username=username, email=email, hashed_password=hashed, role=role)
         session.add(user)
         session.commit()
         session.refresh(user)
