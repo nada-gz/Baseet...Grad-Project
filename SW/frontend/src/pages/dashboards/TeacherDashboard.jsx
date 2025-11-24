@@ -11,7 +11,7 @@ export default function TeacherDashboard() {
     const loadStudents = async () => {
       const data = await getUsers();
       // filter only students
-      setStudents(data.filter((u) => u.role === "Student"));
+      setStudents(data.filter((u) => u.role.toLowerCase() === "student"));
     };
     loadStudents();
   }, []);

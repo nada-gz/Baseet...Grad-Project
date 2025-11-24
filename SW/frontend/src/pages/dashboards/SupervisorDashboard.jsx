@@ -10,7 +10,7 @@ export default function SupervisorDashboard() {
   useEffect(() => {
     const loadStudents = async () => {
       const data = await getUsers();
-      setStudents(data.filter((u) => u.role === "Student"));
+      setStudents(data.filter((u) => u.role.toLowerCase() === "student"));
     };
     loadStudents();
   }, []);
