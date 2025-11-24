@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { testConnection, getUsers } from "../../services/api";
 import useAuth from "../../hooks/useAuth";
+import { Link } from "react-router-dom";
 
 export default function StudentDashboard() {
   const { user, loading: authLoading, error: authError } = useAuth();
@@ -45,7 +46,7 @@ export default function StudentDashboard() {
         </p>
       </div>
 
-      {/* Backend status box */}
+      {/* Backend status */}
       <div
         className={`mb-4 p-3 rounded ${
           backendStatus === "connected"
@@ -84,8 +85,16 @@ export default function StudentDashboard() {
         )}
       </div>
 
+      {/* 🚀 NEW: Button to go to my profile */}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <p className="text-gray-700">Student Dashboard Content</p>
+        <h2 className="text-xl font-semibold mb-4">My Profile</h2>
+
+        <Link
+          to={`/profile/${user?.id}`}
+          className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+        >
+          Go to My Profile
+        </Link>
       </div>
     </div>
   );

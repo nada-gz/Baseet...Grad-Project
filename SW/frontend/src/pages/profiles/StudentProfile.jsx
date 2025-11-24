@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
-import { useAuth } from "../../hooks/useAuth";
-import { getUserById, api } from "../../services/api";
+import useAuth from "../../hooks/useAuth";
+import api, { getUserById } from "../../services/api";
 
 const StudentProfile = () => {
   const { user } = useAuth(); // Logged-in user
