@@ -7,16 +7,16 @@ import MainLayout from "./layouts/MainLayout";
 // Pages - Public
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
-import NotAllowed from "./pages/general/NotAllowed";
+import NotAllowed from "./pages/auth/NotAllowed";
 
 // Pages - Protected - Dashboards
-import TeacherDashboard from "./pages/dashboard/TeacherDashboard";
-import StudentDashboard from "./pages/dashboard/StudentDashboard";
-import ParentDashboard from "./pages/dashboard/ParentDashboard";
-import SupervisorDashboard from "./pages/dashboard/SupervisorDashboard";
+import TeacherDashboard from "./pages/dashboards/TeacherDashboard";
+import StudentDashboard from "./pages/dashboards/StudentDashboard";
+import ParentDashboard from "./pages/dashboards/ParentDashboard";
+import SupervisorDashboard from "./pages/dashboards/SupervisorDashboard";
 
 // Pages - Protected - Profile
-import StudentProfile from "./pages/profile/StudentProfile";
+import StudentProfile from "./pages/profiles/StudentProfile";
 
 const router = createBrowserRouter([
   // Public routes
