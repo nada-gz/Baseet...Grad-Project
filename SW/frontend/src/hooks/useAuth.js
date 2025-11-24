@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import { getCurrentUser } from "../services/api";
 
 const useAuth = () => {
   const [user, setUser] = useState(null);
@@ -9,14 +9,15 @@ const useAuth = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await axios.get("/auth/me");
-        setUser(res.data);
+        const data = await getCurrentUser();
+        setUser(data);
       } catch (err) {
         setError(err);
       } finally {
         setLoading(false);
       }
     };
+
     fetchUser();
   }, []);
 
