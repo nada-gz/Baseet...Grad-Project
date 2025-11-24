@@ -35,6 +35,19 @@ const router = createBrowserRouter([
     ],
   },
 
+  // Protected routes - Student profile (teacher/parent/student)
+  {
+    element: <ProtectedRoute allowedRoles={["teacher", "parent", "student"]} />,
+    children: [
+      {
+        element: <MainLayout />,
+        children: [
+          { path: "/profile/:studentId", element: <StudentProfile /> },
+        ],
+      },
+    ],
+  },
+
   // Protected routes - Student
   {
     element: <ProtectedRoute allowedRoles={["student"]} />,
