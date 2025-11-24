@@ -4,11 +4,17 @@ import { Navigate, Outlet } from "react-router-dom";
 const ProtectedRoute = ({ allowedRoles }) => {
 
     const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
+    let role = localStorage.getItem("role");
 
     // Not logged in
     if (!token) {
         return <Navigate to="/login" replace />;
+    }
+
+    // If role is missing (for users created before role feature), default to "student"
+    if (!role) {
+        role = "student";
+        localStorage.setItem("role", role);
     }
 
     // Role mismatch

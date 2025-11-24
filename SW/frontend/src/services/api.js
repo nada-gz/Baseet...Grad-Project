@@ -31,6 +31,16 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       window.location.href = '/login';
     }
+    
+    // Better error handling for network errors
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+      console.error('Network Error - Backend may not be running:', {
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        message: 'Make sure the backend server is running on http://127.0.0.1:8000'
+      });
+    }
+    
     return Promise.reject(error);
   }
 );
@@ -46,10 +56,32 @@ export const getUsers = async () => {
   return response.data;
 };
 
-export const createUser = async (username, email) => {
+export const createUser = async (username, email, role) => {
   const response = await api.post('/users/', null, {
-    params: { username, email },
+    params: { username, email, role },
   });
+  return response.data;
+};
+
+export const register = async (username, email, password) => {
+  const response = await api.post('/auth/register', {
+    username,
+    email,
+    password,
+  });
+  return response.data;
+};
+
+export const login = async (email, password) => {
+  const response = await api.post('/auth/login', {
+    email,
+    password,
+  });
+  return response.data;
+};
+
+export const getCurrentUser = async () => {
+  const response = await api.get('/auth/me');
   return response.data;
 };
 
