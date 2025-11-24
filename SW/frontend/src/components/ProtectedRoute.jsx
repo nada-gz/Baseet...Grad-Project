@@ -11,8 +11,17 @@ const ProtectedRoute = ({ allowedRoles }) => {
         return <Navigate to="/login" replace />;
     }
 
+    // If role is required but missing, default to "student" for backward compatibility
+    // This handles accounts created before the role feature was added
+    const userRole = role || "student";
+    
+    // If no role was stored, save the default
+    if (!role) {
+        localStorage.setItem("role", userRole);
+    }
+
     // Role mismatch
-    if (allowedRoles && !allowedRoles.includes(role)) {
+    if (allowedRoles && !allowedRoles.includes(userRole)) {
         return <Navigate to="/not-allowed" replace />;
     }
 

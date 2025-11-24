@@ -26,9 +26,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
+    // Don't redirect on 401 for login/register endpoints - let them handle the error
+    const isAuthEndpoint = error.config?.url?.includes('/auth/login') || 
+                          error.config?.url?.includes('/auth/register');
+    
+    if (error.response?.status === 401 && !isAuthEndpoint) {
+      // Unauthorized on protected routes - clear token and redirect to login
       localStorage.removeItem('token');
+      localStorage.removeItem('role');
       window.location.href = '/login';
     }
     
@@ -66,6 +71,14 @@ export const createUser = async (username, email, role) => {
 export const register = async (username, email, password) => {
   const response = await api.post('/auth/register', {
     username,
+    email,
+    password,
+  });
+  return response.data;
+};
+
+export const login = async (email, password) => {
+  const response = await api.post('/auth/login', {
     email,
     password,
   });

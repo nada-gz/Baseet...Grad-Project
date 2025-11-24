@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { testConnection } from "../../services/api";
+import { testConnection, login } from "../../services/api";
+import { FormContainer, Card, ErrorMessage, Input, Button } from "../../components/ui";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -23,17 +24,44 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // TODO: Implement actual login API call
-      // For now, test backend connection and navigate
-      await testConnection();
+      // Validate form
+      if (!email || !password) {
+        setError("Please enter both email and password");
+        setLoading(false);
+        return;
+      }
+
+      // Call login API
+      const response = await login(email, password);
       
-      // Simulate login - store token
-      localStorage.setItem("token", "test-token");
+      // Store token
+      localStorage.setItem("token", response.access_token);
       
-      // Navigate to dashboard based on role (default to student)
-      navigate("/dashboard/student");
+      // Check if user has a role stored, if not default to "student" for backward compatibility
+      // This handles accounts created before the role feature was added
+      const existingRole = localStorage.getItem("role");
+      if (!existingRole) {
+        localStorage.setItem("role", "student");
+      }
+      
+      // Navigate to dashboard based on role
+      const role = localStorage.getItem("role") || "student";
+      navigate(`/dashboard/${role}`);
     } catch (err) {
-      setError("Failed to connect to server. Please check if backend is running.");
+      // Handle authentication errors
+      let errorMessage = "Login failed. Please check your credentials and try again.";
+      
+      if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
+        errorMessage = "Cannot connect to backend server. Please make sure the backend is running on http://127.0.0.1:8000";
+      } else if (err.response?.status === 401) {
+        errorMessage = err.response?.data?.detail || "Invalid email or password. Please try again.";
+      } else if (err.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
       console.error("Login error:", err);
     } finally {
       setLoading(false);
@@ -41,10 +69,8 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
-        <h1 className="text-2xl font-bold text-center mb-6">Login</h1>
-        
+    <FormContainer>
+      <Card title="Login">
         {/* Backend Status Indicator */}
         <div className={`mb-4 p-2 rounded text-center text-sm ${
           backendStatus === "connected" 
@@ -58,48 +84,36 @@ export default function Login() {
           {backendStatus === "checking" && "Checking backend..."}
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded text-sm">
-            {error}
-          </div>
-        )}
+        <ErrorMessage message={error} variant="error" />
 
         <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter your email"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter your password"
-              required
-            />
-          </div>
-          <button
+          <Input
+            label="Email"
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter your email"
+            required
+          />
+          <Input
+            label="Password"
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter your password"
+            required
+          />
+          <Button
             type="submit"
+            variant="primary"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            loading={loading}
+            className="w-full"
           >
-            {loading ? "Logging in..." : "Login"}
-          </button>
+            Login
+          </Button>
         </form>
         <p className="mt-4 text-center text-sm text-gray-600">
           Don't have an account?{" "}
@@ -107,8 +121,8 @@ export default function Login() {
             Register
           </a>
         </p>
-      </div>
-    </div>
+      </Card>
+    </FormContainer>
   );
 }
 
