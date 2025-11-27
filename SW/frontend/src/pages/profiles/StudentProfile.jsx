@@ -6,27 +6,36 @@ import useAuth from "../../hooks/useAuth";
 import api, { getStudentById } from "../../services/api";
 
 const StudentProfile = () => {
-  const { user } = useAuth(); // Logged-in user
-  const { id: studentId } = useParams(); // Get student ID from URL
+  const { user, loading: authLoading } = useAuth(); // authLoading ensures we know when user is ready
+  const { id: studentId } = useParams();
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const isEditable = user?.role === "Teacher" || user?.role === "Parent";
+  // Determine editability once user is loaded
+  const isEditable = !authLoading && user && (user.role === "Teacher" || user.role === "Parent");
 
-  // Fetch student profile
   useEffect(() => {
+    if (!user) return; // wait until user is loaded
+
     let isMounted = true;
 
     const fetchProfile = async () => {
       setLoading(true);
       try {
         const data = await getStudentById(studentId);
-
         if (!isMounted) return;
 
-        if (!data) {
+        if (data) {
+          setProfile({
+            age: data.age ?? "",
+            autismType: data.autism_type ?? "",
+            sensitivities: data.sensitivities ?? "",
+            learningStyle: data.learning_style ?? "",
+            baselineEngagement: data.baseline_engagement ?? "",
+          });
+        } else {
           alert("Student not found");
           setProfile({
             age: "",
@@ -35,20 +44,11 @@ const StudentProfile = () => {
             learningStyle: "",
             baselineEngagement: "",
           });
-          return;
         }
-
-        setProfile({
-          age: data.age ?? "",
-          autismType: data.autism_type ?? "",
-          sensitivities: data.sensitivities ?? "",
-          learningStyle: data.learning_style ?? "",
-          baselineEngagement: data.baseline_engagement ?? "",
-        });
       } catch (err) {
         console.error("Error fetching profile:", err);
+        alert("Failed to load student profile");
         if (isMounted) {
-          alert("Failed to load student profile");
           setProfile({
             age: "",
             autismType: "",
@@ -67,9 +67,8 @@ const StudentProfile = () => {
     return () => {
       isMounted = false;
     };
-  }, [studentId]);
+  }, [studentId, user]); // depend on user so fetch runs after auth loaded
 
-  // Save handler
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -80,7 +79,7 @@ const StudentProfile = () => {
         sensitivities: profile.sensitivities,
         learning_style: profile.learningStyle,
         baseline_engagement: profile.baselineEngagement,
-      });      
+      });
       alert("Profile saved successfully!");
     } catch (err) {
       console.error("Error saving profile:", err);
@@ -90,8 +89,8 @@ const StudentProfile = () => {
     }
   };
 
-  // Loading skeleton
-  if (loading || profile === null) {
+  // Show skeleton until both auth and profile are ready
+  if (authLoading || loading || profile === null) {
     return (
       <div className="max-w-3xl mx-auto p-6 bg-white rounded shadow animate-pulse">
         <div className="h-6 bg-gray-300 rounded mb-4 w-1/3"></div>
@@ -113,7 +112,6 @@ const StudentProfile = () => {
           readOnly={!isEditable}
           onChange={(e) => setProfile({ ...profile, age: e.target.value })}
         />
-
         <Input
           label="Autism Type"
           value={profile.autismType}
@@ -122,7 +120,6 @@ const StudentProfile = () => {
             setProfile({ ...profile, autismType: e.target.value })
           }
         />
-
         <Input
           label="Sensitivities"
           value={profile.sensitivities}
@@ -131,7 +128,6 @@ const StudentProfile = () => {
             setProfile({ ...profile, sensitivities: e.target.value })
           }
         />
-
         <Input
           label="Learning Style"
           value={profile.learningStyle}
@@ -140,16 +136,12 @@ const StudentProfile = () => {
             setProfile({ ...profile, learningStyle: e.target.value })
           }
         />
-
         <Input
           label="Baseline Engagement"
           value={profile.baselineEngagement}
           readOnly={!isEditable}
           onChange={(e) =>
-            setProfile({
-              ...profile,
-              baselineEngagement: e.target.value,
-            })
+            setProfile({ ...profile, baselineEngagement: e.target.value })
           }
         />
 
