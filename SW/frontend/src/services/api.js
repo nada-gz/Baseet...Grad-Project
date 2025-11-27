@@ -26,21 +26,25 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+
+    if (status === 401) {
       // Unauthorized - clear token and redirect to login
       localStorage.removeItem('token');
       window.location.href = '/login';
     }
-    
-    // Better error handling for network errors
-    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-      console.error('Network Error - Backend may not be running:', {
+
+    // Only log or alert for network errors or server errors (500+)
+    if (!status || status >= 500) {
+      console.error('API Error:', {
         url: error.config?.url,
-        baseURL: error.config?.baseURL,
-        message: 'Make sure the backend server is running on http://127.0.0.1:8000'
+        status: status,
+        message: error.message,
       });
+      alert('Server error or network issue occurred. Please try again.');
     }
-    
+
+    // Do not throw alert for 404 or client errors, just reject
     return Promise.reject(error);
   }
 );
@@ -87,9 +91,29 @@ export const getCurrentUser = async () => {
 };
 
 export const getUserById = async (userId) => {
-  const response = await api.get(`/users/${userId}`);
-  return response.data;
+  try {
+    const response = await api.get(`/users/${userId}`);
+    return response.data;
+  } catch (err) {
+    // If 404, just return null instead of throwing
+    if (err.response?.status === 404) {
+      return null;
+    }
+    // Otherwise rethrow to let interceptor handle server/network errors
+    throw err;
+  }
+};
+
+export const getStudentById = async (studentId) => {
+  try {
+    const response = await api.get(`/students/${studentId}`);
+    return response.data;
+  } catch (err) {
+    if (err.response?.status === 404) {
+      return null; // student not found
+    }
+    throw err; // let interceptor handle other errors
+  }
 };
 
 export default api;
-

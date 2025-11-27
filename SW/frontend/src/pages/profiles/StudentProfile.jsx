@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import useAuth from "../../hooks/useAuth";
-import api, { getUserById } from "../../services/api";
+import api, { getStudentById } from "../../services/api";
 
 const StudentProfile = () => {
   const { user } = useAuth(); // Logged-in user
@@ -22,7 +22,7 @@ const StudentProfile = () => {
     const fetchProfile = async () => {
       setLoading(true);
       try {
-        const data = await getUserById(studentId);
+        const data = await getStudentById(studentId);
 
         if (!isMounted) return;
 
@@ -74,13 +74,13 @@ const StudentProfile = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.put(`/users/${studentId}`, {
+      await api.put(`/students/${studentId}`, {
         age: profile.age,
         autism_type: profile.autismType,
         sensitivities: profile.sensitivities,
         learning_style: profile.learningStyle,
         baseline_engagement: profile.baselineEngagement,
-      });
+      });      
       alert("Profile saved successfully!");
     } catch (err) {
       console.error("Error saving profile:", err);
