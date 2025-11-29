@@ -6,6 +6,15 @@ const useAuth = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Optional: provide logout function
+  const logout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    setUser(null);
+    setError(null);
+    window.location.href = "/login";
+  };
+
   useEffect(() => {
     const fetchUser = async () => {
       const token = localStorage.getItem("token");
@@ -17,15 +26,14 @@ const useAuth = () => {
       try {
         const data = await getCurrentUser();
 
-        // Save latest role + user info locally, fallback to student
-        const role = data?.role || localStorage.getItem("role") || "student";
+        // Save latest role + user info locally, fallback to "student"
+        const role = data?.role || "student";
         localStorage.setItem("role", role);
 
         setUser(data);
       } catch (err) {
         // Invalid token → logout
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
+        logout();
         setError(err?.response?.data?.detail || err.message || "Failed to fetch user");
       } finally {
         setLoading(false);
@@ -35,7 +43,7 @@ const useAuth = () => {
     fetchUser();
   }, []);
 
-  return { user, loading, error };
+  return { user, loading, error, logout };
 };
 
 export default useAuth;
