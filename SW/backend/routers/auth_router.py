@@ -8,77 +8,180 @@ from fastapi.security import APIKeyHeader
 from jose import jwt, JWTError
 from utils.auth import SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES
 from schemas.user_schema import UserCreate, UserLogin, UserRead
+from typing import List
+from functools import wraps
 
 
 router = APIRouter(
     prefix="/auth",
-    tags=["auth"]
+    tags=["Authentication & RBAC"]
 )
 
-@router.post("/register", status_code=status.HTTP_201_CREATED)
-def register(user: UserCreate, db: Session = Depends(get_session)):
-    try:
-        existing_user = db.query(User).filter(User.email == user.email).first()
-        if existing_user:
-            raise HTTPException(status_code=400, detail="Email already registered")
-        hashed = hash_password(user.password)
-        # Use role from request, default to student if not provided
-        user_role = user.role if user.role else RoleEnum.student
-        new_user = User(username=user.username, email=user.email, hashed_password=hashed, role=user_role)
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
-        # Auto-login after registration - return token and role
-        token = create_access_token({"sub": new_user.email}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-        return {
-            "message": "User registered successfully",
-            "access_token": token,
-            "token_type": "bearer",
-            "role": new_user.role.value if new_user.role else "student"
-        }
-    except Exception as e:
-        db.rollback()
-        print(f"Registration error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
-
-@router.post("/login")
-def login(user: UserLogin, db: Session = Depends(get_session)):
-    db_user = db.query(User).filter(User.email == user.email).first()
-    if not db_user or not verify_password(user.password, db_user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    token = create_access_token({"sub": db_user.email}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    # Return role for frontend to store
+# ============================================
+# USER RESPONSE SERIALIZER
+# ============================================
+def user_response(user: User) -> dict:
     return {
-        "access_token": token,
-        "token_type": "bearer",
-        "role": db_user.role.value if db_user.role else "student"
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "role": user.role.value
     }
 
+
+# ============================================
+# TOKEN EXTRACTION
+# ============================================
 oauth2_scheme = APIKeyHeader(
     name="Authorization",
     scheme_name="JWT"
 )
 
-
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_session)):
     if not token.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid token format. Expected 'Bearer <token>'.")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid format. Expected: Bearer <token>"
+        )
 
-    token = token.split(" ")[1]
-    
+    jwt_token = token.split(" ")[1]
+
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        payload = jwt.decode(jwt_token, SECRET_KEY, algorithms=["HS256"])
         email = payload.get("sub")
-        if email is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
+        if not email:
+            raise HTTPException(status_code=401, detail="Invalid token payload")
     except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
     user = db.query(User).filter(User.email == email).first()
-    if user is None:
+
+    if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
     return user
 
+
+# ============================================
+# ROLE-BASED ACCESS 
+# ============================================
+def role_required(allowed_roles: List[str]):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, current_user: User = Depends(get_current_user), **kwargs):
+            if current_user.role.value not in allowed_roles:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Access forbidden for role '{current_user.role.value}'. "
+                           f"Allowed roles: {allowed_roles}"
+                )
+            return func(*args, current_user=current_user, **kwargs)
+        return wrapper
+    return decorator
+
+
+# ============================================
+# REGISTER
+# ============================================
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+def register(user: UserCreate, db: Session = Depends(get_session)):
+
+    # Check email duplication
+    if db.query(User).filter(User.email == user.email).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    hashed_password = hash_password(user.password)
+    role = user.role if user.role else RoleEnum.student  # default = student
+
+    new_user = User(
+        username=user.username,
+        email=user.email,
+        hashed_password=hashed_password,
+        role=role
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    # Auto-generate token after registration
+    token = create_access_token(
+        {"sub": new_user.email},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": user_response(new_user)
+    }
+
+
+# ============================================
+# LOGIN
+# ============================================
+@router.post("/login")
+def login(user: UserLogin, db: Session = Depends(get_session)):
+
+    db_user = db.query(User).filter(User.email == user.email).first()
+
+    if not db_user or not verify_password(user.password, db_user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    token = create_access_token(
+        {"sub": db_user.email},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": user_response(db_user)
+    }
+
+
+# ============================================
+# CURRENT USER
+# ============================================
 @router.get("/me", response_model=UserRead)
 def read_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+# ============================================
+# PROTECTED ROUTES 
+# ============================================
+
+# ---- Student
+@router.get("/student/home")
+@role_required(["student"])
+def student_home(current_user: User):
+    return {"message": "Student access granted", "user": user_response(current_user)}
+
+# ---- Teacher
+@router.get("/teacher/dashboard")
+@role_required(["teacher"])
+def teacher_dashboard(current_user: User):
+    return {"message": "Teacher access granted", "user": user_response(current_user)}
+
+# ---- Parent
+@router.get("/parent/overview")
+@role_required(["parent"])
+def parent_overview(current_user: User):
+    return {"message": "Parent access granted", "user": user_response(current_user)}
+
+# ---- Supervisor
+@router.get("/supervisor/panel")
+@role_required(["supervisor"])
+def supervisor_panel(current_user: User):
+    return {"message": "Supervisor access granted", "user": user_response(current_user)}
+
+# ---- Shared Access: teacher + supervisor
+@router.get("/teaching-management")
+@role_required(["teacher", "supervisor"])
+def teaching_management(current_user: User):
+    return {
+        "message": "Teacher or Supervisor access granted",
+        "user": user_response(current_user)
+    }
