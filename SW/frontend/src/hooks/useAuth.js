@@ -8,11 +8,25 @@ const useAuth = () => {
 
   useEffect(() => {
     const fetchUser = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const data = await getCurrentUser();
+
+        // Save latest role + user info locally, fallback to student
+        const role = data?.role || localStorage.getItem("role") || "student";
+        localStorage.setItem("role", role);
+
         setUser(data);
       } catch (err) {
-        setError(err);
+        // Invalid token → logout
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        setError(err?.response?.data?.detail || err.message || "Failed to fetch user");
       } finally {
         setLoading(false);
       }
