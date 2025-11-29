@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { testConnection, getUsers } from "../../services/api";
+import api from "../../services/api";
 import useAuth from "../../hooks/useAuth";
 import { Link } from "react-router-dom";
 
@@ -9,21 +9,31 @@ export default function StudentDashboard() {
   const [backendStatus, setBackendStatus] = useState("checking");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState("");
 
   useEffect(() => {
-    testConnection()
-      .then(() => {
+    const testBackend = async () => {
+      try {
+        await api.get("/"); // simple test endpoint
         setBackendStatus("connected");
-        loadUsers();
-      })
-      .catch(() => setBackendStatus("disconnected"));
+        await loadUsers();
+      } catch {
+        setBackendStatus("disconnected");
+      }
+    };
+
+    testBackend();
   }, []);
 
   const loadUsers = async () => {
     setLoading(true);
+    setFetchError("");
     try {
-      const data = await getUsers();
-      setUsers(data);
+      const response = await api.get("/users"); // fetch all users
+      setUsers(response.data);
+    } catch (err) {
+      console.error("Error loading users:", err);
+      setFetchError("Failed to load users. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -38,12 +48,8 @@ export default function StudentDashboard() {
 
       {/* Welcome box */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-4">
-        <h2 className="text-xl font-semibold mb-2">
-          Welcome, {user?.username}
-        </h2>
-        <p className="text-gray-700">
-          This is your Student Dashboard.
-        </p>
+        <h2 className="text-xl font-semibold mb-2">Welcome, {user?.username}</h2>
+        <p className="text-gray-700">This is your Student Dashboard.</p>
       </div>
 
       {/* Backend status */}
@@ -54,9 +60,7 @@ export default function StudentDashboard() {
             : "bg-red-100 text-red-700"
         }`}
       >
-        {backendStatus === "connected"
-          ? "✓ Backend Connected"
-          : "✗ Backend Disconnected"}
+        {backendStatus === "connected" ? "✓ Backend Connected" : "✗ Backend Disconnected"}
       </div>
 
       {/* Load users test */}
@@ -70,6 +74,8 @@ export default function StudentDashboard() {
         >
           {loading ? "Loading..." : "Load Users from Backend"}
         </button>
+
+        {fetchError && <p className="text-red-600 mt-2">{fetchError}</p>}
 
         {users.length > 0 && (
           <div className="mt-4">
@@ -85,7 +91,7 @@ export default function StudentDashboard() {
         )}
       </div>
 
-      {/* 🚀 NEW: Button to go to my profile */}
+      {/* Button to go to my profile */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4">My Profile</h2>
 
