@@ -35,10 +35,11 @@ export default function Login() {
 
       // Save token + role
       localStorage.setItem("token", response.access_token);
-      localStorage.setItem("role", response.role);
+      localStorage.setItem("role", response.user.role);
+      localStorage.setItem("user", JSON.stringify(response.user));
 
       // Redirect
-      navigate(`/dashboard/${response.role}`);
+      navigate(`/dashboard/${response.user.role}`);
 
     } catch (err) {
       let errorMessage = "Login failed. Please check your credentials and try again.";
