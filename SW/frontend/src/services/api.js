@@ -27,7 +27,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Token expired or invalid → logout
       localStorage.removeItem('token');
-      localStorage.removeItem('role');
+      localStorage.removeItem('user');
       window.location.href = '/login';
     }
 
@@ -51,8 +51,11 @@ export const register = async (username, email, password, role) => {
     role,
   });
 
-  localStorage.setItem('token', response.data.access_token);
-  localStorage.setItem('role', response.data.role); // only role
+  const { access_token, user } = response.data;
+
+  // Save token and user in localStorage
+  localStorage.setItem('token', access_token);
+  localStorage.setItem('user', JSON.stringify(user));
 
   return response.data;
 };
@@ -63,15 +66,18 @@ export const login = async (email, password) => {
     password,
   });
 
-  localStorage.setItem('token', response.data.access_token);
-  localStorage.setItem('role', response.data.role); // only role
+  const { access_token, user } = response.data;
+
+  // Save token and user in localStorage
+  localStorage.setItem('token', access_token);
+  localStorage.setItem('user', JSON.stringify(user));
 
   return response.data;
 };
 
 export const logout = () => {
   localStorage.removeItem('token');
-  localStorage.removeItem('role');
+  localStorage.removeItem('user');
   window.location.href = '/login';
 };
 

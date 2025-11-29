@@ -1,17 +1,24 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
-import { getUsers } from "../../services/api";
+import api from "../../services/api";
 
 export default function TeacherDashboard() {
   const { user, loading, error } = useAuth();
   const [students, setStudents] = useState([]);
+  const [fetchError, setFetchError] = useState("");
 
   useEffect(() => {
     const loadStudents = async () => {
-      const data = await getUsers();
-      // filter only students
-      setStudents(data.filter((u) => u.role.toLowerCase() === "student"));
+      setFetchError("");
+      try {
+        const response = await api.get("/users"); // fetch all users
+        // filter only students
+        setStudents(response.data.filter((u) => u.role.toLowerCase() === "student"));
+      } catch (err) {
+        console.error("Error loading students:", err);
+        setFetchError("Failed to load students. Please try again later.");
+      }
     };
     loadStudents();
   }, []);
@@ -32,10 +39,14 @@ export default function TeacherDashboard() {
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4">Students</h2>
 
+        {fetchError && <p className="text-red-600 mb-2">{fetchError}</p>}
+
         <ul className="space-y-2">
           {students.map((s) => (
             <li key={s.id} className="flex justify-between border-b pb-2">
-              <span>{s.username} ({s.email})</span>
+              <span>
+                {s.username} ({s.email})
+              </span>
               <Link
                 className="text-blue-600 hover:underline"
                 to={`/profile/${s.id}`}

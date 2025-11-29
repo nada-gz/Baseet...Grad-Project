@@ -1,22 +1,34 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import useAuth from "../../hooks/useAuth";
-import { getUsers } from "../../services/api";
+import api from "../../services/api";
 
 export default function ParentDashboard() {
   const { user, loading, error } = useAuth();
   const [students, setStudents] = useState([]);
+  const [fetchError, setFetchError] = useState("");
 
   useEffect(() => {
     const loadStudents = async () => {
-      const data = await getUsers();
-      setStudents(data.filter((u) => u.role.toLowerCase() === "student"));
+      try {
+        const response = await api.get("/users"); // make sure backend /users endpoint exists
+        const allUsers = response.data;
+        const studentUsers = allUsers.filter(
+          (u) => u.role.toLowerCase() === "student"
+        );
+        setStudents(studentUsers);
+      } catch (err) {
+        console.error("Error fetching users:", err);
+        setFetchError("Failed to load students. Please try again later.");
+      }
     };
+
     loadStudents();
   }, []);
 
   if (loading) return <p className="p-6">Loading...</p>;
   if (error) return <p className="p-6 text-red-600">Error loading user.</p>;
+  if (fetchError) return <p className="p-6 text-red-600">{fetchError}</p>;
 
   return (
     <div className="p-6">
@@ -38,7 +50,6 @@ export default function ParentDashboard() {
           View All Students
         </Link>
       </div>
-
     </div>
   );
 }
