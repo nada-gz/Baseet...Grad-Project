@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { testConnection, login } from "../../services/api";
+import { login } from "../../api/auth";
+import api from "../../api/axios";
 import { FormContainer, Card, ErrorMessage, Input, Button } from "../../components/ui";
 
 export default function Login() {
@@ -13,7 +14,7 @@ export default function Login() {
 
   // Test backend connection on mount
   useEffect(() => {
-    testConnection()
+    api.get('/')
       .then(() => setBackendStatus("connected"))
       .catch(() => setBackendStatus("disconnected"));
   }, []);
@@ -31,20 +32,23 @@ export default function Login() {
         return;
       }
 
-      // Call login API
-      const response = await login(email, password);
+      // Call login API with form data
+      const response = await login({
+        email,
+        password,
+      });
       
       // Clear error only on successful login
       setError("");
       
-      // Store token
+      // Store JWT token
       localStorage.setItem("token", response.access_token);
       
-      // Store role (default to "student" if not provided for backward compatibility)
-      const role = response.role || localStorage.getItem("role") || "student";
+      // Store user role from response
+      const role = response.user?.role || "student";
       localStorage.setItem("role", role);
       
-      // Navigate to dashboard based on role
+      // Redirect to dashboard based on role
       navigate(`/dashboard/${role}`);
     } catch (err) {
       // Handle authentication errors - show error message, don't redirect

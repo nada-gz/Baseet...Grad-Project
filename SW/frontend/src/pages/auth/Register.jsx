@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { testConnection, register } from "../../services/api";
+import { register } from "../../api/auth";
+import api from "../../api/axios";
 import { FormContainer, Card, ErrorMessage, Input, Button } from "../../components/ui";
 
 export default function Register() {
@@ -15,7 +16,7 @@ export default function Register() {
 
   // Test backend connection on mount
   useEffect(() => {
-    testConnection()
+    api.get('/')
       .then(() => setBackendStatus("connected"))
       .catch(() => setBackendStatus("disconnected"));
   }, []);
@@ -33,22 +34,23 @@ export default function Register() {
         return;
       }
 
-      // Register user with backend (includes role)
-      const response = await register(username, email, password, role);
+      // Register user with backend - send form data
+      const response = await register({
+        username,
+        email,
+        password,
+        role,
+      });
       
-      // If registration returns token (auto-login), store it and navigate to dashboard
-      if (response.access_token) {
-        localStorage.setItem("token", response.access_token);
-        const userRole = response.role || role;
-        localStorage.setItem("role", userRole);
-        
-        // Navigate to dashboard based on role
-        navigate(`/dashboard/${userRole}`);
-      } else {
-        // Fallback: store role and navigate to login
-        localStorage.setItem("role", role);
-        navigate("/login");
-      }
+      // Registration returns token automatically - store it
+      localStorage.setItem("token", response.access_token);
+      
+      // Store user role from response
+      const userRole = response.user?.role || role;
+      localStorage.setItem("role", userRole);
+      
+      // Redirect to login after successful registration
+      navigate("/login");
     } catch (err) {
       // Show specific error message from backend if available
       let errorMessage = "Registration failed. Please check if backend is running and try again.";
