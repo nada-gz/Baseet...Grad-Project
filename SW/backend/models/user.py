@@ -20,7 +20,6 @@ class User(SQLModel, table=True):
     role: RoleEnum = Field(default=RoleEnum.student)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    # One-to-one relationship
     student: Optional["Student"] = Relationship(back_populates="user")
 
 from .student import Student

@@ -4,6 +4,7 @@ from db.crud import create_tables
 from routers.user_router import router as user_router
 from routers.student_router import router as student_router
 from routers.auth_router import router as auth_router
+from routers.dashboard_router import router as dashboard_router
 
 app = FastAPI(title="My Backend Project")
 
@@ -16,12 +17,16 @@ app.add_middleware(
 )
 
 # Create tables on startup
-create_tables()
+@app.on_event("startup")
+def on_startup():
+    create_tables()
+
 
 # Include routers
 app.include_router(user_router)
 app.include_router(student_router)
 app.include_router(auth_router)
+app.include_router(dashboard_router)
 
 # Root route
 @app.get("/")

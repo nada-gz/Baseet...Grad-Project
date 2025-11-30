@@ -3,48 +3,39 @@ import { useParams } from "react-router-dom";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import useAuth from "../../hooks/useAuth";
-import api, { getStudentById } from "../../services/api";
+import api from "../../services/api";
 
 const StudentProfile = () => {
-  const { user, loading: authLoading } = useAuth(); // authLoading ensures we know when user is ready
+  const { user, loading: authLoading } = useAuth(); 
   const { id: studentId } = useParams();
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Determine editability once user is loaded
   const isEditable = !authLoading && user && (user.role === "Teacher" || user.role === "Parent");
 
   useEffect(() => {
-    if (!user) return; // wait until user is loaded
+    if (!user) return; 
 
     let isMounted = true;
 
     const fetchProfile = async () => {
       setLoading(true);
       try {
-        const data = await getStudentById(studentId);
+        const response = await api.get(`/students/${studentId}`);
         if (!isMounted) return;
 
-        if (data) {
-          setProfile({
-            age: data.age ?? "",
-            autismType: data.autism_type ?? "",
-            sensitivities: data.sensitivities ?? "",
-            learningStyle: data.learning_style ?? "",
-            baselineEngagement: data.baseline_engagement ?? "",
-          });
-        } else {
-          alert("Student not found");
-          setProfile({
-            age: "",
-            autismType: "",
-            sensitivities: "",
-            learningStyle: "",
-            baselineEngagement: "",
-          });
-        }
+        const data = response.data;
+
+        setProfile({
+          age: data.age ?? "",
+          autismType: data.autism_type ?? "",
+          sensitivities: data.sensitivities ?? "",
+          learningStyle: data.learning_style ?? "",
+          baselineEngagement: data.baseline_engagement ?? "",
+        });
+
       } catch (err) {
         console.error("Error fetching profile:", err);
         alert("Failed to load student profile");
@@ -67,7 +58,7 @@ const StudentProfile = () => {
     return () => {
       isMounted = false;
     };
-  }, [studentId, user]); // depend on user so fetch runs after auth loaded
+  }, [studentId, user]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -89,7 +80,6 @@ const StudentProfile = () => {
     }
   };
 
-  // Show skeleton until both auth and profile are ready
   if (authLoading || loading || profile === null) {
     return (
       <div className="max-w-3xl mx-auto p-6 bg-white rounded shadow animate-pulse">
