@@ -1,11 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { login } from "../../api/auth";
+import { login as loginAPI } from "../../api/auth";
+import { useAuth } from "../../context/AuthContext";
 import api from "../../api/axios";
 import { FormContainer, Card, ErrorMessage, Input, Button } from "../../components/ui";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login: loginContext } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -33,7 +35,7 @@ export default function Login() {
       }
 
       // Call login API with form data
-      const response = await login({
+      const response = await loginAPI({
         email,
         password,
       });
@@ -41,12 +43,9 @@ export default function Login() {
       // Clear error only on successful login
       setError("");
       
-      // Store JWT token
-      localStorage.setItem("token", response.access_token);
-      
-      // Store user role from response
+      // Store JWT token and update auth context
       const role = response.user?.role || "student";
-      localStorage.setItem("role", role);
+      loginContext(response.access_token, response.user, role);
       
       // Redirect to dashboard based on role
       navigate(`/dashboard/${role}`);

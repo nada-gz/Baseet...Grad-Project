@@ -1,11 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { register } from "../../api/auth";
+import { register as registerAPI } from "../../api/auth";
+import { useAuth } from "../../context/AuthContext";
 import api from "../../api/axios";
 import { FormContainer, Card, ErrorMessage, Input, Button } from "../../components/ui";
 
 export default function Register() {
   const navigate = useNavigate();
+  const { login: loginContext } = useAuth();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,19 +37,16 @@ export default function Register() {
       }
 
       // Register user with backend - send form data
-      const response = await register({
+      const response = await registerAPI({
         username,
         email,
         password,
         role,
       });
       
-      // Registration returns token automatically - store it
-      localStorage.setItem("token", response.access_token);
-      
-      // Store user role from response
+      // Registration returns token automatically - store it and update auth context
       const userRole = response.user?.role || role;
-      localStorage.setItem("role", userRole);
+      loginContext(response.access_token, response.user, userRole);
       
       // Redirect to login after successful registration
       navigate("/login");
