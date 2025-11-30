@@ -1,21 +1,34 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getUsers } from "../../services/api";
+import api from "../../services/api";
 
 export default function AllStudents() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const loadStudents = async () => {
-      const data = await getUsers();
-      setStudents(data.filter((u) => u.role.toLowerCase() === "student"));
-      setLoading(false);
+      try {
+        const response = await api.get("/users"); // make sure this endpoint exists in backend
+        const allUsers = response.data;
+        const studentUsers = allUsers.filter(
+          (u) => u.role.toLowerCase() === "student"
+        );
+        setStudents(studentUsers);
+      } catch (err) {
+        console.error("Error fetching users:", err);
+        setError("Failed to load students. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
     };
+
     loadStudents();
   }, []);
 
   if (loading) return <p className="p-6">Loading...</p>;
+  if (error) return <p className="p-6 text-red-600">{error}</p>;
 
   return (
     <div className="p-6">
