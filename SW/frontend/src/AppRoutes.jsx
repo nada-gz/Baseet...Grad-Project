@@ -30,7 +30,10 @@ const router = createBrowserRouter([
     children: [
       {
         element: <MainLayout />,
-        children: [{ path: "/dashboard/teacher", element: <TeacherDashboard /> }],
+        children: [
+          { path: "/dashboard/teacher", element: <TeacherDashboard /> },
+          { path: "/profile/:studentId", element: <StudentProfile /> },
+        ],
       },
     ],
   },
@@ -55,7 +58,10 @@ const router = createBrowserRouter([
     children: [
       {
         element: <MainLayout />,
-        children: [{ path: "/dashboard/parent", element: <ParentDashboard /> }],
+        children: [
+          { path: "/dashboard/parent", element: <ParentDashboard /> },
+          { path: "/profile/:studentId", element: <StudentProfile /> },
+        ],
       },
     ],
   },
