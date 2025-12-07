@@ -1,0 +1,85 @@
+@startuml Activity
+title Adaptive Learning System – Activity Diagram 
+skinparam backgroundColor #FFFFFF
+skinparam activity {
+    StartColor Black
+    EndColor Black
+    DiamondBackgroundColor #F2F2F2
+    DiamondBorderColor Black
+    BorderColor Black
+    FontColor Black
+    ArrowColor Black
+    BackgroundColor #E8E8E8
+}
+
+' ======= LANE 1: STUDENT =======
+partition "Student" {
+    start
+    :Start Learning Session;
+    :Engage with Lesson;
+    :Ask Questions (Voice/Text/Touch);
+    :Provide Emotional & Focus Signals;
+}
+
+' ======= LANE 2: AI TUTOR =======
+partition "AI Tutor" {
+    :Analyze Focus & Emotion Signals;
+    if (Student Focused?) then (Yes)
+        :Continue Lesson Normally;
+        :Reward with Positive Feedback;
+    else (No)
+        if (Stress High?) then (Yes)
+            :Pause and Offer Calming Activity;
+        else (No)
+            :Repeat Lesson with Visual Aids;
+        endif
+    endif
+
+    :Answer Student Questions;
+    :Track Accuracy, Engagement, Emotion;
+
+    if (Accuracy ≥ Threshold?) then (Yes)
+        :Display Achievement Badge;
+    else (No)
+        :Provide Constructive Feedback;
+    endif
+
+    if (Stress Limit Exceeded?) then (Yes)
+        :Trigger Alert to Parent;
+    endif
+
+    :Update Parent Dashboard;
+    :Update Teacher Dashboard;
+    :Update Supervisor Report;
+}
+
+' ======= LANE 3: PARENT =======
+partition "Parent" {
+    :View Child’s Progress Dashboard;
+    :Receive Stress Alerts;
+    :Adjust Learning Goals or Difficulty;
+    if (Time Limit Reached?) then (Yes)
+        :End Session and Save Progress;
+    endif
+}
+
+' ======= LANE 4: TEACHER =======
+partition "Teacher" {
+    :Upload Lessons or Materials;
+    :Monitor Student Engagement Indicators;
+    :Check AI Responses and Flag Inaccuracies;
+    :Add Corrections for AI Retraining;
+}
+
+' ======= LANE 5: SUPERVISOR =======
+partition "Supervisor" {
+    :Monitor Overall Student Progress;
+    :Review Teacher Contributions;
+    :Review Expert Recommendations;
+    :Approve and Apply Improvements;
+}
+
+' ======= FINAL SUMMARY =======
+:Compile Session Summary & Reports;
+stop
+@enduml
