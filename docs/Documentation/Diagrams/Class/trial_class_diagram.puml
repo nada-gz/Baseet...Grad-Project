@@ -1,0 +1,26 @@
+@startuml class_diagram
+left to right direction
+skinparam ranksep 50
+skinparam nodesep 30
+
+class Student {
+  +name: String
+  +email: String
+  +register()
+  +submitAssignment()
+}
+
+class Course {
+  +title: String
+  +credits: int
+  +addStudent()
+}
+
+class Teacher {
+  +name: String
+  +assignGrade()
+}
+
+Student --> Course : enrolls in
+Teacher --> Course : manages
+@enduml
