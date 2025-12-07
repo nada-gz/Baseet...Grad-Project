@@ -1,50 +1,59 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { testConnection, login } from "../../services/api";
+import { login as loginAPI } from "../../api/auth";
+import { useAuth } from "../../context/AuthContext";
+import api from "../../api/axios";
 import { FormContainer, Card, ErrorMessage, Input, Button } from "../../components/ui";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login: loginContext } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState("checking");
 
+  // Test backend connection on mount
   useEffect(() => {
-    testConnection()
+    api.get('/')
       .then(() => setBackendStatus("connected"))
       .catch(() => setBackendStatus("disconnected"));
   }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    // Don't clear error here - let it persist until user types or login succeeds
     setLoading(true);
 
     try {
+      // Validate form
       if (!email || !password) {
         setError("Please enter both email and password");
         setLoading(false);
         return;
       }
 
-      const response = await login(email, password);
-
-      // Clear previous error
+      // Call login API with form data
+      const response = await loginAPI({
+        email,
+        password,
+      });
+      
+      // Clear error only on successful login
       setError("");
-
-      // Save token + role
-      localStorage.setItem("token", response.access_token);
-      localStorage.setItem("role", response.user.role);
-      localStorage.setItem("user", JSON.stringify(response.user));
-
-      // Redirect
-      navigate(`/dashboard/${response.user.role}`);
-
+      
+      // Store JWT token and update auth context
+      const role = response.user?.role || "student";
+      loginContext(response.access_token, response.user, role);
+      
+      // Redirect to dashboard based on role
+      navigate(`/dashboard/${role}`);
     } catch (err) {
+      // Handle authentication errors - show error message, don't redirect
       let errorMessage = "Login failed. Please check your credentials and try again.";
-
-      if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
+      
+      if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
         errorMessage = "Cannot connect to backend server. Please make sure the backend is running on http://127.0.0.1:8000";
       } else if (err.response?.status === 401) {
         errorMessage = err.response?.data?.detail || "Invalid email or password. Please try again.";
@@ -53,7 +62,7 @@ export default function Login() {
       } else if (err.message) {
         errorMessage = err.message;
       }
-
+      
       setError(errorMessage);
       console.error("Login error:", err);
     } finally {
@@ -61,12 +70,22 @@ export default function Login() {
     }
   };
 
+  // Don't clear error when typing - let it persist until successful login
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value);
+  };
+
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value);
+  };
+
   return (
     <FormContainer>
       <Card title="Login">
+        {/* Backend Status Indicator */}
         <div className={`mb-4 p-2 rounded text-center text-sm ${
-          backendStatus === "connected"
-            ? "bg-green-100 text-green-700"
+          backendStatus === "connected" 
+            ? "bg-green-100 text-green-700" 
             : backendStatus === "disconnected"
             ? "bg-red-100 text-red-700"
             : "bg-yellow-100 text-yellow-700"
@@ -84,7 +103,7 @@ export default function Login() {
             id="email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={handleEmailChange}
             placeholder="Enter your email"
             required
           />
@@ -93,11 +112,10 @@ export default function Login() {
             id="password"
             type="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={handlePasswordChange}
             placeholder="Enter your password"
             required
           />
-
           <Button
             type="submit"
             variant="primary"
@@ -108,7 +126,6 @@ export default function Login() {
             Login
           </Button>
         </form>
-
         <p className="mt-4 text-center text-sm text-gray-600">
           Don't have an account?{" "}
           <a href="/register" className="text-blue-600 hover:underline">
@@ -119,3 +136,4 @@ export default function Login() {
     </FormContainer>
   );
 }
+
