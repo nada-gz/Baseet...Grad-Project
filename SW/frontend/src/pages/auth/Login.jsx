@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { login as loginAPI } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../api/axios";
-import { FormContainer, Card, ErrorMessage, Input, Button } from "../../components/ui";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -14,7 +13,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState("checking");
 
-  // Test backend connection on mount
   useEffect(() => {
     api.get('/')
       .then(() => setBackendStatus("connected"))
@@ -23,46 +21,29 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    // Don't clear error here - let it persist until user types or login succeeds
+    setError("");
     setLoading(true);
 
-    try {
-      // Validate form
-      if (!email || !password) {
-        setError("Please enter both email and password");
-        setLoading(false);
-        return;
-      }
+    if (!email || !password) {
+      setError("Please enter both email and password");
+      setLoading(false);
+      return;
+    }
 
-      // Call login API with form data
-      const response = await loginAPI({
-        email,
-        password,
-      });
-      
-      // Clear error only on successful login
-      setError("");
-      
-      // Store JWT token and update auth context
+    try {
+      const response = await loginAPI({ email, password });
       const role = response.user?.role || "student";
       loginContext(response.access_token, response.user, role);
-      
-      // Redirect to dashboard based on role
       navigate(`/dashboard/${role}`);
     } catch (err) {
-      // Handle authentication errors - show error message, don't redirect
       let errorMessage = "Login failed. Please check your credentials and try again.";
-      
-      if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
-        errorMessage = "Cannot connect to backend server. Please make sure the backend is running on http://127.0.0.1:8000";
+
+      if (err.code === 'ERR_NETWORK') {
+        errorMessage = "Cannot connect to backend. Make sure the server is running.";
       } else if (err.response?.status === 401) {
-        errorMessage = err.response?.data?.detail || "Invalid email or password. Please try again.";
-      } else if (err.response?.data?.detail) {
-        errorMessage = err.response.data.detail;
-      } else if (err.message) {
-        errorMessage = err.message;
+        errorMessage = "Invalid email or password.";
       }
-      
+
       setError(errorMessage);
       console.error("Login error:", err);
     } finally {
@@ -70,70 +51,68 @@ export default function Login() {
     }
   };
 
-  // Don't clear error when typing - let it persist until successful login
-  const handleEmailChange = (e) => {
-    setEmail(e.target.value);
-  };
-
-  const handlePasswordChange = (e) => {
-    setPassword(e.target.value);
-  };
-
   return (
-    <FormContainer>
-      <Card title="Login">
-        {/* Backend Status Indicator */}
-        <div className={`mb-4 p-2 rounded text-center text-sm ${
-          backendStatus === "connected" 
-            ? "bg-green-100 text-green-700" 
-            : backendStatus === "disconnected"
-            ? "bg-red-100 text-red-700"
-            : "bg-yellow-100 text-yellow-700"
-        }`}>
-          {backendStatus === "connected" && "✓ Backend Connected"}
-          {backendStatus === "disconnected" && "✗ Backend Disconnected"}
-          {backendStatus === "checking" && "Checking backend..."}
-        </div>
+    <div className="form-container">
+      <div className="form-inner card">
+        <h2 className="card-title">Login</h2>
 
-        <ErrorMessage message={error} variant="error" />
+        {/* Backend Status
+        {backendStatus !== "checking" && (
+          <div
+            className={`status ${
+              backendStatus === "connected"
+                ? "connected"
+                : "disconnected"
+            }`}
+          >
+            {backendStatus === "connected" ? "✓ Backend Connected" : "✗ Backend Disconnected"}
+          </div>
+        )} */}
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <Input
-            label="Email"
+        {/* Error Message */}
+        {error && <p className="error-message">{error}</p>}
+
+        {/* Login Form */}
+        <form onSubmit={handleLogin} className="form">
+          <label htmlFor="email">
+            Email 
+          </label>
+          <input
             id="email"
             type="email"
             value={email}
-            onChange={handleEmailChange}
+            onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email"
             required
           />
-          <Input
-            label="Password"
+
+          <label htmlFor="password">
+            Password 
+          </label>
+          <input
             id="password"
             type="password"
             value={password}
-            onChange={handlePasswordChange}
+            onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter your password"
             required
           />
-          <Button
+
+          <button
             type="submit"
-            variant="primary"
+            className="btn btn-primary formButton"
             disabled={loading}
-            loading={loading}
-            className="w-full"
           >
-            Login
-          </Button>
+            {loading ? "Logging in..." : "Login"}
+          </button>
         </form>
-        <p className="mt-4 text-center text-sm text-gray-600">
+
+        {/* Register Link */}
+        <p className="text-center mt-6 text-sm">
           Don't have an account?{" "}
-          <a href="/register" className="text-blue-600 hover:underline">
-            Register
-          </a>
+          <a href="/register">Register</a>
         </p>
-      </Card>
-    </FormContainer>
+      </div>
+    </div>
   );
 }
-
