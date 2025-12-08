@@ -16,7 +16,7 @@ import ParentDashboard from "./pages/dashboards/ParentDashboard";
 import SupervisorDashboard from "./pages/dashboards/SupervisorDashboard";
 
 // Pages - Protected - Profile
-import StudentProfile from "./pages/profiles/StudentProfile";
+import StudentProfile from "./pages/profile/StudentProfile";
 
 import AllStudents from "./pages/dashboards/AllStudents";
 
