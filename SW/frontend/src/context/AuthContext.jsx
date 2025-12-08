@@ -36,8 +36,17 @@ export const AuthProvider = ({ children }) => {
   const fetchCurrentUser = async () => {
     try {
       const response = await api.get('/auth/me');
-      setUser(response.data);
-      setRole(response.data.role?.value || response.data.role || localStorage.getItem('role'));
+      const userData = response.data;
+      const userRole = userData.role?.value || userData.role || localStorage.getItem('role');
+      
+      // Update localStorage to keep it in sync
+      localStorage.setItem('user', JSON.stringify(userData));
+      if (userRole) {
+        localStorage.setItem('role', userRole);
+      }
+      
+      setUser(userData);
+      setRole(userRole);
       setIsAuthenticated(true);
     } catch (error) {
       console.error('Error fetching current user:', error);
@@ -54,6 +63,7 @@ export const AuthProvider = ({ children }) => {
   const login = (token, userData, userRole) => {
     localStorage.setItem('token', token);
     localStorage.setItem('role', userRole);
+    localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
     setRole(userRole);
     setIsAuthenticated(true);
@@ -63,6 +73,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
+    localStorage.removeItem('user');
     setUser(null);
     setRole(null);
     setIsAuthenticated(false);
