@@ -6,102 +6,90 @@ import { Link } from "react-router-dom";
 export default function StudentDashboard() {
   const { user, loading: authLoading, error: authError } = useAuth();
 
-  const [backendStatus, setBackendStatus] = useState("checking");
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [fetchError, setFetchError] = useState("");
+  const [milestones, setMilestones] = useState([]);
+  const [selectedMilestone, setSelectedMilestone] = useState(null);
+  const [loading, setLoading] = useState(true);
 
+  // Simulating real backend milestone progress
   useEffect(() => {
-    const testBackend = async () => {
+    const loadMilestones = async () => {
       try {
-        await api.get("/"); // simple test endpoint
-        setBackendStatus("connected");
-        await loadUsers();
-      } catch {
-        setBackendStatus("disconnected");
+        const response = await api.get(`/student/${user.id}/milestones`);
+        setMilestones(response.data);
+      } catch (error) {
+        console.error("Error loading milestones:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    testBackend();
-  }, []);
+    if (user) loadMilestones();
+  }, [user]);
 
-  const loadUsers = async () => {
-    setLoading(true);
-    setFetchError("");
-    try {
-      const response = await api.get("/users"); // fetch all users
-      setUsers(response.data);
-    } catch (err) {
-      console.error("Error loading users:", err);
-      setFetchError("Failed to load users. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (authLoading || loading) return <div className="dashboard-loading">Loading...</div>;
+  if (authError) return <div className="dashboard-error">Error loading dashboard.</div>;
 
-  if (authLoading) return <p className="p-6">Loading...</p>;
-  if (authError) return <p className="p-6 text-red-600">Error loading user.</p>;
+  const currentLesson = milestones.find(m => m.status === "in-progress");
 
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-4">Student Dashboard</h1>
+    <div className="student-dashboard">
 
-      {/* Welcome box */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-4">
-        <h2 className="text-xl font-semibold mb-2">Welcome, {user?.username}</h2>
-        <p className="text-gray-700">This is your Student Dashboard.</p>
-      </div>
+      {/* LEFT: MILESTONE MENU */}
+      <aside className="milestone-sidebar">
+        <h2 className="sidebar-title">📘 Your Lessons</h2>
 
-      {/* Backend status */}
-      <div
-        className={`mb-4 p-3 rounded ${
-          backendStatus === "connected"
-            ? "bg-green-100 text-green-700"
-            : "bg-red-100 text-red-700"
-        }`}
-      >
-        {backendStatus === "connected" ? "✓ Backend Connected" : "✗ Backend Disconnected"}
-      </div>
+        <ul className="milestone-list">
+          {milestones.map((m) => (
+            <li
+              key={m.id}
+              className={`milestone-item ${m.status}`}
+              onClick={() => m.status !== "locked" && setSelectedMilestone(m)}
+            >
+              <span className="milestone-name">{m.title}</span>
+              {m.status === "completed" && <span className="status-icon">✔</span>}
+              {m.status === "locked" && <span className="status-icon">🔒</span>}
+            </li>
+          ))}
+        </ul>
+      </aside>
 
-      {/* Load users test */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-4">
-        <h2 className="text-xl font-semibold mb-4">Backend Connection Test</h2>
+      {/* RIGHT: CONTENT DISPLAY */}
+      <main className="lesson-content">
+        {selectedMilestone ? (
+          <>
+            <h1 className="lesson-title">{selectedMilestone.title}</h1>
+            <p className="lesson-description">{selectedMilestone.description}</p>
+            <Link to={`/lesson/${selectedMilestone.id}`} className="btn btn-primary">
+              Open Lesson
+            </Link>
+          </>
+        ) : (
+          <>
+            <h1 className="lesson-title">Continue Your Progress</h1>
+            {currentLesson ? (
+              <>
+                <p className="lesson-description">{currentLesson.description}</p>
 
-        <button
-          onClick={loadUsers}
-          disabled={loading}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? "Loading..." : "Load Users from Backend"}
-        </button>
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${currentLesson.progress}%` }}
+                  ></div>
+                </div>
 
-        {fetchError && <p className="text-red-600 mt-2">{fetchError}</p>}
-
-        {users.length > 0 && (
-          <div className="mt-4">
-            <h3 className="font-semibold mb-2">Users from Database:</h3>
-            <ul className="list-disc list-inside space-y-1">
-              {users.map((u) => (
-                <li key={u.id}>
-                  {u.username} ({u.email})
-                </li>
-              ))}
-            </ul>
-          </div>
+                <Link
+                  to={`/lesson/${currentLesson.id}`}
+                  className="btn btn-primary continue-btn"
+                >
+                  Continue Lesson ➜
+                </Link>
+              </>
+            ) : (
+              <p>No lessons assigned yet.</p>
+            )}
+          </>
         )}
-      </div>
-
-      {/* Button to go to my profile */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold mb-4">My Profile</h2>
-
-        <Link
-          to={`/profile/${user?.id}`}
-          className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-        >
-          Go to My Profile
-        </Link>
-      </div>
+      </main>
     </div>
   );
 }
