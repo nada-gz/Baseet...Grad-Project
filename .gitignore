@@ -39,3 +39,5 @@ yarn-error.log*
 # Misc
 .env.local
 .env.*.local
+
+SW/backend/test.db
