@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { register as registerAPI } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../api/axios";
+import GraduationIllustration from "../../assets/undraw_graduation_u7uc.svg";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -13,13 +14,10 @@ export default function Register() {
   const [role, setRole] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [backendStatus, setBackendStatus] = useState("checking");
 
-  // Test backend connection on mount
   useEffect(() => {
     api.get('/')
-      .then(() => setBackendStatus("connected"))
-      .catch(() => setBackendStatus("disconnected"));
+      .catch(() => setError("Cannot connect to backend"));
   }, []);
 
   const handleRegister = async (e) => {
@@ -27,30 +25,28 @@ export default function Register() {
     setError("");
     setLoading(true);
 
-    try {
-      if (!username || !email || !password || !role) {
-        setError("Please fill in all fields");
-        setLoading(false);
-        return;
-      }
+    if (!username || !email || !password || !role) {
+      setError("Please fill in all fields");
+      setLoading(false);
+      return;
+    }
 
+    try {
       const response = await registerAPI({ username, email, password, role });
       const userRole = response.user?.role || role;
       loginContext(response.access_token, response.user, userRole);
       navigate("/login");
     } catch (err) {
-      let errorMessage = "Registration failed. Please check if backend is running and try again.";
-      
-      if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
-        errorMessage = "Cannot connect to backend server. Please make sure the backend is running on http://127.0.0.1:8000";
-      } else if (err.response?.data?.detail) {
+      let errorMessage = "Registration failed.";
+      if (err.code === 'ERR_NETWORK' || err.message === 'Network Error')
+        errorMessage = "Cannot connect to backend.";
+      else if (err.response?.data?.detail)
         errorMessage = err.response.data.detail;
-      } else if (err.message) {
+      else if (err.message)
         errorMessage = err.message;
-      }
-      
+
       setError(errorMessage);
-      console.error("Registration error:", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -58,90 +54,80 @@ export default function Register() {
 
   return (
     <div className="form-container">
-      <div className="form-inner card">
-        <h2 className="card-title">Register</h2>
+      {/* Left side: Form */}
+      <div className="form-left">
+        <div className="form-inner card">
+          <h2 className="card-title">Register</h2>
 
-        {/* Backend Status
-        <div className={`status ${
-          backendStatus === "connected"
-            ? "connected"
-            : backendStatus === "disconnected"
-            ? "disconnected"
-            : "checking"
-        }`}>
-          {backendStatus === "connected" && "✓ Backend Connected"}
-          {backendStatus === "disconnected" && "✗ Backend Disconnected"}
-          {backendStatus === "checking" && "Checking backend..."}
-        </div> */}
+          {error && <p className="error-message">{error}</p>}
 
-        {/* Error Message */}
-        {error && <p className="error-message">{error}</p>}
+          <form onSubmit={handleRegister} className="form">
+            <label htmlFor="username">Username</label>
+            <input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your username"
+              required
+            />
 
-        <form onSubmit={handleRegister} className="form">
-          <label htmlFor="username">
-            Username 
-          </label>
-          <input
-            id="username"
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Enter your username"
-            required
-          />
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              required
+            />
 
-          <label htmlFor="email">
-            Email 
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
-            required
-          />
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              required
+            />
 
-          <label htmlFor="password">
-            Password 
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
-            required
-          />
+            <label htmlFor="role">Role</label>
+            <select
+              id="role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              required
+            >
+              <option value="">Select a role</option>
+              <option value="student">Student</option>
+              <option value="teacher">Teacher</option>
+              <option value="parent">Parent</option>
+              <option value="supervisor">Supervisor</option>
+            </select>
 
-          <label htmlFor="role">
-            Role 
-          </label>
-          <select
-            id="role"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            required
-          >
-            <option value="">Select a role</option>
-            <option value="student">Student</option>
-            <option value="teacher">Teacher</option>
-            <option value="parent">Parent</option>
-            <option value="supervisor">Supervisor</option>
-          </select>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading}
+            >
+              {loading ? "Registering..." : "Register"}
+            </button>
+          </form>
 
-          <button
-            type="submit"
-            className="btn btn-primary formButton"
-            disabled={loading}
-          >
-            {loading ? "Registering..." : "Register"}
-          </button>
-        </form>
+          <p className="text-center mt-4 text-sm">
+            Already have an account? <a href="/login">Login</a>
+          </p>
+        </div>
+      </div>
 
-        <p className="text-center mt-4 text-sm">
-          Already have an account? <a href="/login">Login</a>
-        </p>
+      {/* Right side: Illustration */}
+      <div className="form-right">
+        <img
+          src={GraduationIllustration}
+          alt="Kids learning illustration"
+          className="w-full max-w-md"
+        />
       </div>
     </div>
   );

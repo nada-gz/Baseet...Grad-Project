@@ -11,27 +11,27 @@
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600&family=Nunito:wght@300;400;600&display=swap');
 
 /* -------------------------------------
-   Global Theme Variables (Calm & Relaxing for Kids)
+   Global Theme Variables (Matching Illustration)
 -------------------------------------- */
 :root {
   /* Backgrounds */
-  --primary-bg: #e8f0f7;       /* very soft, neutral blue-gray */
-  --secondary-bg: #ffffff;     /* clean card background */
-  
+  --primary-bg: #E7E7E9;       /* light gray background */
+  --secondary-bg: #ffffff;     /* white card background */
+
   /* Text */
-  --primary-text: #2e2e2e;     /* dark gray for readability */
+  --primary-text: #2F2E41;     /* dark gray/purple for readability */
   --secondary-text: #555555;   /* medium gray for secondary text */
-  
+
   /* Highlights / buttons / headings */
-  --highlight: #82c0cc;        /* soft teal/cyan, relaxing and neutral */
-  
+  --highlight: #6C63FF;        /* bright purple for highlights/buttons */
+
   /* Feedback colors */
-  --error-bg: #f28b82;         /* gentle red, not harsh */
-  --success-bg: #a8dadc;       /* soft pastel teal/mint */
-  
+  --error-bg: #f28b82;         /* gentle red for errors */
+  --success-bg: #a8dadc;       /* soft pastel teal/mint for success */
+
   /* Borders / neutral elements */
   --neutral: #d3d3d3;          /* light neutral for inputs/borders */
-  
+
   /* Fonts */
   --font-title: 'Lexend', sans-serif;
   --font-text: 'Nunito', sans-serif;
@@ -58,40 +58,60 @@ body, html {
 }
 
 /* -------------------------------------
-   Form Container
+   Form Container (adjusted spacing)
 -------------------------------------- */
 .form-container {
   min-height: 100vh;
   display: flex;
-  justify-content: center;
+  justify-content: center;   /* center content horizontally */
   align-items: center;
+  gap: 1rem;                 /* smaller gap between form and image */
   width: 100%;
-  padding: 1rem;
+  padding: 1rem;             /* reduced side padding */
   background-color: var(--primary-bg);
+  flex-wrap: nowrap;            /* wrap on small screens */
 }
 
-.form-inner {
+.form-left {
+  flex: 1 1 500px;          /* smaller form width */
+  max-width: 450px;
+  display: flex;
+  justify-content: center;
+}
+
+.form-right {
+  flex: 1 1 600px;          /* smaller image width */
+  max-width: 800px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.form-right img {
   width: 100%;
-  max-width: 600px;  /* wider card */
-  padding: 2rem;
+  height: auto;
+  object-fit: contain;
 }
 
 /* -------------------------------------
-   Card
+   Card (slightly smaller)
 -------------------------------------- */
 .card {
   background-color: var(--secondary-bg);
-  padding: 2rem 2.5rem;
+  padding: 1.5rem 2rem;      /* reduced padding */
   border-radius: 1rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   gap: 1rem;
   color: var(--primary-text);
-  min-height: 300px;
-  width: 450px;
+  min-height: auto;          /* remove fixed height */
+  width: 100%;
 }
 
+/* -------------------------------------
+   Card Title
+-------------------------------------- */
 .card-title {
   font-family: var(--font-title);
   font-size: 2rem;
@@ -138,7 +158,7 @@ select {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  background-image: url('data:image/svg+xml;utf8,<svg fill="%232e2e2e" height="12" viewBox="0 0 24 24" width="12" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+  background-image: url('data:image/svg+xml;utf8,<svg fill="%232F2E41" height="12" viewBox="0 0 24 24" width="12" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
   background-repeat: no-repeat;
   background-position: right 0.8rem center;
   background-size: 1rem;
@@ -151,15 +171,15 @@ input:focus, select:focus {
 }
 
 .input-error {
-  border-color: var(--error-bg);
+  border-color: #f28b82;
 }
 
 .input-error:focus {
-  box-shadow: 0 0 8px var(--error-bg);
+  box-shadow: 0 0 8px #f28b82;
 }
 
 /* -------------------------------------
-   Button
+   Buttons
 -------------------------------------- */
 .btn {
   padding: 0.85rem 1.5rem;
@@ -175,7 +195,6 @@ input:focus, select:focus {
   border: 2px solid transparent;
 }
 
-/* Primary Button - Highlight */
 .btn-primary {
   background-color: var(--highlight);
   color: var(--secondary-bg);
@@ -188,7 +207,6 @@ input:focus, select:focus {
   border-color: var(--highlight);
 }
 
-/* Secondary Button - Success */
 .btn-secondary {
   background-color: var(--success-bg);
   color: var(--secondary-bg);
@@ -201,7 +219,6 @@ input:focus, select:focus {
   border-color: var(--success-bg);
 }
 
-/* Danger Button - Error */
 .btn-danger {
   background-color: var(--error-bg);
   color: var(--secondary-bg);
@@ -214,7 +231,6 @@ input:focus, select:focus {
   border-color: var(--error-bg);
 }
 
-/* Outline Button */
 .btn-outline {
   background-color: transparent;
   border: 2px solid var(--highlight);
@@ -225,22 +241,6 @@ input:focus, select:focus {
   background-color: var(--highlight);
   color: var(--secondary-bg);
   border-color: var(--highlight);
-}
-
-/* Disabled */
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Spinner */
-.spinner {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }
 
 /* -------------------------------------
