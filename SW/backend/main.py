@@ -18,12 +18,9 @@ app.add_middleware(
 )
 
 # Create tables on startup
-# Set RESET_DB=true in environment to drop and recreate all tables
-# By default, tables are only created if they don't exist (preserves data)
 @app.on_event("startup")
 def on_startup():
-    reset_db = os.getenv("RESET_DB", "false").lower() == "true"
-    create_tables(drop_existing=reset_db)
+    create_tables()
 
 # Include routers
 app.include_router(user_router)

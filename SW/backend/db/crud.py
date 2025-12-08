@@ -5,24 +5,10 @@ from models.user import User, RoleEnum
 from models.student import Student
 from utils.auth import hash_password
 
-# ---------------------------
-# Database setup
-# ---------------------------
-
-def create_tables(drop_existing: bool = False):
-    """
-    Create database tables.
-    
-    Args:
-        drop_existing: If True, drops all existing tables before creating new ones.
-                      If False (default), only creates tables that don't exist.
-    """
-    if drop_existing:
-        SQLModel.metadata.drop_all(engine)
-        print("⚠️  Dropped all existing tables!")
-    
+def create_tables():
+    SQLModel.metadata.drop_all(engine)
     SQLModel.metadata.create_all(engine)
-    print("✅ Tables created/verified successfully!")
+    print("✅ Tables created successfully!")
 
 
 # ---------------------------
