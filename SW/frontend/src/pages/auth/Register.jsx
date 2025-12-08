@@ -4,6 +4,7 @@ import { register as registerAPI } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../api/axios";
 import GraduationIllustration from "../../assets/undraw_graduation_u7uc.svg";
+import Logo from "../../components/ui/logo";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -16,8 +17,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    api.get('/')
-      .catch(() => setError("Cannot connect to backend"));
+    api.get('/').catch(() => setError("Cannot connect to backend"));
   }, []);
 
   const handleRegister = async (e) => {
@@ -53,9 +53,21 @@ export default function Register() {
   };
 
   return (
-    <div className="form-container">
-      {/* Left side: Form */}
+    <div className="form-container relative">
+      {/* Fixed Logo */}
+      <Logo />
+
+      {/* Left side: Illustration */}
       <div className="form-left">
+        <img
+          src={GraduationIllustration}
+          alt="Kids learning illustration"
+          className="w-full max-w-md"
+        />
+      </div>
+
+      {/* Right side: Form */}
+      <div className="form-right">
         <div className="form-inner card">
           <h2 className="card-title">Register</h2>
 
@@ -119,15 +131,6 @@ export default function Register() {
             Already have an account? <a href="/login">Login</a>
           </p>
         </div>
-      </div>
-
-      {/* Right side: Illustration */}
-      <div className="form-right">
-        <img
-          src={GraduationIllustration}
-          alt="Kids learning illustration"
-          className="w-full max-w-md"
-        />
       </div>
     </div>
   );

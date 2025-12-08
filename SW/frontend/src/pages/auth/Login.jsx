@@ -4,6 +4,7 @@ import { login as loginAPI } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../api/axios";
 import GraduationIllustration from "../../assets/undraw_graduation_u7uc.svg";
+import Logo from "../../components/ui/logo";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -14,8 +15,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    api.get('/')
-      .catch(() => setError("Cannot connect to backend"));
+    api.get('/').catch(() => setError("Cannot connect to backend"));
   }, []);
 
   const handleLogin = async (e) => {
@@ -46,12 +46,23 @@ export default function Login() {
   };
 
   return (
-    <div className="form-container">
-      {/* Left side: Form */}
+    <div className="form-container relative">
+      {/* Fixed Logo */}
+      <Logo />
+
+      {/* Left side: Illustration */}
       <div className="form-left">
+        <img
+          src={GraduationIllustration}
+          alt="Kids learning illustration"
+          className="w-full max-w-md"
+        />
+      </div>
+
+      {/* Right side: Form */}
+      <div className="form-right">
         <div className="form-inner card">
           <h2 className="card-title">Login</h2>
-
           {error && <p className="error-message">{error}</p>}
 
           <form onSubmit={handleLogin} className="form">
@@ -75,11 +86,7 @@ export default function Login() {
               required
             />
 
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={loading}
-            >
+            <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? "Logging in..." : "Login"}
             </button>
           </form>
@@ -88,15 +95,6 @@ export default function Login() {
             Don't have an account? <a href="/register">Register</a>
           </p>
         </div>
-      </div>
-
-      {/* Right side: Illustration */}
-      <div className="form-right">
-        <img
-          src={GraduationIllustration}
-          alt="Kids learning illustration"
-          className="w-full max-w-md"
-        />
       </div>
     </div>
   );
