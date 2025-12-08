@@ -1,94 +1,111 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from datetime import timedelta
-from utils.auth import hash_password, verify_password, create_access_token
+from utils.auth import hash_password, verify_password, create_access_token, SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES
 from db.database import get_session
 from sqlmodel import Session
-from models.user import User
+from models.user import User, RoleEnum
 from fastapi.security import APIKeyHeader
 from jose import jwt, JWTError
-from utils.auth import SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES
 from schemas.user_schema import UserCreate, UserLogin, UserRead
-
+from typing import List
+from functools import wraps
 
 router = APIRouter(
     prefix="/auth",
-    tags=["auth"]
+    tags=["Authentication & RBAC"]
 )
 
+# --- Helper to format user response ---
+def user_response(user: User) -> dict:
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "role": user.role.value
+    }
+
+# --- Auth scheme ---
+oauth2_scheme = APIKeyHeader(name="Authorization", scheme_name="JWT")
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_session)):
+    if not token.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid format. Expected: Bearer <token>")
+    jwt_token = token.split(" ")[1]
+    try:
+        payload = jwt.decode(jwt_token, SECRET_KEY, algorithms=["HS256"])
+        email = payload.get("sub")
+        if not email:
+            raise HTTPException(status_code=401, detail="Invalid token payload")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+# --- Role decorator ---
+def role_required(allowed_roles: List[str]):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, current_user: User = Depends(get_current_user), **kwargs):
+            if current_user.role.value not in allowed_roles:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Access forbidden for role '{current_user.role.value}'. Allowed roles: {allowed_roles}"
+                )
+            return func(*args, current_user=current_user, **kwargs)
+        return wrapper
+    return decorator
+
+# --- Auth endpoints ---
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 def register(user: UserCreate, db: Session = Depends(get_session)):
-    try:
-        existing_user = db.query(User).filter(User.email == user.email).first()
-        if existing_user:
-            raise HTTPException(status_code=400, detail="Email already registered")
-        
-        # Validate role
-        valid_roles = ["student", "teacher", "parent", "supervisor"]
-        if user.role not in valid_roles:
-            raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}")
-        
-        hashed = hash_password(user.password)
-        new_user = User(
-            username=user.username, 
-            email=user.email, 
-            hashed_password=hashed,
-            role=user.role
-        )
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
-        return {"message": "User registered successfully"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        print(f"Registration error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
+    if db.query(User).filter(User.email == user.email).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
 
+    hashed_password = hash_password(user.password)
+    role = user.role if user.role else RoleEnum.student
+
+    new_user = User(
+        username=user.username,
+        email=user.email,
+        hashed_password=hashed_password,
+        role=role
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    token = create_access_token(
+        {"sub": new_user.email},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": user_response(new_user)
+    }
 
 @router.post("/login")
 def login(user: UserLogin, db: Session = Depends(get_session)):
     db_user = db.query(User).filter(User.email == user.email).first()
     if not db_user or not verify_password(user.password, db_user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    token = create_access_token({"sub": db_user.email}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    return {"access_token": token, "token_type": "bearer"}
+        raise HTTPException(status_code=401, detail="Invalid email or password")
 
-oauth2_scheme = APIKeyHeader(
-    name="Authorization",
-    scheme_name="JWT"
-)
+    token = create_access_token(
+        {"sub": db_user.email},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
 
-
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_session)):
-    if not token.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid token format. Expected 'Bearer <token>'.")
-
-    token = token.split(" ")[1]
-    
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        email = payload.get("sub")
-        if email is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    user = db.query(User).filter(User.email == email).first()
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
-
-def determine_user_role(user: User, db: Session) -> str:
-    """Determine user role - use stored role from user model"""
-    # Return the role stored in the user model
-    return user.role if user.role else "student"
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": user_response(db_user)
+    }
 
 @router.get("/me", response_model=UserRead)
-def read_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_session)):
-    role = determine_user_role(current_user, db)
-    return UserRead(
-        id=current_user.id,
-        username=current_user.username,
-        email=current_user.email,
-        role=role
-    )
+def read_me(current_user: User = Depends(get_current_user)):
+    return current_user

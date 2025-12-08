@@ -1,51 +1,61 @@
 import axios from 'axios';
 
-// Create axios instance with base URL
 const api = axios.create({
   baseURL: 'http://127.0.0.1:8000',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Add token to requests if available
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Handle response errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       window.location.href = '/login';
     }
-    
-    // Better error handling for network errors
-    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-      console.error('Network Error - Backend may not be running:', {
-        url: error.config?.url,
-        baseURL: error.config?.baseURL,
-        message: 'Make sure the backend server is running on http://127.0.0.1:8000'
-      });
+    if (error.code === 'ERR_NETWORK') {
+      console.error("Network Error: Backend not reachable");
     }
-    
     return Promise.reject(error);
   }
 );
 
-// API functions
+export const register = async (username, email, password, role) => {
+  const response = await api.post('/auth/register', { username, email, password, role });
+  const { access_token, user } = response.data;
+  localStorage.setItem('token', access_token);
+  localStorage.setItem('user', JSON.stringify(user));
+  return response.data;
+};
+
+export const login = async (email, password) => {
+  const response = await api.post('/auth/login', { email, password });
+  const { access_token, user } = response.data;
+  localStorage.setItem('token', access_token);
+  localStorage.setItem('user', JSON.stringify(user));
+  return response.data;
+};
+
+export const logout = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  window.location.href = '/login';
+};
+
+export const getCurrentUser = async () => {
+  const response = await api.get('/auth/me');
+  return response.data;
+};
+
 export const testConnection = async () => {
   const response = await api.get('/');
   return response.data;
@@ -56,40 +66,9 @@ export const getUsers = async () => {
   return response.data;
 };
 
-export const createUser = async (username, email, role) => {
-  const response = await api.post('/users/', null, {
-    params: { username, email, role },
-  });
-  return response.data;
-};
-
-export const register = async (username, email, password, role) => {
-  const response = await api.post('/auth/register', {
-    username,
-    email,
-    password,
-    role,
-  });
-  return response.data;
-};
-
-export const login = async (email, password) => {
-  const response = await api.post('/auth/login', {
-    email,
-    password,
-  });
-  return response.data;
-};
-
-export const getCurrentUser = async () => {
-  const response = await api.get('/auth/me');
-  return response.data;
-};
-
 export const getUserById = async (userId) => {
   const response = await api.get(`/users/${userId}`);
   return response.data;
 };
 
 export default api;
-
