@@ -7,16 +7,18 @@ import MainLayout from "./layouts/MainLayout";
 // Pages - Public
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
-import NotAllowed from "./pages/general/NotAllowed";
+import NotAllowed from "./pages/auth/NotAllowed";
 
 // Pages - Protected - Dashboards
-import TeacherDashboard from "./pages/dashboard/TeacherDashboard";
-import StudentDashboard from "./pages/dashboard/StudentDashboard";
-import ParentDashboard from "./pages/dashboard/ParentDashboard";
-import SupervisorDashboard from "./pages/dashboard/SupervisorDashboard";
+import TeacherDashboard from "./pages/dashboards/TeacherDashboard";
+import StudentDashboard from "./pages/dashboards/StudentDashboard";
+import ParentDashboard from "./pages/dashboards/ParentDashboard";
+import SupervisorDashboard from "./pages/dashboards/SupervisorDashboard";
 
 // Pages - Protected - Profile
-import StudentProfile from "./pages/profile/StudentProfile";
+import StudentProfile from "./pages/profiles/StudentProfile";
+
+import AllStudents from "./pages/dashboards/AllStudents";
 
 const router = createBrowserRouter([
   // Public routes
@@ -30,7 +32,23 @@ const router = createBrowserRouter([
     children: [
       {
         element: <MainLayout />,
-        children: [{ path: "/dashboard/teacher", element: <TeacherDashboard /> }],
+        children: [
+          { path: "/dashboard/teacher", element: <TeacherDashboard /> },
+          { path: "/profile/:studentId", element: <StudentProfile /> },
+        ],
+      },
+    ],
+  },
+
+  // Protected routes - Student profile (teacher/parent/student)
+  {
+    element: <ProtectedRoute allowedRoles={["teacher", "parent", "student"]} />,
+    children: [
+      {
+        element: <MainLayout />,
+        children: [
+          { path: "/profile/:studentId", element: <StudentProfile /> },
+        ],
       },
     ],
   },
@@ -55,7 +73,10 @@ const router = createBrowserRouter([
     children: [
       {
         element: <MainLayout />,
-        children: [{ path: "/dashboard/parent", element: <ParentDashboard /> }],
+        children: [
+          { path: "/dashboard/parent", element: <ParentDashboard /> },
+          { path: "/profile/:studentId", element: <StudentProfile /> },
+        ],
       },
     ],
   },
@@ -70,6 +91,18 @@ const router = createBrowserRouter([
       },
     ],
   },
+
+  // Protected routes - all students
+  {
+    element: <ProtectedRoute allowedRoles={["teacher", "parent", "supervisor"]} />,
+    children: [
+      {
+        element: <MainLayout />,
+        children: [{ path: "/students", element: <AllStudents /> }],
+      },
+    ],
+  },
+
 
   // Default redirect
   { path: "/", element: <Navigate to="/login" replace /> },
