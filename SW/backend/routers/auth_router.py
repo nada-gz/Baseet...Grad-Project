@@ -21,12 +21,25 @@ def register(user: UserCreate, db: Session = Depends(get_session)):
         existing_user = db.query(User).filter(User.email == user.email).first()
         if existing_user:
             raise HTTPException(status_code=400, detail="Email already registered")
+        
+        # Validate role
+        valid_roles = ["student", "teacher", "parent", "supervisor"]
+        if user.role not in valid_roles:
+            raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {', '.join(valid_roles)}")
+        
         hashed = hash_password(user.password)
-        new_user = User(username=user.username, email=user.email, hashed_password=hashed)
+        new_user = User(
+            username=user.username, 
+            email=user.email, 
+            hashed_password=hashed,
+            role=user.role
+        )
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
         return {"message": "User registered successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         print(f"Registration error: {str(e)}")
@@ -65,6 +78,17 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
+def determine_user_role(user: User, db: Session) -> str:
+    """Determine user role - use stored role from user model"""
+    # Return the role stored in the user model
+    return user.role if user.role else "student"
+
 @router.get("/me", response_model=UserRead)
-def read_me(current_user: User = Depends(get_current_user)):
-    return current_user
+def read_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+    role = determine_user_role(current_user, db)
+    return UserRead(
+        id=current_user.id,
+        username=current_user.username,
+        email=current_user.email,
+        role=role
+    )

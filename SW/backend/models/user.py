@@ -9,6 +9,7 @@ class User(SQLModel, table=True):
     username: str
     email: str
     hashed_password: str
+    role: str = Field(default="student")  # Role: student, teacher, parent, supervisor
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     # One-to-one relationship

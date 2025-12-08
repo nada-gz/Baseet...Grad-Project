@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { testConnection } from "../../services/api";
+import { testConnection, login, getCurrentUser } from "../../services/api";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -23,17 +23,38 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // TODO: Implement actual login API call
-      // For now, test backend connection and navigate
-      await testConnection();
+      // Call actual login API
+      const loginResponse = await login(email, password);
       
-      // Simulate login - store token
-      localStorage.setItem("token", "test-token");
+      // Store token
+      localStorage.setItem("token", loginResponse.access_token);
       
-      // Navigate to dashboard based on role (default to student)
-      navigate("/dashboard/student");
+      // Get user info to determine role
+      try {
+        const userResponse = await getCurrentUser();
+        
+        // Get role from backend response
+        const userRole = userResponse.role || "student";
+        
+        // Store role in localStorage
+        localStorage.setItem("role", userRole);
+        
+        // Navigate to dashboard based on role
+        navigate(`/dashboard/${userRole}`);
+      } catch (userErr) {
+        // If we can't get user info, default to student
+        const userRole = "student";
+        localStorage.setItem("role", userRole);
+        navigate(`/dashboard/${userRole}`);
+      }
     } catch (err) {
-      setError("Failed to connect to server. Please check if backend is running.");
+      if (err.response?.status === 401) {
+        setError("Invalid email or password. Please try again.");
+      } else if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
+        setError("Failed to connect to server. Please check if backend is running.");
+      } else {
+        setError(err.response?.data?.detail || "Login failed. Please try again.");
+      }
       console.error("Login error:", err);
     } finally {
       setLoading(false);

@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from db.crud import create_tables
@@ -16,7 +17,10 @@ app.add_middleware(
 )
 
 # Create tables on startup
-create_tables()
+# Set RESET_DB=true in environment to drop and recreate all tables
+# By default, tables are only created if they don't exist (preserves data)
+reset_db = os.getenv("RESET_DB", "false").lower() == "true"
+create_tables(drop_existing=reset_db)
 
 # Include routers
 app.include_router(user_router)
