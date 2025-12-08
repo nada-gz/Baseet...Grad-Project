@@ -32,11 +32,8 @@ export default function Register() {
         return;
       }
 
-      // Register user with backend (role will be added to backend later)
-      await register(username, email, password);
-      
-      // Store role in localStorage for now (until backend supports it)
-      localStorage.setItem("role", role);
+      // Register user with backend (including role)
+      await register(username, email, password, role);
       
       // Navigate to login after successful registration
       navigate("/login");

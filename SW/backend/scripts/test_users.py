@@ -1,6 +1,7 @@
 from db.crud import create_tables, add_user, get_all_users
 
-create_tables()
+# Drop and recreate tables for testing
+create_tables(drop_existing=True)
 
 sample_user = add_user(username="nada_zaki", email="nada.g.zaki.25@gmail.com")
 print("Inserted user:", sample_user)
