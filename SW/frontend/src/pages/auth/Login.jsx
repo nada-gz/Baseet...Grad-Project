@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 import { login as loginAPI } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../api/axios";
-import GraduationIllustration from "../../assets/undraw_graduation_u7uc.svg";
+import Baseet from "../../assets/BASEET-smiling-hat.png";
+// import Background from "../../assets/background.png";
 import Logo from "../../components/ui/logo";
 
 export default function Login() {
@@ -46,56 +47,54 @@ export default function Login() {
   };
 
   return (
-    <div className="form-container relative">
-      {/* Fixed Logo */}
-      <Logo />
+    // <div
+    //   className="login-background min-h-screen w-full flex justify-center items-center"
+    //   style={{ backgroundImage: `url(${Background})` }}
+    // >
+      <div className="form-container relative">
+        <Logo />
 
-      {/* Left side: Illustration */}
-      <div className="form-left">
-        <img
-          src={GraduationIllustration}
-          alt="Kids learning illustration"
-          className="w-full max-w-md"
-        />
-      </div>
+        <div className="form-left">
+          <img src={Baseet} alt="Kids learning illustration" className="w-full max-w-md" />
+        </div>
 
-      {/* Right side: Form */}
-      <div className="form-right">
-        <div className="form-inner card">
-          <h2 className="card-title">Login</h2>
-          {error && <p className="error-message">{error}</p>}
+        <div className="form-right">
+          <div className="form-inner card">
+            <h2 className="card-title">Login</h2>
+            {error && <p className="error-message">{error}</p>}
 
-          <form onSubmit={handleLogin} className="form">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              required
-            />
+            <form onSubmit={handleLogin} className="form">
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                required
+              />
 
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-            />
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                required
+              />
 
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? "Logging in..." : "Login"}
-            </button>
-          </form>
+              <button type="submit" className="btn btn-primary" disabled={loading}>
+                {loading ? "Logging in..." : "Login"}
+              </button>
+            </form>
 
-          <p className="text-center mt-6 text-sm">
-            Don't have an account? <a href="/register">Register</a>
-          </p>
+            <p className="text-center mt-6 text-sm">
+              Don't have an account? <a href="/register">Register</a>
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    // </div>
   );
 }
