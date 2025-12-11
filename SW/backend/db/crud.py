@@ -7,7 +7,7 @@ from utils.auth import hash_password
 
 def create_tables():
     SQLModel.metadata.create_all(engine)
-    print("✅ Tables checked/created successfully!")
+    print("✅ PostgreSQL tables ready!")
 
 
 # ---------------------------
