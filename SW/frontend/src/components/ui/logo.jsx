@@ -1,5 +1,5 @@
 import React from "react";
-import logo from "../../assets/BASEET-LOGO.png";
+import logo from "../../assets/BASEET-no-bg.png";
 
 const Logo = () => {
   return (

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { register as registerAPI } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../api/axios";
-import GraduationIllustration from "../../assets/undraw_graduation_u7uc.svg";
+import Baseet from "../../assets/BASEET-smiling-hat.png";
 import Logo from "../../components/ui/logo";
 
 export default function Register() {
@@ -60,7 +60,7 @@ export default function Register() {
       {/* Left side: Illustration */}
       <div className="form-left">
         <img
-          src={GraduationIllustration}
+          src={Baseet}
           alt="Kids learning illustration"
           className="w-full max-w-md"
         />
