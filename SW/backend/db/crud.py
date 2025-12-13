@@ -6,9 +6,8 @@ from models.student import Student
 from utils.auth import hash_password
 
 def create_tables():
-    SQLModel.metadata.drop_all(engine)
     SQLModel.metadata.create_all(engine)
-    print("✅ Tables created successfully!")
+    print("✅ PostgreSQL tables ready!")
 
 
 # ---------------------------
