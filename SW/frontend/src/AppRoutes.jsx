@@ -10,15 +10,28 @@ import Register from "./pages/auth/Register";
 import NotAllowed from "./pages/auth/NotAllowed";
 
 // Pages - Protected - Dashboards
+
+import MyAccount from "./pages/account/MyAccount";
+import StudentProfile from "./pages/dashboards/Common/StudentProfile";
+
 import TeacherDashboard from "./pages/dashboards/TeacherDashboard";
-import StudentDashboard from "./pages/dashboards/StudentDashboard";
+
+import StudentDashboard from "./pages/dashboards/Student/StudentDashboard";
+import LessonPlayer from "./pages/dashboards/Student/LessonPlayer";
+import StudentLessons from "./pages/dashboards/Student/StudentLessons";
+import StudentMaterials from "./pages/dashboards/Student/StudentMaterials";
+import StudentAssignments from "./pages/dashboards/Student/StudentAssignments";
+import StudentQuizzes from "./pages/dashboards/Student/StudentQuizzes";
+import StudentAnalytics from "./pages/dashboards/Student/StudentAnalytics";
+
 import ParentDashboard from "./pages/dashboards/ParentDashboard";
+
 import SupervisorDashboard from "./pages/dashboards/SupervisorDashboard";
 
-// Pages - Protected - Profile
-import StudentProfile from "./pages/profile/StudentProfile";
 
-import AllStudents from "./pages/dashboards/AllStudents";
+
+
+import AllStudents from "./pages/dashboards/Common/AllStudents";
 
 const router = createBrowserRouter([
   // Public routes
@@ -34,38 +47,45 @@ const router = createBrowserRouter([
         element: <MainLayout />,
         children: [
           { path: "/dashboard/teacher", element: <TeacherDashboard /> },
-          { path: "/profile/:studentId", element: <StudentProfile /> },
         ],
       },
     ],
   },
 
-  // Protected routes - Student profile (teacher/parent/student)
-  {
-    element: <ProtectedRoute allowedRoles={["teacher", "parent", "student"]} />,
-    children: [
-      {
-        element: <MainLayout />,
-        children: [
-          { path: "/profile/:studentId", element: <StudentProfile /> },
-        ],
-      },
-    ],
-  },
 
   // Protected routes - Student
-  {
-    element: <ProtectedRoute allowedRoles={["student"]} />,
-    children: [
-      {
-        element: <MainLayout />,
-        children: [
-          { path: "/dashboard/student", element: <StudentDashboard /> },
-          { path: "/profile/:studentId", element: <StudentProfile /> },
-        ],
-      },
-    ],
-  },
+{
+  element: <ProtectedRoute allowedRoles={["student"]} />,
+  children: [
+    {
+      element: <MainLayout />,
+      children: [
+        { path: "/dashboard/student", element: <StudentDashboard /> },
+
+        // Lessons list
+        { path: "/dashboard/student/lessons", element: <StudentLessons /> },
+
+        // Single lesson player
+        { path: "/dashboard/student/lesson/:lessonId", element: <LessonPlayer /> },
+
+        // Materials
+        { path: "/dashboard/student/materials", element: <StudentMaterials /> },
+
+        // Assignments
+        { path: "/dashboard/student/assignments", element: <StudentAssignments /> },
+
+        // Quizzes
+        { path: "/dashboard/student/quizzes", element: <StudentQuizzes /> },
+
+        // Analytics
+        { path: "/dashboard/student/analytics", element: <StudentAnalytics /> },
+
+        // Profile
+      ],
+    },
+  ],
+},
+
 
   // Protected routes - Parent
   {
@@ -75,7 +95,6 @@ const router = createBrowserRouter([
         element: <MainLayout />,
         children: [
           { path: "/dashboard/parent", element: <ParentDashboard /> },
-          { path: "/profile/:studentId", element: <StudentProfile /> },
         ],
       },
     ],
@@ -102,6 +121,37 @@ const router = createBrowserRouter([
       },
     ],
   },
+
+  // Protected routes - Profile (student / parent / teacher)
+  {
+    element: <ProtectedRoute allowedRoles={["student", "parent", "teacher"]} />,
+    children: [
+      {
+        element: <MainLayout />,
+        children: [
+          {
+            path: "/students/:studentId/profile",
+            element: <StudentProfile />,
+          },
+        ],
+      },
+    ],
+  },
+  
+
+  // Protected routes - Account (student / parent / teacher / supervisor)
+  {
+    element: <ProtectedRoute allowedRoles={["student", "parent", "teacher", "supervisor"]} />,
+    children: [
+      {
+        element: <MainLayout />,
+        children: [
+          { path: "/account", element: <MyAccount /> },
+        ],
+      },
+    ],
+  },
+  
 
 
   // Default redirect

@@ -1,6 +1,6 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { BookOpen, Folder, ClipboardList, HelpCircle } from "lucide-react";
+import { BookOpen, Folder, ClipboardList, HelpCircle, PlayCircle } from "lucide-react";
 import Logo from "../components/ui/logo";
 import HiBaseet from "../assets/hii_baseet.png";
 
@@ -30,8 +30,8 @@ export default function MainLayout() {
               icon: <BookOpen size={20} />
             },
             {
-              label: "Material",
-              path: "/dashboard/student/material",
+              label: "Materials",
+              path: "/dashboard/student/materials",
               icon: <Folder size={20} />
             },
             {
@@ -76,16 +76,29 @@ export default function MainLayout() {
     if (role !== "student") return null;
   
     return (
-      <div className="topbar-actions">
-        <Link to="/dashboard/student/analytics" className="topbar-link">
-          Analytics
+      <>
+        {/* Middle/left continue button */}
+        <Link
+          to={`/dashboard/student`}
+          className="topbar-continue"
+        >
+          <PlayCircle size={20} />
+          <span>Continue</span>
         </Link>
-        <Link to="/dashboard/student/profile" className="topbar-link">
-          My Profile
-        </Link>
-      </div>
+  
+        {/* Right side links */}
+        <div className="topbar-actions">
+          <Link to="/dashboard/student/analytics" className="topbar-link">
+            Analytics
+          </Link>
+          <Link to={`/students/${user.id}/profile`} className="topbar-link">
+            My Profile
+          </Link>
+        </div>
+      </>
     );
-  };  
+  };
+  
 
   return (
     <div className="layout-container">
@@ -157,9 +170,10 @@ export default function MainLayout() {
           <div className="topbar-user">
             {renderTopbarExtras()}
             {/* <span className="topbar-role">{role}</span> */}
-            <div className="avatar">
+            <Link to="/account" className="avatar avatar-clickable">
               {user?.username?.[0]?.toUpperCase()}
-            </div>
+            </Link>
+
           </div>
         </header>
 
