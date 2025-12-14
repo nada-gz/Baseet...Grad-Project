@@ -3,6 +3,7 @@ from sqlmodel import select, SQLModel, Session
 from .database import engine
 from models.user import User, RoleEnum
 from models.student import Student
+from models.lesson import Lesson
 from utils.auth import hash_password
 
 def create_tables():
@@ -120,3 +121,22 @@ def delete_student(student_id: int):
         session.delete(student)
         session.commit()
         return student
+
+# ---------------------------
+# Lessons
+# ---------------------------
+
+# Lessons
+def get_lessons(student_id: int):
+    """Return all lessons for a given student_id"""
+    with Session(engine) as session:
+        statement = select(Lesson).where(Lesson.student_id == student_id)
+        return session.exec(statement).all()
+
+def create_lesson(lesson_data: Lesson):
+    """Add a lesson for a student."""
+    with Session(engine) as session:
+        session.add(lesson_data)
+        session.commit()
+        session.refresh(lesson_data)
+        return lesson_data

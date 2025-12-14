@@ -1,6 +1,8 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { BookOpen, Folder, ClipboardList, HelpCircle } from "lucide-react";
 import Logo from "../components/ui/logo";
+import HiBaseet from "../assets/hii_baseet.png";
 
 export default function MainLayout() {
   const { role, user, logout } = useAuth();
@@ -20,11 +22,39 @@ export default function MainLayout() {
           { label: "Child Progress", path: "/dashboard/parent/progress", icon: "📊" },
           { label: "Reports", path: "/dashboard/parent/reports", icon: "📄" },
         ];
-      case "student":
-        return [
-          { label: "Lessons", path: "/dashboard/student/lessons", icon: "📖" },
-          { label: "Assignments", path: "/dashboard/student/assignments", icon: "📝" },
-        ];
+        case "student":
+          return [
+            {
+              label: "Lessons",
+              path: "/dashboard/student/lessons",
+              icon: <BookOpen size={20} />
+            },
+            {
+              label: "Material",
+              path: "/dashboard/student/material",
+              icon: <Folder size={20} />
+            },
+            {
+              label: "Assignments",
+              path: "/dashboard/student/assignments",
+              icon: <ClipboardList size={20} />
+            },
+            {
+              label: "Quizzes",
+              path: "/dashboard/student/quizzes",
+              icon: <HelpCircle size={20} />
+            },
+            {
+              label: "Ask Baseet",
+              path: "/dashboard/student/ask-baseet",
+              icon: <img 
+                      src={require("../assets/eyes_baseet.png")} 
+                      alt="Ask Baseet" 
+                      style={{ width: 80, height: 80 }} 
+                    />
+            },
+          ];        
+        
       case "supervisor":
         return [
           { label: "Analytics", path: "/dashboard/supervisor/analytics", icon: "📈" },
@@ -41,6 +71,21 @@ export default function MainLayout() {
   };
 
   const sidebarItems = getSidebarItems();
+
+  const renderTopbarExtras = () => {
+    if (role !== "student") return null;
+  
+    return (
+      <div className="topbar-actions">
+        <Link to="/dashboard/student/analytics" className="topbar-link">
+          Analytics
+        </Link>
+        <Link to="/dashboard/student/profile" className="topbar-link">
+          My Profile
+        </Link>
+      </div>
+    );
+  };  
 
   return (
     <div className="layout-container">
@@ -95,16 +140,29 @@ export default function MainLayout() {
               (item) =>
                 location.pathname === item.path ||
                 location.pathname.startsWith(item.path + "/")
-            )?.label || "Dashboard"}
+            )?.label || (
+              <span className="topbar-greeting">
+                Hi, {user?.username || "there"}
+                {role === "student" && (
+                  <img
+                    src={HiBaseet}
+                    alt="Hi Baseet"
+                    className="topbar-hi-icon"
+                  />
+                )}
+              </span>
+            )}
           </h2>
 
           <div className="topbar-user">
-            <span className="topbar-role">{role}</span>
+            {renderTopbarExtras()}
+            {/* <span className="topbar-role">{role}</span> */}
             <div className="avatar">
-              {user?.email?.[0]?.toUpperCase()}
+              {user?.username?.[0]?.toUpperCase()}
             </div>
           </div>
         </header>
+
 
         <div className="content">
           <Outlet />
