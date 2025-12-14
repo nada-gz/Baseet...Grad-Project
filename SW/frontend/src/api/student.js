@@ -54,14 +54,14 @@ export const getStudentDashboard = async (studentId) => {
 };
 
 /**
- * Get all lessons for a student
+ * Get all lessons for a student, grouped by milestones
  * @param {number} studentId - Student ID
- * @returns {Promise<Array>} Array of lessons
+ * @returns {Promise<Array>} Array of milestones, each containing its lessons
  */
 export const getStudentLessons = async (studentId) => {
   try {
     const response = await api.get(`/students/${studentId}/lessons`);
-    return response.data;
+    return response.data; // Returns array of milestones with lessons
   } catch (error) {
     console.error('[Student API] Error fetching lessons:', error);
     throw error;

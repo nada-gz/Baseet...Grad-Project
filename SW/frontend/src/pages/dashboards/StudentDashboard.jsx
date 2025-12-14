@@ -56,7 +56,11 @@ export default function StudentDashboard() {
   }
 
   const { lessons = [], materials = [], assignments = [], quizzes = [] } = dashboardData;
-  const currentLesson = lessons.find(l => l.status === "in-progress");
+  
+  // Lessons are now grouped by milestones
+  // Flatten lessons array to find current lesson
+  const allLessons = lessons.flatMap(milestone => milestone.lessons || []);
+  const currentLesson = allLessons.find(l => l.status === "in-progress");
 
   return (
     <div className="student-dashboard">
@@ -77,7 +81,7 @@ export default function StudentDashboard() {
               <div className="continue-info">
                 <span className="continue-label">Continue your progress</span>
                 <h1 className="continue-title">
-                  <span className="lesson-number">{currentLesson.number}.</span>
+                  <span className="lesson-number">{currentLesson.lesson_code}.</span>
                   {currentLesson.title}
                 </h1>
                 <div className="progress-bar">
@@ -136,22 +140,29 @@ export default function StudentDashboard() {
           <div className="no-lessons">
             <h1 className="lesson-title">Welcome, {user?.username}!</h1>
             <p className="lesson-description">
-              {lessons.length === 0 
+              {allLessons.length === 0 
                 ? "No lessons assigned yet. Please check back later."
                 : "Select a lesson to continue your learning journey."}
             </p>
             {lessons.length > 0 && (
               <div className="lessons-list">
                 <h2>Available Lessons</h2>
-                <ul>
-                  {lessons.map((lesson) => (
-                    <li key={lesson.id}>
-                      <Link to={`/lesson/${lesson.id}`}>
-                        {lesson.number}. {lesson.title} ({lesson.status})
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+                {lessons.map((milestone) => (
+                  <div key={milestone.id} className="milestone-section">
+                    <h3 className="milestone-title">
+                      Milestone {milestone.number}: {milestone.title}
+                    </h3>
+                    <ul className="lessons-in-milestone">
+                      {milestone.lessons.map((lesson) => (
+                        <li key={lesson.id}>
+                          <Link to={`/lesson/${lesson.id}`}>
+                            {lesson.lesson_code}. {lesson.title} ({lesson.status})
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
               </div>
             )}
           </div>
