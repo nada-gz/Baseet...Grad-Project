@@ -10,6 +10,7 @@ const useAuth = () => {
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
+    localStorage.removeItem("student_id"); // remove student_id on logout
     setUser(null);
     setError(null);
     window.location.href = "/login";
@@ -29,6 +30,11 @@ const useAuth = () => {
         // Save latest role + user info locally, fallback to "student"
         const role = data?.role || "student";
         localStorage.setItem("role", role);
+
+        // Save student_id if exists
+        if (data?.student_id) {
+          localStorage.setItem("student_id", data.student_id);
+        }
 
         setUser(data);
       } catch (err) {
