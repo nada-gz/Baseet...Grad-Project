@@ -339,7 +339,10 @@ a:hover {
   font-family: var(--font-text); /* default font for all text inside layout */
 }
 
-/* Sidebar */
+/* -------------------------------------
+   Sidebar
+-------------------------------------- */
+
 .sidebar {
   position: fixed;
   top: 0;
@@ -360,7 +363,6 @@ a:hover {
   margin-bottom: 20px;
 }
 
-
 .sidebar-logo {
   display: flex;
   justify-content: center;
@@ -376,15 +378,17 @@ a:hover {
   display: block;
 }
 
-
 .sidebar-role {
   font-size: 0.9rem;
   opacity: 0.7;
   text-transform: capitalize;
-  font-family: var(--font-text); /* use normal text font */
+  font-family: var(--font-text);
 }
 
-/* Sidebar Menu */
+/* -------------------------------------
+   Sidebar Menu
+-------------------------------------- */
+
 .sidebar-menu {
   display: flex;
   flex-direction: column;
@@ -393,14 +397,14 @@ a:hover {
 
 .sidebar-link {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: center;          /* vertical centering */
+  gap: 12px;
   padding: 12px;
   border-radius: 8px;
   text-decoration: none;
   color: var(--secondary-text);
-  transition: background 0.3s, color 0.2s;
-  font-family: var(--font-text); /* use normal text font */
+  transition: background 0.3s ease, color 0.2s ease;
+  font-family: var(--font-text);
 }
 
 .sidebar-link:hover {
@@ -412,11 +416,30 @@ a:hover {
   color: white;
 }
 
+/* -------------------------------------
+   Sidebar Icons (UPDATED)
+-------------------------------------- */
+
 .sidebar-icon {
-  font-size: 1.2rem;
+  display: flex;               /* remove inline baseline behavior */
+  align-items: center;
+  justify-content: center;
+  width: 22px;                 /* fixed width for perfect alignment */
+  height: 22px;
+  flex-shrink: 0;              /* prevent shrinking */
+  position: relative;
+  top: 1px;                    /* tiny visual centering (safe) */
 }
 
-/* Sidebar Footer */
+/* For SVG icon libraries (Lucide, Heroicons, etc.) */
+.sidebar-icon svg {
+  display: block;              /* removes baseline offset */
+}
+
+/* -------------------------------------
+   Sidebar Footer
+-------------------------------------- */
+
 .sidebar-footer {
   border-top: 1px solid var(--neutral);
   padding-top: 15px;
@@ -431,9 +454,9 @@ a:hover {
 
 .logout-btn {
   width: 100%;
-  padding: 0.85rem 1.5rem;       
-  font-weight: 600;               
-  font-size: 1rem;                
+  padding: 0.85rem 1.5rem;
+  font-weight: 600;
+  font-size: 1rem;
   border-radius: 0.75rem;
   border: 2px solid var(--error-bg);
   background-color: var(--error-bg);
@@ -444,7 +467,7 @@ a:hover {
   justify-content: center;
   gap: 0.5rem;
   transition: all 0.2s ease;
-  font-family: var(--font-text); /* use normal font */
+  font-family: var(--font-text);
 }
 
 .logout-btn:hover {
@@ -453,7 +476,10 @@ a:hover {
   border-color: var(--error-bg);
 }
 
-/* Main Content Area */
+/* -------------------------------------
+   Main Content Area
+-------------------------------------- */
+
 .main {
   flex-grow: 1;
   margin-left: 260px; /* Push content to the right of fixed sidebar */
@@ -463,11 +489,14 @@ a:hover {
   font-family: var(--font-text);
 }
 
-/* Top Bar */
+/* -------------------------------------
+   Top Bar
+-------------------------------------- */
+
 .topbar {
-  width: 100%;
+  width: 83%;
   background: var(--secondary-bg);
-  padding: 15px 25px;
+  padding: 25px 35px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -482,27 +511,26 @@ a:hover {
 .topbar-title {
   font-size: 1.6rem;
   font-weight: bold;
-  font-family: var(--font-title); /* heading font */
+  font-family: var(--font-title);
   color: var(--highlight);
 }
 
 .topbar-user {
   display: flex;
   align-items: center;
-  gap: 15px;
   font-family: var(--font-text);
 }
 
-.topbar-role {
+/* .topbar-role {
   font-size: 0.9rem;
   text-transform: capitalize;
   color: var(--secondary-text);
   font-family: var(--font-text);
-}
+} */
 
 .avatar {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   background: var(--highlight);
   border-radius: 50%;
   color: white;
@@ -513,7 +541,10 @@ a:hover {
   font-family: var(--font-text);
 }
 
-/* Content Wrapper */
+/* -------------------------------------
+   Content Wrapper
+-------------------------------------- */
+
 .content {
   padding: 90px 25px 25px 25px; /* top padding for fixed topbar */
   overflow-y: auto;
@@ -526,103 +557,215 @@ a:hover {
 -------------------------------------- */
 
 .student-dashboard {
-  display: flex;
-  gap: 20px;
   width: 100%;
   font-family: var(--font-text);
 }
 
-/* Student Sidebar (Progress Sidebar) */
-.milestone-sidebar {
-  width: 260px;
-  background: var(--secondary-bg);
-  padding: 20px;
-  border-radius: 10px;
-  border: 1px solid var(--neutral);
-  font-family: var(--font-text);
-}
-
-.sidebar-title {
-  font-family: var(--font-title);
-  font-size: 1.2rem;
-  margin-bottom: 15px;
-  color: var(--highlight);
-}
-
-.milestone-list {
-  list-style: none;
-  font-family: var(--font-text);
-}
-
-.milestone-item {
-  padding: 12px;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  transition: 0.2s;
-  border: 1px solid transparent;
-  background: var(--primary-bg);
-  font-family: var(--font-text);
-}
-
-.milestone-item.completed {
-  background: var(--success-bg);
-  color: var(--primary-text);
-}
-
-.milestone-item.in-progress {
-  border-color: var(--highlight);
-  background: #E5E1FF;
-  color: var(--highlight);
-}
-
-.milestone-item.locked {
-  background: var(--neutral);
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.milestone-item:hover:not(.locked) {
-  filter: brightness(0.95);
-}
-
-/* Student Lesson Area */
+/* Lesson Card Container */
 .lesson-content {
-  flex-grow: 1;
+  position: relative;
   background: var(--secondary-bg);
   padding: 30px;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid var(--neutral);
-  font-family: var(--font-text);
+  display: flex;
+  flex-direction: column; /* allow stacking main card + 3 cards row */
+  align-items: center;
+  justify-content: center;
+  margin-top: 65px;
 }
 
-.lesson-title {
-  font-size: 1.8rem;
-  font-family: var(--font-title);
+/* Icon */
+.lesson-deco {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+
+  width: 100px;      /* small icon size */
+  height: auto;
+
+  opacity: 0.9;     /* soft look */
+  pointer-events: none; /* don’t block clicks */
+}
+
+/* Continue Card */
+.continue-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 800px; /* fixed width for all cards */
+  max-width: 100%; /* responsive on smaller screens */
+  padding: 15px;
+  border-radius: 12px;
+  background: var(--card-bg, #fff);
+  flex-shrink: 0;
+  margin-bottom: 30px;
+}
+
+/* Left Video Icon */
+.continue-icon {
   color: var(--highlight);
-  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.lesson-description {
+/* Right Content */
+.continue-info {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-wrap: break-word; /* prevent text from overflowing */
+}
+
+/* Small label */
+.continue-label {
   font-size: 1rem;
-  font-family: var(--font-text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--secondary-text);
+  margin-bottom: 8px;
+}
+
+/* Big Lesson Title */
+.continue-title {
+  font-family: var(--font-title);
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--primary-text);
   margin-bottom: 20px;
+}
+
+/* Lesson Number */
+.lesson-number {
+  color: var(--highlight);
+  margin-right: 8px;
 }
 
 /* Progress Bar */
 .progress-bar {
   width: 100%;
-  height: 12px;
+  height: 14px;
   background: var(--neutral);
   border-radius: 10px;
   overflow: hidden;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
 
 .progress-fill {
   height: 100%;
   background: var(--highlight);
   transition: width 0.4s ease;
+}
+
+/* Continue Button */
+.continue-btn {
+  align-self: flex-start;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+}
+
+/* -------------------------------
+   Student Dashboard 3 Cards Row
+--------------------------------- */
+.student-cards-row {
+  display: flex;
+  gap: 20px;
+  margin-top: 25px;
+  justify-content: center;
+  flex-wrap: wrap; /* responsive wrap */
+}
+
+/* Individual Student Card */
+.student-card {
+  flex: 1; /* each card takes equal space */
+  min-width: 220px; /* responsive minimum */
+  max-width: 33%; /* 3 cards in a row */
+  background: var(--card-bg, #fff);
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--neutral);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* Card Icon */
+.student-card .card-icon {
+  color: var(--highlight);
+  margin-bottom: 12px;
+}
+
+/* Card Title */
+.student-card .card-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--primary-text);
+}
+
+/* Card Description */
+.student-card .card-description {
+  font-size: 0.9rem;
+  color: var(--secondary-text);
+  margin-bottom: 12px;
+}
+
+/* Card Buttons Container */
+.student-card .card-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: auto; /* push buttons to bottom if space available */
+}
+
+/* Card Buttons */
+.student-card .card-buttons .btn {
+  padding: 0.5rem 1.5rem;
+  font-size: 0.9rem;
+}
+
+/* -------------------------------------
+   Topbar Greeting (Student)
+-------------------------------------- */
+
+.topbar-greeting {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar-hi-icon {
+  width: 40px;
+  height: auto;
+  display: block;
+}
+
+/* -------------------------------------
+   Topbar Actions (Student)
+-------------------------------------- */
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: 20px;
+}
+
+.topbar-link {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--secondary-text);
+  font-size: 0.95rem;
+  font-family: var(--font-text);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.topbar-link:hover {
+  background: rgba(108, 99, 255, 0.15);
+  color: var(--highlight);
 }
