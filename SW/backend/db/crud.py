@@ -3,6 +3,7 @@ from sqlmodel import select, SQLModel, Session
 from .database import engine
 from models.user import User, RoleEnum
 from models.student import Student
+from models.milestone import Milestone
 from models.lesson import Lesson
 from models.material import Material
 from models.assignment import Assignment
@@ -129,14 +130,107 @@ def delete_student(student_id: int):
 
 
 # ---------------------------
+# Milestones CRUD
+# ---------------------------
+
+def get_milestones(student_id: int):
+    """Return all milestones for a given student_id, ordered by order field"""
+    with Session(engine) as session:
+        statement = select(Milestone).where(Milestone.student_id == student_id).order_by(Milestone.order)
+        return session.exec(statement).all()
+
+
+def get_milestone_by_id(milestone_id: int):
+    """Get a milestone by ID"""
+    with Session(engine) as session:
+        return session.get(Milestone, milestone_id)
+
+
+def create_milestone(milestone_data: Milestone):
+    """Create a new milestone"""
+    with Session(engine) as session:
+        # If order is not set, use number as order
+        if milestone_data.order is None:
+            milestone_data.order = milestone_data.number
+        session.add(milestone_data)
+        session.commit()
+        session.refresh(milestone_data)
+        return milestone_data
+
+
+def update_milestone(milestone_id: int, **kwargs):
+    """Update a milestone"""
+    with Session(engine) as session:
+        milestone = session.get(Milestone, milestone_id)
+        if not milestone:
+            return None
+
+        for key, value in kwargs.items():
+            if hasattr(milestone, key):
+                setattr(milestone, key, value)
+
+        session.add(milestone)
+        session.commit()
+        session.refresh(milestone)
+        return milestone
+
+
+def delete_milestone(milestone_id: int):
+    """Delete a milestone"""
+    with Session(engine) as session:
+        milestone = session.get(Milestone, milestone_id)
+        if not milestone:
+            return None
+
+        session.delete(milestone)
+        session.commit()
+        return milestone
+
+
+# ---------------------------
 # Lessons CRUD
 # ---------------------------
 
 def get_lessons(student_id: int):
-    """Return all lessons for a given student_id"""
+    """Return all lessons for a given student_id, ordered by milestone and order"""
     with Session(engine) as session:
-        statement = select(Lesson).where(Lesson.student_id == student_id)
+        statement = (
+            select(Lesson)
+            .where(Lesson.student_id == student_id)
+            .order_by(Lesson.milestone_id, Lesson.order)
+        )
         return session.exec(statement).all()
+
+
+def get_lessons_by_milestone(milestone_id: int):
+    """Return all lessons for a given milestone_id, ordered by order"""
+    with Session(engine) as session:
+        statement = (
+            select(Lesson)
+            .where(Lesson.milestone_id == milestone_id)
+            .order_by(Lesson.order)
+        )
+        return session.exec(statement).all()
+
+
+def get_lessons_grouped_by_milestones(student_id: int):
+    """Return lessons grouped by milestones"""
+    # Get all milestones for the student
+    milestones = get_milestones(student_id)
+    
+    # Get all lessons for the student
+    lessons = get_lessons(student_id)
+    
+    # Group lessons by milestone_id
+    result = []
+    for milestone in milestones:
+        milestone_lessons = [lesson for lesson in lessons if lesson.milestone_id == milestone.id]
+        result.append({
+            "milestone": milestone,
+            "lessons": milestone_lessons
+        })
+    
+    return result
 
 
 def create_lesson(lesson_data: Lesson):

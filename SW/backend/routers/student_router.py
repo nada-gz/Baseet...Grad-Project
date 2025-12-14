@@ -2,7 +2,8 @@ from fastapi import APIRouter, HTTPException
 from typing import List
 from db.crud import (
     create_student, get_all_students, get_student_by_id, update_student, delete_student,
-    get_lessons, create_lesson, get_lesson_by_id, update_lesson,
+    get_lessons, get_lessons_grouped_by_milestones, create_lesson, get_lesson_by_id, update_lesson,
+    get_milestones, get_milestone_by_id, create_milestone, update_milestone, delete_milestone,
     get_materials, create_material, get_material_by_id, update_material, delete_material,
     get_assignments, create_assignment, get_assignment_by_id, update_assignment, delete_assignment,
     get_quizzes, create_quiz, get_quiz_by_id, update_quiz, delete_quiz,
@@ -16,6 +17,7 @@ from models.quiz import Quiz
 from models.ask_baseet import AskBaseet
 from schemas.student_schema import StudentCreate, StudentRead, StudentUpdate
 from schemas.lesson_schema import LessonRead, LessonCreate
+from schemas.milestone_schema import MilestoneRead, MilestoneCreate, MilestoneUpdate, MilestoneWithLessons
 from schemas.material_schema import MaterialCreate, MaterialRead, MaterialUpdate
 from schemas.assignment_schema import AssignmentCreate, AssignmentRead, AssignmentUpdate
 from schemas.quiz_schema import QuizCreate, QuizRead, QuizUpdate
@@ -69,15 +71,46 @@ def delete_student_route(student_id: int):
 @router.get("/{student_id}/dashboard")
 def get_student_dashboard(student_id: int):
     """
-    Get all student data in one response: lessons, materials, assignments, quizzes, and ask-baseet conversations
+    Get all student data in one response: lessons (grouped by milestones), materials, assignments, quizzes, and ask-baseet conversations
     """
     student = get_student_by_id(student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     
+    # Get lessons grouped by milestones
+    grouped_lessons = get_lessons_grouped_by_milestones(student_id)
+    
+    # Format lessons data
+    lessons_data = []
+    for item in grouped_lessons:
+        milestone_dict = {
+            "id": item["milestone"].id,
+            "student_id": item["milestone"].student_id,
+            "title": item["milestone"].title,
+            "number": item["milestone"].number,
+            "order": item["milestone"].order,
+            "description": item["milestone"].description,
+            "lessons": [
+                {
+                    "id": lesson.id,
+                    "student_id": lesson.student_id,
+                    "milestone_id": lesson.milestone_id,
+                    "title": lesson.title,
+                    "lesson_code": lesson.lesson_code,
+                    "order": lesson.order,
+                    "progress": lesson.progress,
+                    "status": lesson.status,
+                    "description": lesson.description,
+                    "content_url": lesson.content_url,
+                }
+                for lesson in item["lessons"]
+            ]
+        }
+        lessons_data.append(milestone_dict)
+    
     return {
         "student_id": student_id,
-        "lessons": get_lessons(student_id),
+        "lessons": lessons_data,  # Now grouped by milestones
         "materials": get_materials(student_id),
         "assignments": get_assignments(student_id),
         "quizzes": get_quizzes(student_id),
@@ -86,16 +119,75 @@ def get_student_dashboard(student_id: int):
 
 
 # ---------------------------
-# Lessons endpoints
+# Milestones endpoints
 # ---------------------------
 
-@router.get("/{student_id}/lessons", response_model=list[LessonRead])
-def get_lessons_route(student_id: int):
-    """Retrieve all lessons for a given student_id"""
+@router.get("/{student_id}/milestones", response_model=list[MilestoneRead])
+def get_milestones_route(student_id: int):
+    """Retrieve all milestones for a given student_id"""
     student = get_student_by_id(student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
-    return get_lessons(student_id)
+    return get_milestones(student_id)
+
+
+@router.post("/{student_id}/milestones", response_model=MilestoneRead)
+def create_milestone_route(student_id: int, milestone: MilestoneCreate):
+    """Create a new milestone for a student"""
+    student = get_student_by_id(student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    milestone_data = Milestone(student_id=student_id, **milestone.dict(exclude={"student_id"}))
+    return create_milestone(milestone_data)
+
+
+# ---------------------------
+# Lessons endpoints
+# ---------------------------
+
+@router.get("/{student_id}/lessons")
+def get_lessons_route(student_id: int):
+    """
+    Retrieve all lessons for a given student_id, grouped by milestones.
+    Returns a list of milestones, each containing its lessons.
+    """
+    student = get_student_by_id(student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    # Get lessons grouped by milestones
+    grouped_data = get_lessons_grouped_by_milestones(student_id)
+    
+    # Format response
+    result = []
+    for item in grouped_data:
+        milestone_dict = {
+            "id": item["milestone"].id,
+            "student_id": item["milestone"].student_id,
+            "title": item["milestone"].title,
+            "number": item["milestone"].number,
+            "order": item["milestone"].order,
+            "description": item["milestone"].description,
+            "lessons": [
+                {
+                    "id": lesson.id,
+                    "student_id": lesson.student_id,
+                    "milestone_id": lesson.milestone_id,
+                    "title": lesson.title,
+                    "lesson_code": lesson.lesson_code,
+                    "order": lesson.order,
+                    "progress": lesson.progress,
+                    "status": lesson.status,
+                    "description": lesson.description,
+                    "content_url": lesson.content_url,
+                }
+                for lesson in item["lessons"]
+            ]
+        }
+        result.append(milestone_dict)
+    
+    return result
 
 
 @router.post("/{student_id}/lessons", response_model=LessonRead)
