@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import api from "../../services/api";
-import useAuth from "../../hooks/useAuth";
+import api from "../../../services/api";
+import useAuth from "../../../hooks/useAuth";
 import { Link } from "react-router-dom";
 import { PlayCircle, BookOpen, FileText, Edit3 } from "lucide-react"; // icons
 
@@ -37,7 +37,7 @@ export default function StudentDashboard() {
     <div className="student-dashboard">
       <main className="lesson-content">
         <img
-          src={require("../../assets/cute_purple_baseet.png")}
+          src={require("../../../assets/cute_purple_baseet.png")}
           alt="Baseet decoration"
           className="lesson-deco"
         />
@@ -62,7 +62,7 @@ export default function StudentDashboard() {
                   />
                 </div>
                 <Link
-                  to={`/lesson/${currentLesson.id}`}
+                  to={`/dashboard/student/lesson/${currentLesson.id}`}
                   className="btn btn-primary continue-btn"
                 >
                   Continue
