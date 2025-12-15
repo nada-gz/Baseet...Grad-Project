@@ -802,3 +802,231 @@ a:hover {
   background: rgba(108, 99, 255, 0.15);
   color: var(--highlight);
 }
+
+
+/* -------------------------------------
+   Lesson Player (Kid Friendly)
+-------------------------------------- */
+
+.lesson-player {
+  position: relative; /* for floating assets */
+  width: calc(70vw - 40px);
+  max-width: 3000px;
+  margin-top: 200px;
+  background: var(--secondary-bg);
+  border-radius: 20px;
+  padding: 30px;
+  border: 1px solid var(--neutral);
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  z-index: 2;
+}
+
+/* Header */
+.lesson-player-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lesson-player-header h1 {
+  font-family: var(--font-title);
+  font-size: 2rem;
+  color: var(--highlight);
+}
+
+/* Baseet Helper */
+.lesson-helper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* background: rgba(108, 99, 255, 0.1); */
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-weight: 600;
+}
+
+.lesson-helper img {
+  width: 50px;
+  height: auto;
+}
+
+/* Video Section */
+.lesson-video {
+  background: var(--primary-bg);
+  border-radius: 18px;
+  padding: 20px;
+  text-align: center;
+}
+
+.video-placeholder {
+  height: 260px;
+  background: white;
+  border-radius: 16px;
+  border: 2px dashed var(--highlight);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--secondary-text);
+}
+
+/* Controls */
+.lesson-controls {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.lesson-btn {
+  padding: 0.8rem 1.6rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+/* Button Variants */
+.lesson-btn.primary {
+  background: var(--highlight);
+  color: white;
+  border: none;
+}
+
+.lesson-btn.primary:hover {
+  opacity: 0.9;
+}
+
+.lesson-btn.secondary {
+  background: var(--success-bg);
+  color: white;
+  border: none;
+}
+
+.lesson-btn.outline {
+  background: white;
+  color: var(--highlight);
+  border: 2px solid var(--highlight);
+}
+
+.lesson-btn.outline:hover {
+  background: var(--highlight);
+  color: white;
+}
+
+/* Q&A */
+.lesson-qa {
+  background: var(--primary-bg);
+  padding: 20px;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.qa-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--highlight);
+}
+
+.lesson-qa textarea {
+  resize: none;
+  min-height: 100px;
+  border-radius: 14px;
+  border: 1px solid var(--neutral);
+  padding: 12px;
+  font-size: 1rem;
+  font-family: var(--font-text);
+}
+
+.send-btn {
+  align-self: flex-end;
+}
+
+/* Floating Baseet Assets */
+.floating-asset {
+  position: absolute;
+  width: 70px;
+  height: auto;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.95;
+}
+
+/* Centered between title and helper */
+.floating-asset.center-between {
+  top: 15px; /* adjust based on header height */
+  left: 50%;
+  transform: translateX(-50%);
+  animation: floatCenter 4s ease-in-out infinite alternate;
+}
+
+/* Float animation for center asset */
+@keyframes floatCenter {
+  0% { transform: translateX(-50%) translateY(0px) rotate(0deg); }
+  50% { transform: translateX(-50%) translateY(-15px) rotate(5deg); }
+  100% { transform: translateX(-50%) translateY(0px) rotate(-5deg); }
+}
+
+/* Right side floating asset (top to bottom, full page right) */
+.floating-asset.right-side {
+  position: fixed;       /* relative to viewport now */
+  top: 0;
+  right: 20px;           /* distance from the edge of the page */
+  width: 70px;
+  height: auto;
+  z-index: 1000;
+  pointer-events: none;
+  animation: floatRight 15s ease-in-out infinite alternate;
+}
+
+/* Float animation */
+@keyframes floatRight {
+  0% { top: 0; transform: rotate(0deg); }
+  50% { top: calc(100vh - 150px); transform: rotate(5deg); }
+  100% { top: 0; transform: rotate(-5deg); }
+}
+
+/* Eyes moving along video border */
+.eyes-border {
+  position: absolute;
+  width: 50px; /* adjust as needed */
+  height: auto;
+  pointer-events: none;
+  z-index: 10;
+  animation: borderMove 15s linear infinite;
+}
+
+/* Animation along the rectangular border with equal spacing from edges */
+@keyframes borderMove {
+  0% {
+    top: -30px;        /* top-left */
+    left: 0;
+  }
+  25% {
+    top: -30px;        /* top-right */
+    left: calc(100% - 50px);
+  }
+  50% {
+    top: calc(100% - 50px); /* bottom-right */
+    left: calc(100% - 50px);
+  }
+  75% {
+    top: calc(100% - 50px); /* bottom-left */
+    left: 0;
+  }
+  100% {
+    top: -30px;        /* back to top-left */
+    left: 0;
+  }
+}
