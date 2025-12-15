@@ -16,13 +16,23 @@ router = APIRouter(
 )
 
 # --- Helper to format user response ---
-def user_response(user: User) -> dict:
-    return {
+def user_response(user: User, db: Session = None) -> dict:
+    """Format user response, optionally including studentId if user is a student"""
+    response = {
         "id": user.id,
         "username": user.username,
         "email": user.email,
         "role": user.role.value
     }
+    
+    # If user is a student, include studentId
+    if user.role == RoleEnum.student and db:
+        from models.student import Student
+        student = db.query(Student).filter(Student.user_id == user.id).first()
+        if student:
+            response["studentId"] = student.id
+    
+    return response
 
 # --- Auth scheme ---
 oauth2_scheme = APIKeyHeader(name="Authorization", scheme_name="JWT")
@@ -78,15 +88,26 @@ def register(user: UserCreate, db: Session = Depends(get_session)):
     db.commit()
     db.refresh(new_user)
 
+    # If student, create student record
+    student_id = None
+    if role == RoleEnum.student:
+        from models.student import Student
+        student = Student(user_id=new_user.id)
+        db.add(student)
+        db.commit()
+        db.refresh(student)
+        student_id = student.id
+
     token = create_access_token(
         {"sub": new_user.email},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
+    user_data = user_response(new_user, db)
     return {
         "access_token": token,
         "token_type": "bearer",
-        "user": user_response(new_user)
+        "user": user_data
     }
 
 @router.post("/login")
@@ -103,9 +124,10 @@ def login(user: UserLogin, db: Session = Depends(get_session)):
     return {
         "access_token": token,
         "token_type": "bearer",
-        "user": user_response(db_user)
+        "user": user_response(db_user, db)
     }
 
-@router.get("/me", response_model=UserRead)
-def read_me(current_user: User = Depends(get_current_user)):
-    return current_user
+@router.get("/me")
+def read_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_session)):
+    """Get current user with studentId if applicable"""
+    return user_response(current_user, db)

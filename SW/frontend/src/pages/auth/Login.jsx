@@ -33,6 +33,7 @@ export default function Login() {
     try {
       const response = await loginAPI({ email, password });
       const role = response.user?.role || "student";
+      // studentId is now included in response.user if user is a student
       loginContext(response.access_token, response.user, role);
       navigate(`/dashboard/${role}`);
     } catch (err) {
