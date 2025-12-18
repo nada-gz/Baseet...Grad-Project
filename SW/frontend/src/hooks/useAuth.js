@@ -27,16 +27,23 @@ const useAuth = () => {
       try {
         const data = await getCurrentUser();
 
+        // Backend returns `studentId` (camelCase) for students.
+        // Normalize it to `student_id` and keep all original fields.
+        const normalizedUser = {
+          ...data,
+          student_id: data?.student_id ?? data?.studentId ?? null,
+        };
+
         // Save latest role + user info locally, fallback to "student"
-        const role = data?.role || "student";
+        const role = normalizedUser?.role || "student";
         localStorage.setItem("role", role);
 
-        // Save student_id if exists
-        if (data?.student_id) {
-          localStorage.setItem("student_id", data.student_id);
+        // Save student_id if exists (from either `student_id` or `studentId`)
+        if (normalizedUser.student_id) {
+          localStorage.setItem("student_id", normalizedUser.student_id);
         }
 
-        setUser(data);
+        setUser(normalizedUser);
       } catch (err) {
         // Invalid token → logout
         logout();

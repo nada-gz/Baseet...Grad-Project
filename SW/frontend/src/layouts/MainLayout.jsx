@@ -73,7 +73,8 @@ export default function MainLayout() {
   const sidebarItems = getSidebarItems();
 
   const renderTopbarExtras = () => {
-    if (role !== "student") return null;
+    // Only show for logged-in students
+    if (role !== "student" || !user) return null;
   
     return (
       <>
