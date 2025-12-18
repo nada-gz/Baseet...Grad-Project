@@ -1,8 +1,11 @@
 from typing import Optional
 from pydantic import BaseModel
 
+
 class LessonRead(BaseModel):
     id: int
+    student_id: int
+    milestone_id: Optional[int] = None
     title: str
     number: str
     progress: int

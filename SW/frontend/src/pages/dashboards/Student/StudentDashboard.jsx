@@ -11,9 +11,15 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    
     const loadLessons = async () => {
       try {
         const response = await api.get(`/students/${student.id}/lessons`);
+        console.log("Lessons from API:", JSON.stringify(response.data, null, 2));
+
+        const currentLesson = lessons.find(l => l && l.status === "in-progress");
+        console.log("Current lesson chosen:", JSON.stringify(currentLesson, null, 2));
+
         setLessons(response.data);
       } catch (error) {
         console.error("Error loading lessons:", error);
@@ -31,7 +37,8 @@ export default function StudentDashboard() {
   if (authError)
     return <div className="dashboard-error">Error loading dashboard.</div>;
 
-    const currentLesson = lessons.find(l => l && l.status === "in-progress");
+  const currentLesson = lessons.find(l => l && l.status === "in-progress");
+  console.log("Current lesson chosen:", currentLesson);
 
   return (
     <div className="student-dashboard">
@@ -52,7 +59,11 @@ export default function StudentDashboard() {
               <div className="continue-info">
                 <span className="continue-label">Continue your progress</span>
                 <h1 className="continue-title">
-                  <span className="lesson-number">{currentLesson.number}.</span>
+                  {currentLesson.milestone_id && currentLesson.id ? (
+                    <span className="lesson-number">
+                      {currentLesson.milestone_id}.{currentLesson.id}{" "}
+                    </span>
+                  ) : null}
                   {currentLesson.title}
                 </h1>
                 <div className="progress-bar">
