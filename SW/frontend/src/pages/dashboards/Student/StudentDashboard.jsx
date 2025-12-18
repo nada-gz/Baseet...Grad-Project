@@ -58,7 +58,7 @@ export default function StudentDashboard() {
   if (authError)
     return <div className="dashboard-error">Error loading dashboard.</div>;
 
-  const currentLesson = lessons.find(l => l.status === "in-progress");
+    const currentLesson = lessons.find(l => l && l.status === "in-progress");
 
   return (
     <div className="student-dashboard">
