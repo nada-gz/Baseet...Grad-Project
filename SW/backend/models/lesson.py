@@ -7,6 +7,7 @@ class Lesson(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
 
     student_id: int = Field(foreign_key="students.id")
+    milestone_id: Optional[int] = Field(default=None, foreign_key="milestones.id")
 
     title: str
     number: str              # e.g. "3.1"
