@@ -167,45 +167,31 @@ def create_milestone_route(student_id: int, milestone: MilestoneCreate):
 @router.get("/{student_id}/lessons")
 def get_lessons_route(student_id: int):
     """
-    Retrieve all lessons for a given student_id, grouped by milestones.
-    Returns a list of milestones, each containing its lessons.
+    Retrieve all lessons for a given student_id as a flat list.
+    This matches the original frontend expectation (StudentDashboard).
     """
     student = get_student_by_id(student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
-    
-    # Get lessons grouped by milestones
-    grouped_data = get_lessons_grouped_by_milestones(student_id)
-    
-    # Format response
-    result = []
-    for item in grouped_data:
-        milestone_dict = {
-            "id": item["milestone"].id,
-            "student_id": item["milestone"].student_id,
-            "title": item["milestone"].title,
-            "number": item["milestone"].number,
-            "order": item["milestone"].order,
-            "description": item["milestone"].description,
-            "lessons": [
-                {
-                    "id": lesson.id,
-                    "student_id": lesson.student_id,
-                    "milestone_id": lesson.milestone_id,
-                    "title": lesson.title,
-                    "lesson_code": lesson.lesson_code,
-                    "order": lesson.order,
-                    "progress": lesson.progress,
-                    "status": lesson.status,
-                    "description": lesson.description,
-                    "content_url": lesson.content_url,
-                }
-                for lesson in item["lessons"]
-            ]
+
+    lessons = get_lessons(student_id)
+
+    # Return flat list of lessons
+    return [
+        {
+            "id": lesson.id,
+            "student_id": lesson.student_id,
+            "milestone_id": lesson.milestone_id,
+            "title": lesson.title,
+            "lesson_code": getattr(lesson, "lesson_code", None),
+            "order": getattr(lesson, "order", None),
+            "progress": lesson.progress,
+            "status": lesson.status,
+            "description": lesson.description,
+            "content_url": getattr(lesson, "content_url", None),
         }
-        result.append(milestone_dict)
-    
-    return result
+        for lesson in lessons
+    ]
 
 
 @router.post("/{student_id}/lessons", response_model=LessonRead)

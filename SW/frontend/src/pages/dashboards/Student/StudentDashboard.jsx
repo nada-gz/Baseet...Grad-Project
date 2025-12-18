@@ -13,8 +13,35 @@ export default function StudentDashboard() {
   useEffect(() => {
     const loadLessons = async () => {
       try {
-        const response = await api.get(`/students/${student.id}/lessons`);
-        setLessons(response.data);
+        // Use the student's actual student_id (not the user id)
+        const studentId =
+          student?.student_id ||
+          student?.studentId ||
+          localStorage.getItem("student_id") ||
+          // Fallback: use user id if no explicit student_id is available
+          student?.id;
+
+        /* temp */
+        console.log("Student in dashboard:", student);
+        console.log("studentId used for API:", studentId);
+
+        if (!studentId) {
+          console.error("No student_id found for current user");
+          setLoading(false);
+          return;
+        }
+
+        const response = await api.get(`/students/${studentId}/lessons`);
+
+        // Backend now returns a flat list of lessons:
+        // [ { id, title, status, progress, ... }, ... ]
+        const lessonList = response.data || [];
+
+        /* temp */
+        console.log("Raw /students/{studentId}/lessons response:", response.data);
+        console.log("Lessons array:", lessonList);
+
+        setLessons(lessonList);
       } catch (error) {
         console.error("Error loading lessons:", error);
       } finally {
