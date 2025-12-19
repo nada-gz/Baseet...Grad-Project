@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session, select, update
 from db.database import engine
 from db.crud import (
     create_student,
@@ -7,7 +7,7 @@ from db.crud import (
     get_student_by_id,
     update_student,
     delete_student,
-    get_lessons
+    get_lessons,
 )
 from models.student import Student
 from models.lesson import Lesson
@@ -118,23 +118,44 @@ def get_lesson(student_id: int, lesson_id: int):
 def reset_lesson_route(student_id: int, lesson_id: int, data: LessonUpdate):
     try:
         with Session(engine) as session:
-            statement = select(Lesson).where(
-                Lesson.id == lesson_id,
-                Lesson.student_id == student_id
-            )
-            lesson = session.exec(statement).first()
-
-            if not lesson:
+            # 1️⃣ Get the lesson
+            lesson = session.get(Lesson, lesson_id)
+            if not lesson or lesson.student_id != student_id:
                 raise HTTPException(status_code=404, detail="Lesson not found")
 
+            # 2️⃣ Update progress if provided
             if data.progress is not None:
                 lesson.progress = data.progress
 
-            if data.status is not None:
-                lesson.status = data.status
-
+            # 3️⃣ Update current lesson status based on progress
+            lesson.status = "completed" if lesson.progress == 100 else "in-progress"
             session.add(lesson)
-            session.commit()
+            session.flush()  # ensure SQLModel sees the change
+
+            # 4️⃣ Check if all lessons in this milestone are completed
+            milestone_lessons = session.exec(
+                select(Lesson).where(
+                    Lesson.student_id == student_id,
+                    Lesson.milestone_number == lesson.milestone_number
+                )
+            ).all()
+
+            if all(l.progress == 100 for l in milestone_lessons):
+                next_milestone_number = lesson.milestone_number + 1
+
+                # 5️⃣ Unlock next milestone lessons (status = in-progress)
+                stmt = (
+                    update(Lesson)
+                    .where(
+                        Lesson.student_id == student_id,
+                        Lesson.milestone_number == next_milestone_number,
+                        Lesson.status == "locked"
+                    )
+                    .values(status="in-progress")
+                )
+                session.exec(stmt)
+
+            session.commit()  # commit everything at once
             session.refresh(lesson)
 
             return LessonRead(
@@ -148,7 +169,6 @@ def reset_lesson_route(student_id: int, lesson_id: int, data: LessonUpdate):
                 status=lesson.status,
                 number=f"{lesson.milestone_number}.{lesson.lesson_number}"
             )
-
 
     except Exception as e:
         print("Error updating lesson:", e)
