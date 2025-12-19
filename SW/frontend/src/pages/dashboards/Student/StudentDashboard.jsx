@@ -11,15 +11,15 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    
     const loadLessons = async () => {
       try {
         const response = await api.get(`/students/${student.id}/lessons`);
         console.log("Lessons from API:", JSON.stringify(response.data, null, 2));
-
-        const currentLesson = lessons.find(l => l && l.status === "in-progress");
-        console.log("Current lesson chosen:", JSON.stringify(currentLesson, null, 2));
-
+  
+        // Find current lesson from API response directly
+        const currentLesson = lessons.find(l => l && l.status === "in-progress") || null;
+        console.log("Current lesson chosen from API:", currentLesson);
+  
         setLessons(response.data);
       } catch (error) {
         console.error("Error loading lessons:", error);
@@ -27,9 +27,9 @@ export default function StudentDashboard() {
         setLoading(false);
       }
     };
-
+  
     if (student) loadLessons();
-  }, [student]);
+  }, [student]);  
 
   if (authLoading || loading)
     return <div className="dashboard-loading">Loading...</div>;

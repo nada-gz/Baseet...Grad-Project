@@ -140,3 +140,10 @@ def create_lesson(lesson_data: Lesson):
         session.commit()
         session.refresh(lesson_data)
         return lesson_data
+
+def update_lesson(lesson: Lesson):
+    with Session(engine) as session:
+        session.add(lesson)
+        session.commit()
+        session.refresh(lesson)
+        return lesson
