@@ -52,9 +52,9 @@ body, html {
   font-family: var(--font-text);
   background-color: var(--primary-bg);
   color: var(--primary-text);
-  display: flex;
+  /* display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: center; */
 }
 
 /* -------------------------------------
@@ -583,8 +583,10 @@ a:hover {
   display: flex;
   flex-direction: column; /* allow stacking main card + 3 cards row */
   align-items: center;
-  justify-content: center;
+  /* justify-content: center; */
   margin-top: 65px;
+  width: 850px;
+  margin-left: 125px;
 }
 
 /* Icon */
@@ -810,9 +812,10 @@ a:hover {
 
 .lesson-player {
   position: relative; /* for floating assets */
-  width: calc(70vw - 40px);
-  max-width: 3000px;
-  margin-top: 200px;
+  width: calc(70vw - 60px);
+  max-width: 2500px;
+  margin-top: 20px;
+  margin-left: 70px;
   background: var(--secondary-bg);
   border-radius: 20px;
   padding: 30px;
@@ -861,7 +864,7 @@ a:hover {
 }
 
 .video-placeholder {
-  height: 260px;
+  height: 500px;
   background: white;
   border-radius: 16px;
   border: 2px dashed var(--highlight);
@@ -1037,7 +1040,6 @@ a:hover {
 -------------------------------------- */
 
 .student-lessons-page {
-  margin-top: 100px;
   display: flex;
   flex-direction: column;
   gap: 40px;
