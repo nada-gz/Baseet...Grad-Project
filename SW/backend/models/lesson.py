@@ -5,12 +5,13 @@ class Lesson(SQLModel, table=True):
     __tablename__ = "lessons"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-
     student_id: int = Field(foreign_key="students.id")
-    milestone_id: Optional[int] = Field(default=None, foreign_key="milestones.id")
+
+    milestone_number: int
+    lesson_number: int
 
     title: str
-    number: str              # e.g. "3.1"
-    progress: int = 0        # 0 → 100
-    status: str = "locked"   # locked | in-progress | completed
-    description: Optional[str] = None   # optional lesson description
+    description: Optional[str] = None
+
+    progress: int = 0
+    status: str = "locked"

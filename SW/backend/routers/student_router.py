@@ -72,8 +72,46 @@ def get_lessons_route(student_id: int):
         raise HTTPException(status_code=404, detail="Student not found")
 
     lessons = get_lessons(student_id)
-    print(f"Retrieved lessons for student {student_id}:", lessons)
-    return lessons
+
+    return [
+        LessonRead(
+            id=lesson.id,
+            student_id=lesson.student_id,
+            milestone_number=lesson.milestone_number,
+            lesson_number=lesson.lesson_number,
+            title=lesson.title,
+            description=lesson.description,
+            progress=lesson.progress,
+            status=lesson.status,
+            number=f"{lesson.milestone_number}.{lesson.lesson_number}"
+        )
+        for lesson in lessons
+    ]
+
+
+@router.get("/{student_id}/lessons/{lesson_id}", response_model=LessonRead)
+def get_lesson(student_id: int, lesson_id: int):
+    with Session(engine) as session:
+        statement = select(Lesson).where(
+            Lesson.id == lesson_id,
+            Lesson.student_id == student_id
+        )
+        lesson = session.exec(statement).first()
+
+        if not lesson:
+            raise HTTPException(404, detail="Lesson not found")
+
+        return LessonRead(
+            id=lesson.id,
+            student_id=lesson.student_id,
+            milestone_number=lesson.milestone_number,
+            lesson_number=lesson.lesson_number,
+            title=lesson.title,
+            description=lesson.description,
+            progress=lesson.progress,
+            status=lesson.status,
+            number=f"{lesson.milestone_number}.{lesson.lesson_number}"
+        )
 
 
 @router.patch("/{student_id}/lessons/{lesson_id}", response_model=LessonRead)
@@ -89,20 +127,28 @@ def reset_lesson_route(student_id: int, lesson_id: int, data: LessonUpdate):
             if not lesson:
                 raise HTTPException(status_code=404, detail="Lesson not found")
 
-            # Only update if data fields are not None
-            if getattr(data, "progress", None) is not None:
+            if data.progress is not None:
                 lesson.progress = data.progress
 
-            if getattr(data, "status", None) is not None:
-                lesson.status = data.status  # must match the column type in DB
+            if data.status is not None:
+                lesson.status = data.status
 
             session.add(lesson)
             session.commit()
             session.refresh(lesson)
 
-            print(f"Updated lesson: {lesson}")  # ✅ debug log
+            return LessonRead(
+                id=lesson.id,
+                student_id=lesson.student_id,
+                milestone_number=lesson.milestone_number,
+                lesson_number=lesson.lesson_number,
+                title=lesson.title,
+                description=lesson.description,
+                progress=lesson.progress,
+                status=lesson.status,
+                number=f"{lesson.milestone_number}.{lesson.lesson_number}"
+            )
 
-            return lesson
 
     except Exception as e:
         print("Error updating lesson:", e)
