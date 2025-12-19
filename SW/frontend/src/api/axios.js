@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// Create axios instance with base URL
+// Use localhost consistently to match FastAPI CORS
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000',
+  baseURL: "http://127.0.0.1:8000",
   headers: {
     'Content-Type': 'application/json',
   },
@@ -17,9 +17,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Handle response errors
@@ -32,19 +30,16 @@ api.interceptors.response.use(
       localStorage.removeItem('role');
       window.location.href = '/login';
     }
-    
-    // Better error handling for network errors
+
     if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-      console.error('Network Error - Backend may not be running:', {
+      console.error('Network Error - Backend may not be running or CORS issue:', {
         url: error.config?.url,
         baseURL: error.config?.baseURL,
-        message: 'Make sure the backend server is running on http://127.0.0.1:8000'
       });
     }
-    
+
     return Promise.reject(error);
   }
 );
 
 export default api;
-

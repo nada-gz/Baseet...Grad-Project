@@ -14,3 +14,9 @@ class LessonRead(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+# used for resetting / updating lesson progress
+class LessonUpdate(BaseModel):
+    progress: int | None = None
+    status: str | None = None
