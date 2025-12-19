@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import api from "../../../services/api";
 import useAuth from "../../../hooks/useAuth";
 import { Link } from "react-router-dom";
-import { PlayCircle, BookOpen, FileText, Edit3 } from "lucide-react"; // icons
+import { PlayCircle, BookOpen, FileText, Edit3 } from "lucide-react";
 
 export default function StudentDashboard() {
   const { user: student, loading: authLoading, error: authError } = useAuth();
@@ -14,12 +14,7 @@ export default function StudentDashboard() {
     const loadLessons = async () => {
       try {
         const response = await api.get(`/students/${student.id}/lessons`);
-        console.log("Lessons from API:", JSON.stringify(response.data, null, 2));
-  
-        // Find current lesson from API response directly
-        const currentLesson = lessons.find(l => l && l.status === "in-progress") || null;
-        console.log("Current lesson chosen from API:", currentLesson);
-  
+        console.log("Lessons from API:", response.data);
         setLessons(response.data);
       } catch (error) {
         console.error("Error loading lessons:", error);
@@ -27,18 +22,22 @@ export default function StudentDashboard() {
         setLoading(false);
       }
     };
-  
+
     if (student) loadLessons();
-  }, [student]);  
+  }, [student]);
 
-  if (authLoading || loading)
+  if (authLoading || loading) {
     return <div className="dashboard-loading">Loading...</div>;
+  }
 
-  if (authError)
+  if (authError) {
     return <div className="dashboard-error">Error loading dashboard.</div>;
+  }
 
-  const currentLesson = lessons.find(l => l && l.status === "in-progress");
-  console.log("Current lesson chosen:", currentLesson);
+  // ✅ find current in-progress lesson
+  const currentLesson = lessons.find(
+    (lesson) => lesson.status === "in-progress"
+  );
 
   return (
     <div className="student-dashboard">
@@ -51,27 +50,31 @@ export default function StudentDashboard() {
 
         {currentLesson ? (
           <>
-            {/* Main Continue Card */}
+            {/* ================= CONTINUE CARD ================= */}
             <div className="continue-card">
               <div className="continue-icon">
                 <PlayCircle size={56} />
               </div>
+
               <div className="continue-info">
-                <span className="continue-label">Continue your progress</span>
+                <span className="continue-label">
+                  Continue your progress
+                </span>
+
                 <h1 className="continue-title">
-                  {currentLesson.milestone_id && currentLesson.id ? (
-                    <span className="lesson-number">
-                      {currentLesson.milestone_id}.{currentLesson.id}{" "}
-                    </span>
-                  ) : null}
+                  <span className="lesson-number">
+                    {currentLesson.number}{" "}
+                  </span>
                   {currentLesson.title}
                 </h1>
+
                 <div className="progress-bar">
                   <div
                     className="progress-fill"
                     style={{ width: `${currentLesson.progress}%` }}
                   />
                 </div>
+
                 <Link
                   to={`/dashboard/student/lesson/${currentLesson.id}`}
                   className="btn btn-primary continue-btn"
@@ -81,9 +84,9 @@ export default function StudentDashboard() {
               </div>
             </div>
 
-            {/* 3 Cards Row */}
+            {/* ================= 3 ACTION CARDS ================= */}
             <div className="student-cards-row">
-              {/* Lesson Material Card */}
+              {/* Lesson Material */}
               <div className="student-card">
                 <div className="card-icon">
                   <BookOpen size={36} />
@@ -95,7 +98,7 @@ export default function StudentDashboard() {
                 </div>
               </div>
 
-              {/* Assignment Card */}
+              {/* Assignment */}
               <div className="student-card">
                 <div className="card-icon">
                   <FileText size={36} />
@@ -107,7 +110,7 @@ export default function StudentDashboard() {
                 </div>
               </div>
 
-              {/* Quiz Card */}
+              {/* Quiz */}
               <div className="student-card">
                 <div className="card-icon">
                   <Edit3 size={36} />

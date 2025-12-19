@@ -5,12 +5,17 @@ from pydantic import BaseModel
 class LessonRead(BaseModel):
     id: int
     student_id: int
-    milestone_id: Optional[int] = None
+
+    milestone_number: int
+    lesson_number: int
+
     title: str
-    number: str
+    description: Optional[str] = None
+
     progress: int
     status: str
-    description: Optional[str] = None
+
+    number: str
 
     class Config:
         orm_mode = True
@@ -18,5 +23,5 @@ class LessonRead(BaseModel):
 
 # used for resetting / updating lesson progress
 class LessonUpdate(BaseModel):
-    progress: int | None = None
-    status: str | None = None
+    progress: Optional[int] = None
+    status: Optional[str] = None

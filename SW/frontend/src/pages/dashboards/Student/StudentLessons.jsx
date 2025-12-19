@@ -8,7 +8,7 @@ export default function StudentLessons() {
   const { user: student } = useAuth();
   const navigate = useNavigate();
 
-  const [milestones, setMilestones] = useState([]);
+  const [milestones, setMilestones] = useState({});
   const [confirmLesson, setConfirmLesson] = useState(null);
 
   useEffect(() => {
@@ -16,44 +16,47 @@ export default function StudentLessons() {
       const res = await api.get(`/students/${student.id}/lessons`);
       setMilestones(groupByMilestone(res.data));
     };
+
     if (student) loadLessons();
   }, [student]);
 
   const groupByMilestone = (lessons) => {
     const grouped = {};
-    lessons.forEach((l) => {
-      if (!grouped[l.milestone_id]) grouped[l.milestone_id] = [];
-      grouped[l.milestone_id].push(l);
+    lessons.forEach((lesson) => {
+      const key = lesson.milestone_number;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(lesson);
     });
+
+    // sort lessons inside each milestone
+    Object.values(grouped).forEach(list =>
+      list.sort((a, b) => a.lesson_number - b.lesson_number)
+    );
+
     return grouped;
   };
 
   const resetLesson = async (lessonId) => {
     try {
-      const payload = {
-        progress: 0,
-        status: "in-progress"
-      };
-  
-      const response = await api.patch(
+      await api.patch(
         `/students/${student.id}/lessons/${lessonId}`,
-        payload
+        { progress: 0, status: "in-progress" }
       );
-  
-      console.log("Lesson reset:", response.data);
-  
+
       setConfirmLesson(null);
       navigate(`/dashboard/student/lesson/${lessonId}`);
     } catch (err) {
       console.error("Failed to reset lesson", err);
     }
-  };  
-  
+  };
+
   return (
     <div className="student-lessons-page">
-      {Object.entries(milestones).map(([milestoneId, lessons]) => (
-        <div key={milestoneId} className="milestone-section">
-          <h2 className="milestone-title">Milestone {milestoneId}</h2>
+      {Object.entries(milestones).map(([milestoneNumber, lessons]) => (
+        <div key={milestoneNumber} className="milestone-section">
+          <h2 className="milestone-title">
+            Milestone {milestoneNumber}
+          </h2>
 
           <div className="lesson-list">
             {lessons.map((lesson) => (
@@ -63,8 +66,9 @@ export default function StudentLessons() {
               >
                 <div className="lesson-info">
                   <h3 className="lesson-title">
-                    {lesson.milestone_id}.{lesson.id} {lesson.title}
+                    {lesson.number} {lesson.title}
                   </h3>
+
                   <p className="lesson-desc">{lesson.description}</p>
 
                   <div className="progress-bar">
@@ -79,7 +83,6 @@ export default function StudentLessons() {
                   </span>
                 </div>
 
-                {/* ACTIONS */}
                 <div className="lesson-actions">
                   {lesson.status === "completed" && (
                     <button
@@ -100,20 +103,18 @@ export default function StudentLessons() {
                       >
                         <Play size={18} /> Continue
                       </button>
+
                       <button
                         className="btn btn-outline"
                         onClick={() => setConfirmLesson(lesson)}
                       >
                         Restart
                       </button>
-
                     </>
                   )}
 
                   {lesson.status === "locked" && (
-                    <div className="locked-icon">
-                      <Lock size={24} />
-                    </div>
+                    <Lock size={24} />
                   )}
                 </div>
               </div>
@@ -122,7 +123,6 @@ export default function StudentLessons() {
         </div>
       ))}
 
-      {/* CONFIRM MODAL */}
       {confirmLesson && (
         <div className="modal-overlay">
           <div className="modal-card">
@@ -130,22 +130,21 @@ export default function StudentLessons() {
             <p>This will reset your progress to 0%.</p>
 
             <div className="modal-actions">
-            <button
-              type="button"
-              className="btn btn-danger"
-              onClick={() => resetLesson(confirmLesson.id)}
-            >
-              Yes, Retake
-            </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => resetLesson(confirmLesson.id)}
+              >
+                Yes, Retake
+              </button>
 
-            <button
-              type="button"
-              className="btn btn-outline"
-              onClick={() => setConfirmLesson(null)}
-            >
-              Cancel
-            </button>
-
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => setConfirmLesson(null)}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
