@@ -1,5 +1,5 @@
 # crud.py
-from sqlmodel import select, SQLModel, Session
+from sqlmodel import select, SQLModel, Session, update
 from .database import engine
 from models.user import User, RoleEnum
 from models.student import Student
@@ -58,10 +58,8 @@ def update_user(user_id: int, username: str, email: str):
         user = session.get(User, user_id)
         if not user:
             return None
-
         user.username = username
         user.email = email
-
         session.add(user)
         session.commit()
         session.refresh(user)
@@ -73,7 +71,6 @@ def delete_user(user_id: int):
         user = session.get(User, user_id)
         if not user:
             return None
-
         session.delete(user)
         session.commit()
         return user
@@ -107,11 +104,9 @@ def update_student(student_id: int, **kwargs):
         student = session.get(Student, student_id)
         if not student:
             return None
-
         for key, value in kwargs.items():
             if hasattr(student, key):
                 setattr(student, key, value)
-
         session.add(student)
         session.commit()
         session.refresh(student)
@@ -123,7 +118,6 @@ def delete_student(student_id: int):
         student = session.get(Student, student_id)
         if not student:
             return None
-
         session.delete(student)
         session.commit()
         return student
@@ -134,24 +128,18 @@ def delete_student(student_id: int):
 # ---------------------------
 
 def get_milestones(student_id: int):
-    """Return all milestones for a given student_id, ordered by order field"""
     with Session(engine) as session:
-        statement = select(Milestone).where(Milestone.student_id == student_id).order_by(Milestone.order)
+        statement = select(Milestone).where(Milestone.student_id == student_id).order_by(Milestone.number)
         return session.exec(statement).all()
 
 
 def get_milestone_by_id(milestone_id: int):
-    """Get a milestone by ID"""
     with Session(engine) as session:
         return session.get(Milestone, milestone_id)
 
 
 def create_milestone(milestone_data: Milestone):
-    """Create a new milestone"""
     with Session(engine) as session:
-        # If order is not set, use number as order
-        if milestone_data.order is None:
-            milestone_data.order = milestone_data.number
         session.add(milestone_data)
         session.commit()
         session.refresh(milestone_data)
@@ -159,16 +147,13 @@ def create_milestone(milestone_data: Milestone):
 
 
 def update_milestone(milestone_id: int, **kwargs):
-    """Update a milestone"""
     with Session(engine) as session:
         milestone = session.get(Milestone, milestone_id)
         if not milestone:
             return None
-
         for key, value in kwargs.items():
             if hasattr(milestone, key):
                 setattr(milestone, key, value)
-
         session.add(milestone)
         session.commit()
         session.refresh(milestone)
@@ -176,12 +161,10 @@ def update_milestone(milestone_id: int, **kwargs):
 
 
 def delete_milestone(milestone_id: int):
-    """Delete a milestone"""
     with Session(engine) as session:
         milestone = session.get(Milestone, milestone_id)
         if not milestone:
             return None
-
         session.delete(milestone)
         session.commit()
         return milestone
@@ -192,49 +175,33 @@ def delete_milestone(milestone_id: int):
 # ---------------------------
 
 def get_lessons(student_id: int):
-    """Return all lessons for a given student_id, ordered by milestone and order"""
     with Session(engine) as session:
-        statement = (
-            select(Lesson)
-            .where(Lesson.student_id == student_id)
-            .order_by(Lesson.milestone_id, Lesson.order)
-        )
+        statement = select(Lesson).where(Lesson.student_id == student_id).order_by(Lesson.milestone_number, Lesson.lesson_number)
         return session.exec(statement).all()
 
 
-def get_lessons_by_milestone(milestone_id: int):
-    """Return all lessons for a given milestone_id, ordered by order"""
+def get_lesson_by_id(lesson_id: int):
     with Session(engine) as session:
-        statement = (
-            select(Lesson)
-            .where(Lesson.milestone_id == milestone_id)
-            .order_by(Lesson.order)
-        )
+        return session.get(Lesson, lesson_id)
+
+
+def get_lessons_by_milestone(milestone_number: int):
+    with Session(engine) as session:
+        statement = select(Lesson).where(Lesson.milestone_number == milestone_number).order_by(Lesson.lesson_number)
         return session.exec(statement).all()
 
 
 def get_lessons_grouped_by_milestones(student_id: int):
-    """Return lessons grouped by milestones"""
-    # Get all milestones for the student
     milestones = get_milestones(student_id)
-    
-    # Get all lessons for the student
     lessons = get_lessons(student_id)
-    
-    # Group lessons by milestone_id
     result = []
     for milestone in milestones:
-        milestone_lessons = [lesson for lesson in lessons if lesson.milestone_id == milestone.id]
-        result.append({
-            "milestone": milestone,
-            "lessons": milestone_lessons
-        })
-    
+        milestone_lessons = [lesson for lesson in lessons if lesson.milestone_number == milestone.id]
+        result.append({"milestone": milestone, "lessons": milestone_lessons})
     return result
 
 
 def create_lesson(lesson_data: Lesson):
-    """Add a lesson for a student."""
     with Session(engine) as session:
         session.add(lesson_data)
         session.commit()
@@ -242,23 +209,8 @@ def create_lesson(lesson_data: Lesson):
         return lesson_data
 
 
-def get_lesson_by_id(lesson_id: int):
-    """Get a lesson by ID"""
+def update_lesson(lesson: Lesson):
     with Session(engine) as session:
-        return session.get(Lesson, lesson_id)
-
-
-def update_lesson(lesson_id: int, **kwargs):
-    """Update a lesson"""
-    with Session(engine) as session:
-        lesson = session.get(Lesson, lesson_id)
-        if not lesson:
-            return None
-
-        for key, value in kwargs.items():
-            if hasattr(lesson, key):
-                setattr(lesson, key, value)
-
         session.add(lesson)
         session.commit()
         session.refresh(lesson)
@@ -270,40 +222,32 @@ def update_lesson(lesson_id: int, **kwargs):
 # ---------------------------
 
 def get_materials(student_id: int):
-    """Return all materials for a given student_id"""
     with Session(engine) as session:
         statement = select(Material).where(Material.student_id == student_id)
         return session.exec(statement).all()
 
 
-def create_material(material_data: Material):
-    """Create a new material"""
+def get_material_by_id(material_id: int):
     with Session(engine) as session:
-        if not material_data.created_at:
-            material_data.created_at = datetime.utcnow().isoformat()
+        return session.get(Material, material_id)
+
+
+def create_material(material_data: Material):
+    with Session(engine) as session:
         session.add(material_data)
         session.commit()
         session.refresh(material_data)
         return material_data
 
 
-def get_material_by_id(material_id: int):
-    """Get a material by ID"""
-    with Session(engine) as session:
-        return session.get(Material, material_id)
-
-
 def update_material(material_id: int, **kwargs):
-    """Update a material"""
     with Session(engine) as session:
         material = session.get(Material, material_id)
         if not material:
             return None
-
         for key, value in kwargs.items():
             if hasattr(material, key):
                 setattr(material, key, value)
-
         session.add(material)
         session.commit()
         session.refresh(material)
@@ -311,12 +255,10 @@ def update_material(material_id: int, **kwargs):
 
 
 def delete_material(material_id: int):
-    """Delete a material"""
     with Session(engine) as session:
         material = session.get(Material, material_id)
         if not material:
             return None
-
         session.delete(material)
         session.commit()
         return material
@@ -327,40 +269,32 @@ def delete_material(material_id: int):
 # ---------------------------
 
 def get_assignments(student_id: int):
-    """Return all assignments for a given student_id"""
     with Session(engine) as session:
         statement = select(Assignment).where(Assignment.student_id == student_id)
         return session.exec(statement).all()
 
 
-def create_assignment(assignment_data: Assignment):
-    """Create a new assignment"""
+def get_assignment_by_id(assignment_id: int):
     with Session(engine) as session:
-        if not assignment_data.created_at:
-            assignment_data.created_at = datetime.utcnow().isoformat()
+        return session.get(Assignment, assignment_id)
+
+
+def create_assignment(assignment_data: Assignment):
+    with Session(engine) as session:
         session.add(assignment_data)
         session.commit()
         session.refresh(assignment_data)
         return assignment_data
 
 
-def get_assignment_by_id(assignment_id: int):
-    """Get an assignment by ID"""
-    with Session(engine) as session:
-        return session.get(Assignment, assignment_id)
-
-
 def update_assignment(assignment_id: int, **kwargs):
-    """Update an assignment"""
     with Session(engine) as session:
         assignment = session.get(Assignment, assignment_id)
         if not assignment:
             return None
-
         for key, value in kwargs.items():
             if hasattr(assignment, key):
                 setattr(assignment, key, value)
-
         session.add(assignment)
         session.commit()
         session.refresh(assignment)
@@ -368,12 +302,10 @@ def update_assignment(assignment_id: int, **kwargs):
 
 
 def delete_assignment(assignment_id: int):
-    """Delete an assignment"""
     with Session(engine) as session:
         assignment = session.get(Assignment, assignment_id)
         if not assignment:
             return None
-
         session.delete(assignment)
         session.commit()
         return assignment
@@ -384,40 +316,32 @@ def delete_assignment(assignment_id: int):
 # ---------------------------
 
 def get_quizzes(student_id: int):
-    """Return all quizzes for a given student_id"""
     with Session(engine) as session:
         statement = select(Quiz).where(Quiz.student_id == student_id)
         return session.exec(statement).all()
 
 
-def create_quiz(quiz_data: Quiz):
-    """Create a new quiz"""
+def get_quiz_by_id(quiz_id: int):
     with Session(engine) as session:
-        if not quiz_data.created_at:
-            quiz_data.created_at = datetime.utcnow().isoformat()
+        return session.get(Quiz, quiz_id)
+
+
+def create_quiz(quiz_data: Quiz):
+    with Session(engine) as session:
         session.add(quiz_data)
         session.commit()
         session.refresh(quiz_data)
         return quiz_data
 
 
-def get_quiz_by_id(quiz_id: int):
-    """Get a quiz by ID"""
-    with Session(engine) as session:
-        return session.get(Quiz, quiz_id)
-
-
 def update_quiz(quiz_id: int, **kwargs):
-    """Update a quiz"""
     with Session(engine) as session:
         quiz = session.get(Quiz, quiz_id)
         if not quiz:
             return None
-
         for key, value in kwargs.items():
             if hasattr(quiz, key):
                 setattr(quiz, key, value)
-
         session.add(quiz)
         session.commit()
         session.refresh(quiz)
@@ -425,12 +349,10 @@ def update_quiz(quiz_id: int, **kwargs):
 
 
 def delete_quiz(quiz_id: int):
-    """Delete a quiz"""
     with Session(engine) as session:
         quiz = session.get(Quiz, quiz_id)
         if not quiz:
             return None
-
         session.delete(quiz)
         session.commit()
         return quiz
@@ -441,43 +363,32 @@ def delete_quiz(quiz_id: int):
 # ---------------------------
 
 def get_ask_baseet_conversations(student_id: int):
-    """Return all Ask Baseet conversations for a given student_id"""
     with Session(engine) as session:
         statement = select(AskBaseet).where(AskBaseet.student_id == student_id)
         return session.exec(statement).all()
 
 
-def create_ask_baseet(ask_baseet_data: AskBaseet):
-    """Create a new Ask Baseet entry"""
+def get_ask_baseet_by_id(ask_baseet_id: int):
     with Session(engine) as session:
-        if not ask_baseet_data.created_at:
-            ask_baseet_data.created_at = datetime.utcnow().isoformat()
+        return session.get(AskBaseet, ask_baseet_id)
+
+
+def create_ask_baseet(ask_baseet_data: AskBaseet):
+    with Session(engine) as session:
         session.add(ask_baseet_data)
         session.commit()
         session.refresh(ask_baseet_data)
         return ask_baseet_data
 
 
-def get_ask_baseet_by_id(ask_baseet_id: int):
-    """Get an Ask Baseet entry by ID"""
-    with Session(engine) as session:
-        return session.get(AskBaseet, ask_baseet_id)
-
-
 def update_ask_baseet(ask_baseet_id: int, **kwargs):
-    """Update an Ask Baseet entry"""
     with Session(engine) as session:
         ask_baseet = session.get(AskBaseet, ask_baseet_id)
         if not ask_baseet:
             return None
-
         for key, value in kwargs.items():
             if hasattr(ask_baseet, key):
                 setattr(ask_baseet, key, value)
-        
-        if 'answer' in kwargs and not ask_baseet.answered_at:
-            ask_baseet.answered_at = datetime.utcnow().isoformat()
-
         session.add(ask_baseet)
         session.commit()
         session.refresh(ask_baseet)
@@ -485,12 +396,10 @@ def update_ask_baseet(ask_baseet_id: int, **kwargs):
 
 
 def delete_ask_baseet(ask_baseet_id: int):
-    """Delete an Ask Baseet entry"""
     with Session(engine) as session:
         ask_baseet = session.get(AskBaseet, ask_baseet_id)
         if not ask_baseet:
             return None
-
         session.delete(ask_baseet)
         session.commit()
         return ask_baseet

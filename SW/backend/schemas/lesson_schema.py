@@ -1,28 +1,27 @@
 from typing import Optional
 from pydantic import BaseModel
 
-class LessonCreate(BaseModel):
-    milestone_id: int
-    title: str
-    lesson_code: str  # e.g., "1.1", "1.2", "2.1"
-    order: int
-    status: str
-    progress: int = 0
-    description: Optional[str] = None
-    content_url: Optional[str] = None
 
 class LessonRead(BaseModel):
     id: int
     student_id: int
-    milestone_id: int
+
+    milestone_number: int
+    lesson_number: int
+
     title: str
-    lesson_code: str
-    order: int
+    description: Optional[str] = None
+
     progress: int
     status: str
-    description: Optional[str] = None
-    content_url: Optional[str] = None
+
+    number: str
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
+
+# used for resetting / updating lesson progress
+class LessonUpdate(BaseModel):
+    progress: Optional[int] = None
+    status: Optional[str] = None

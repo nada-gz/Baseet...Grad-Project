@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import api from "../../../services/api";
 import useAuth from "../../../hooks/useAuth";
 import { Link } from "react-router-dom";
-import { PlayCircle, BookOpen, FileText, Edit3 } from "lucide-react"; // icons
+import { PlayCircle, BookOpen, FileText, Edit3 } from "lucide-react";
 
 export default function StudentDashboard() {
   const { user: student, loading: authLoading, error: authError } = useAuth();
@@ -13,35 +13,9 @@ export default function StudentDashboard() {
   useEffect(() => {
     const loadLessons = async () => {
       try {
-        // Use the student's actual student_id (not the user id)
-        const studentId =
-          student?.student_id ||
-          student?.studentId ||
-          localStorage.getItem("student_id") ||
-          // Fallback: use user id if no explicit student_id is available
-          student?.id;
-
-        /* temp */
-        console.log("Student in dashboard:", student);
-        console.log("studentId used for API:", studentId);
-
-        if (!studentId) {
-          console.error("No student_id found for current user");
-          setLoading(false);
-          return;
-        }
-
-        const response = await api.get(`/students/${studentId}/lessons`);
-
-        // Backend now returns a flat list of lessons:
-        // [ { id, title, status, progress, ... }, ... ]
-        const lessonList = response.data || [];
-
-        /* temp */
-        console.log("Raw /students/{studentId}/lessons response:", response.data);
-        console.log("Lessons array:", lessonList);
-
-        setLessons(lessonList);
+        const response = await api.get(`/students/${student.id}/lessons`);
+        console.log("Lessons from API:", response.data);
+        setLessons(response.data);
       } catch (error) {
         console.error("Error loading lessons:", error);
       } finally {
@@ -52,13 +26,18 @@ export default function StudentDashboard() {
     if (student) loadLessons();
   }, [student]);
 
-  if (authLoading || loading)
+  if (authLoading || loading) {
     return <div className="dashboard-loading">Loading...</div>;
+  }
 
-  if (authError)
+  if (authError) {
     return <div className="dashboard-error">Error loading dashboard.</div>;
+  }
 
-    const currentLesson = lessons.find(l => l && l.status === "in-progress");
+  // ✅ find current in-progress lesson
+  const currentLesson = lessons.find(
+    (lesson) => lesson.status === "in-progress"
+  );
 
   return (
     <div className="student-dashboard">
@@ -71,23 +50,31 @@ export default function StudentDashboard() {
 
         {currentLesson ? (
           <>
-            {/* Main Continue Card */}
+            {/* ================= CONTINUE CARD ================= */}
             <div className="continue-card">
               <div className="continue-icon">
                 <PlayCircle size={56} />
               </div>
+
               <div className="continue-info">
-                <span className="continue-label">Continue your progress</span>
+                <span className="continue-label">
+                  Continue your progress
+                </span>
+
                 <h1 className="continue-title">
-                  <span className="lesson-number">{currentLesson.number}.</span>
+                  <span className="lesson-number">
+                    {currentLesson.number}{" "}
+                  </span>
                   {currentLesson.title}
                 </h1>
+
                 <div className="progress-bar">
                   <div
                     className="progress-fill"
                     style={{ width: `${currentLesson.progress}%` }}
                   />
                 </div>
+
                 <Link
                   to={`/dashboard/student/lesson/${currentLesson.id}`}
                   className="btn btn-primary continue-btn"
@@ -97,9 +84,9 @@ export default function StudentDashboard() {
               </div>
             </div>
 
-            {/* 3 Cards Row */}
+            {/* ================= 3 ACTION CARDS ================= */}
             <div className="student-cards-row">
-              {/* Lesson Material Card */}
+              {/* Lesson Material */}
               <div className="student-card">
                 <div className="card-icon">
                   <BookOpen size={36} />
@@ -111,7 +98,7 @@ export default function StudentDashboard() {
                 </div>
               </div>
 
-              {/* Assignment Card */}
+              {/* Assignment */}
               <div className="student-card">
                 <div className="card-icon">
                   <FileText size={36} />
@@ -123,7 +110,7 @@ export default function StudentDashboard() {
                 </div>
               </div>
 
-              {/* Quiz Card */}
+              {/* Quiz */}
               <div className="student-card">
                 <div className="card-icon">
                   <Edit3 size={36} />
