@@ -11,6 +11,7 @@ from db.crud import (
 )
 from models.student import Student
 from models.lesson import Lesson
+from models.milestone import Milestone
 from models.material import Material
 from models.assignment import Assignment
 from models.quiz import Quiz
