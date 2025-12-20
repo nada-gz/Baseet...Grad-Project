@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException
-from typing import List
+from sqlmodel import Session, select, update
+from db.database import engine
 from db.crud import (
     create_student, get_all_students, get_student_by_id, update_student, delete_student,
-    get_lessons, get_lessons_grouped_by_milestones, create_lesson, get_lesson_by_id, update_lesson,
+    get_lessons, get_lessons_grouped_by_milestones, create_lesson, update_lesson,
     get_milestones, get_milestone_by_id, create_milestone, update_milestone, delete_milestone,
     get_materials, create_material, get_material_by_id, update_material, delete_material,
     get_assignments, create_assignment, get_assignment_by_id, update_assignment, delete_assignment,
@@ -17,7 +18,7 @@ from models.assignment import Assignment
 from models.quiz import Quiz
 from models.ask_baseet import AskBaseet
 from schemas.student_schema import StudentCreate, StudentRead, StudentUpdate
-from schemas.lesson_schema import LessonRead, LessonCreate
+from schemas.lesson_schema import LessonRead, LessonUpdate
 from schemas.milestone_schema import MilestoneRead, MilestoneCreate, MilestoneUpdate, MilestoneWithLessons
 from schemas.material_schema import MaterialCreate, MaterialRead, MaterialUpdate
 from schemas.assignment_schema import AssignmentCreate, AssignmentRead, AssignmentUpdate
@@ -35,26 +36,17 @@ router = APIRouter(prefix="/students", tags=["Students"])
 
 @router.post("/", response_model=StudentRead)
 def create_student_route(student: StudentCreate):
-    """
-    Create a new student entry in the database.
-    """
     student_obj = Student(**student.dict())
     return create_student(student_obj)
 
 
 @router.get("/", response_model=list[StudentRead])
 def get_students_route():
-    """
-    Retrieve all students from the database.
-    """
     return get_all_students()
 
 
 @router.get("/{student_id}", response_model=StudentRead)
 def get_student_route(student_id: int):
-    """
-    Retrieve a student by their student_id.
-    """
     student = get_student_by_id(student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
@@ -63,10 +55,10 @@ def get_student_route(student_id: int):
 
 @router.put("/{student_id}", response_model=StudentRead)
 def update_student_route(student_id: int, student: StudentUpdate):
-    """
-    Update an existing student's data.
-    """
-    updated_student = update_student(student_id, **student.dict(exclude_unset=True))
+    updated_student = update_student(
+        student_id,
+        **student.dict(exclude_unset=True)
+    )
     if not updated_student:
         raise HTTPException(status_code=404, detail="Student not found")
     return updated_student
@@ -74,13 +66,12 @@ def update_student_route(student_id: int, student: StudentUpdate):
 
 @router.delete("/{student_id}")
 def delete_student_route(student_id: int):
-    """
-    Delete a student by their student_id.
-    """
     deleted_student = delete_student(student_id)
     if not deleted_student:
         raise HTTPException(status_code=404, detail="Student not found")
     return {"deleted": student_id}
+
+
 
 
 # ---------------------------
@@ -107,24 +98,22 @@ def get_student_dashboard(student_id: int):
             "student_id": item["milestone"].student_id,
             "title": item["milestone"].title,
             "number": item["milestone"].number,
-            "order": item["milestone"].order,
             "description": item["milestone"].description,
             "lessons": [
                 {
                     "id": lesson.id,
                     "student_id": lesson.student_id,
-                    "milestone_id": lesson.milestone_id,
+                    "milestone_number": lesson.milestone_number,
                     "title": lesson.title,
-                    "lesson_code": lesson.lesson_code,
-                    "order": lesson.order,
+                    "lesson_number": lesson.lesson_number,
                     "progress": lesson.progress,
                     "status": lesson.status,
                     "description": lesson.description,
-                    "content_url": lesson.content_url,
                 }
                 for lesson in item["lessons"]
             ]
         }
+
         lessons_data.append(milestone_dict)
     
     return {
@@ -162,48 +151,116 @@ def create_milestone_route(student_id: int, milestone: MilestoneCreate):
 
 
 # ---------------------------
-# Lessons endpoints
+# Lessons for a Student
 # ---------------------------
 
-@router.get("/{student_id}/lessons")
+@router.get("/{student_id}/lessons", response_model=list[LessonRead])
 def get_lessons_route(student_id: int):
-    """
-    Retrieve all lessons for a given student_id as a flat list.
-    This matches the original frontend expectation (StudentDashboard).
-    """
     student = get_student_by_id(student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
     lessons = get_lessons(student_id)
 
-    # Return flat list of lessons
     return [
-        {
-            "id": lesson.id,
-            "student_id": lesson.student_id,
-            "milestone_id": lesson.milestone_id,
-            "title": lesson.title,
-            "lesson_code": getattr(lesson, "lesson_code", None),
-            "order": getattr(lesson, "order", None),
-            "progress": lesson.progress,
-            "status": lesson.status,
-            "description": lesson.description,
-            "content_url": getattr(lesson, "content_url", None),
-        }
+        LessonRead(
+            id=lesson.id,
+            student_id=lesson.student_id,
+            milestone_number=lesson.milestone_number,
+            lesson_number=lesson.lesson_number,
+            title=lesson.title,
+            description=lesson.description,
+            progress=lesson.progress,
+            status=lesson.status,
+            number=f"{lesson.milestone_number}.{lesson.lesson_number}"
+        )
         for lesson in lessons
     ]
 
 
-@router.post("/{student_id}/lessons", response_model=LessonRead)
-def create_lesson_route(student_id: int, lesson: LessonCreate):
-    """Create a new lesson for a student"""
-    student = get_student_by_id(student_id)
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-    
-    lesson_data = Lesson(student_id=student_id, **lesson.dict())
-    return create_lesson(lesson_data)
+@router.get("/{student_id}/lessons/{lesson_id}", response_model=LessonRead)
+def get_lesson(student_id: int, lesson_id: int):
+    with Session(engine) as session:
+        statement = select(Lesson).where(
+            Lesson.id == lesson_id,
+            Lesson.student_id == student_id
+        )
+        lesson = session.exec(statement).first()
+
+        if not lesson:
+            raise HTTPException(404, detail="Lesson not found")
+
+        return LessonRead(
+            id=lesson.id,
+            student_id=lesson.student_id,
+            milestone_number=lesson.milestone_number,
+            lesson_number=lesson.lesson_number,
+            title=lesson.title,
+            description=lesson.description,
+            progress=lesson.progress,
+            status=lesson.status,
+            number=f"{lesson.milestone_number}.{lesson.lesson_number}"
+        )
+
+
+@router.patch("/{student_id}/lessons/{lesson_id}", response_model=LessonRead)
+def reset_lesson_route(student_id: int, lesson_id: int, data: LessonUpdate):
+    try:
+        with Session(engine) as session:
+            # 1️⃣ Get the lesson
+            lesson = session.get(Lesson, lesson_id)
+            if not lesson or lesson.student_id != student_id:
+                raise HTTPException(status_code=404, detail="Lesson not found")
+
+            # 2️⃣ Update progress if provided
+            if data.progress is not None:
+                lesson.progress = data.progress
+
+            # 3️⃣ Update current lesson status based on progress
+            lesson.status = "completed" if lesson.progress == 100 else "in-progress"
+            session.add(lesson)
+            session.flush()  # ensure SQLModel sees the change
+
+            # 4️⃣ Check if all lessons in this milestone are completed
+            milestone_lessons = session.exec(
+                select(Lesson).where(
+                    Lesson.student_id == student_id,
+                    Lesson.milestone_number == lesson.milestone_number
+                )
+            ).all()
+
+            if all(l.progress == 100 for l in milestone_lessons):
+                next_milestone_number = lesson.milestone_number + 1
+
+                # 5️⃣ Unlock next milestone lessons (status = in-progress)
+                stmt = (
+                    update(Lesson)
+                    .where(
+                        Lesson.student_id == student_id,
+                        Lesson.milestone_number == next_milestone_number,
+                        Lesson.status == "locked"
+                    )
+                    .values(status="in-progress")
+                )
+                session.exec(stmt)
+
+            session.commit()  # commit everything at once
+            session.refresh(lesson)
+
+            return LessonRead(
+                id=lesson.id,
+                student_id=lesson.student_id,
+                milestone_number=lesson.milestone_number,
+                lesson_number=lesson.lesson_number,
+                title=lesson.title,
+                description=lesson.description,
+                progress=lesson.progress,
+                status=lesson.status,
+                number=f"{lesson.milestone_number}.{lesson.lesson_number}"
+            )
+
+    except Exception as e:
+        print("Error updating lesson:", e)
 
 
 # ---------------------------
@@ -472,3 +529,14 @@ def delete_ask_baseet_route(student_id: int, ask_baseet_id: int):
     
     delete_ask_baseet(ask_baseet_id)
     return {"deleted": ask_baseet_id}
+
+
+
+
+
+
+
+
+
+
+

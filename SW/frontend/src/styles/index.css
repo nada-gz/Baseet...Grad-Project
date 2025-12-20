@@ -52,9 +52,9 @@ body, html {
   font-family: var(--font-text);
   background-color: var(--primary-bg);
   color: var(--primary-text);
-  display: flex;
+  /* display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: center; */
 }
 
 /* -------------------------------------
@@ -583,8 +583,10 @@ a:hover {
   display: flex;
   flex-direction: column; /* allow stacking main card + 3 cards row */
   align-items: center;
-  justify-content: center;
+  /* justify-content: center; */
   margin-top: 65px;
+  width: 850px;
+  margin-left: 125px;
 }
 
 /* Icon */
@@ -810,9 +812,10 @@ a:hover {
 
 .lesson-player {
   position: relative; /* for floating assets */
-  width: calc(70vw - 40px);
-  max-width: 3000px;
-  margin-top: 200px;
+  width: calc(70vw - 60px);
+  max-width: 2500px;
+  margin-top: 20px;
+  margin-left: 70px;
   background: var(--secondary-bg);
   border-radius: 20px;
   padding: 30px;
@@ -861,7 +864,7 @@ a:hover {
 }
 
 .video-placeholder {
-  height: 260px;
+  height: 500px;
   background: white;
   border-radius: 16px;
   border: 2px dashed var(--highlight);
@@ -1029,4 +1032,129 @@ a:hover {
     top: -30px;        /* back to top-left */
     left: 0;
   }
+}
+
+
+/* -------------------------------------
+   Student Lessons Page
+-------------------------------------- */
+
+.student-lessons-page {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding: 30px;
+  width: calc(100vw - 300px);
+  max-width: none;
+}
+
+.milestone-title {
+  font-family: var(--font-title);
+  font-size: 1.6rem;
+  color: var(--highlight);
+  margin-bottom: 20px;
+}
+
+.lesson-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Lesson Card */
+.lesson-card {
+  background: var(--secondary-bg);
+  border: 1px solid var(--neutral);
+  border-radius: 14px;
+  padding: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 50px;
+}
+
+/* Locked look */
+.lesson-card.locked {
+  opacity: 0.6;
+}
+
+/* Lesson Info */
+.lesson-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.lesson-title {
+  font-family: var(--font-title);
+  font-size: 1.2rem;
+  margin-bottom: 6px;
+}
+
+.lesson-desc {
+  font-size: 0.9rem;
+  color: var(--secondary-text);
+  margin-bottom: 10px;
+}
+
+/* Status Badge */
+.lesson-status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.lesson-status.completed {
+  background: var(--success-bg);
+  color: white;
+}
+
+.lesson-status.in-progress {
+  background: #ffe599;
+}
+
+.lesson-status.locked {
+  background: var(--neutral);
+}
+
+/* Actions */
+.lesson-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.locked-icon {
+  color: var(--secondary-text);
+}
+
+/* -------------------------------------
+   Modal
+-------------------------------------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal-card {
+  background: var(--secondary-bg);
+  padding: 30px;
+  border-radius: 16px;
+  width: 350px;
+  text-align: center;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  justify-content: center;
 }

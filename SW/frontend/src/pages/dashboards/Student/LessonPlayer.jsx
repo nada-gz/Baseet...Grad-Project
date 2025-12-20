@@ -1,17 +1,46 @@
 import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import api from "../../../services/api";
+import useAuth from "../../../hooks/useAuth"; // <-- added
 import { Play, Pause, Mic, Send, HelpCircle } from "lucide-react";
 
 export default function LessonPlayer() {
   const { lessonId } = useParams();
+  const { user: student, loading: authLoading } = useAuth(); // <-- get logged-in student
+  const [lesson, setLesson] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadLesson = async () => {
+      if (!student) return; // wait until student info is loaded
+
+      try {
+        // Call backend to get a single lesson for this student
+        const res = await api.get(`/students/${student.id}/lessons/${lessonId}`);
+        console.log("Lesson loaded:", res.data);
+        setLesson(res.data);
+      } catch (error) {
+        console.error("Failed to load lesson:", error);
+        setLesson(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadLesson();
+  }, [lessonId, student]);
+
+  if (authLoading || loading) return <div>Loading lesson...</div>;
+  if (!lesson) return <div>Lesson not found.</div>;
 
   return (
     <div className="lesson-player">
       {/* Center Floating Asset */}
-      <img
+      {/* <img
         src={require("../../../assets/cute_baseet.png")}
         alt="cute Baseet"
         className="floating-asset center-between"
-      />
+      /> */}
 
       {/* Right Side Floating Asset */}
       <img
@@ -20,9 +49,12 @@ export default function LessonPlayer() {
         className="floating-asset right-side"
       />
 
-      {/* Header */}
+      {/* ================= HEADER ================= */}
       <div className="lesson-player-header">
-        <h1>Lesson {lessonId}</h1>
+        <h1>
+          <span className="lesson-number">{lesson.number}</span>{" "}
+          {lesson.title}
+        </h1>
 
         <div className="lesson-helper">
           <img
@@ -33,11 +65,9 @@ export default function LessonPlayer() {
         </div>
       </div>
 
-      {/* Video Section */}
+      {/* ================= VIDEO ================= */}
       <div className="lesson-video" style={{ position: "relative" }}>
-        <div className="video-placeholder">
-          🎥 Lesson Video Here
-        </div>
+        <div className="video-placeholder">🎥 Lesson Video Here</div>
 
         <img
           src={require("../../../assets/eyes_baseet.png")}
@@ -46,10 +76,7 @@ export default function LessonPlayer() {
         />
       </div>
 
-
-
-
-      {/* Controls */}
+      {/* ================= CONTROLS ================= */}
       <div className="lesson-controls">
         <button className="lesson-btn primary">
           <Play size={22} /> Play
@@ -64,16 +91,14 @@ export default function LessonPlayer() {
         </button>
       </div>
 
-      {/* Q&A Section */}
+      {/* ================= Q&A ================= */}
       <div className="lesson-qa">
         <div className="qa-header">
           <HelpCircle size={22} />
           <span>Ask Baseet</span>
         </div>
 
-        <textarea
-          placeholder="Type your question here ✨"
-        />
+        <textarea placeholder="Type your question here ✨" />
 
         <button className="lesson-btn primary send-btn">
           <Send size={18} /> Send
