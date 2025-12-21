@@ -1,11 +1,12 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile
 from sqlmodel import Session, select, update
-from db.database import engine
+from db.database import engine, get_session
+from pathlib import Path
+from fastapi.responses import FileResponse
 from db.crud import (
     create_student, get_all_students, get_student_by_id, update_student, delete_student,
     get_lessons, get_lessons_grouped_by_milestones, create_lesson, update_lesson,
     get_milestones, get_milestone_by_id, create_milestone, update_milestone, delete_milestone,
-    get_materials, create_material, get_material_by_id, update_material, delete_material,
     get_assignments, create_assignment, get_assignment_by_id, update_assignment, delete_assignment,
     get_quizzes, create_quiz, get_quiz_by_id, update_quiz, delete_quiz,
     get_ask_baseet_conversations, create_ask_baseet, get_ask_baseet_by_id, update_ask_baseet, delete_ask_baseet
@@ -20,10 +21,11 @@ from models.ask_baseet import AskBaseet
 from schemas.student_schema import StudentCreate, StudentRead, StudentUpdate
 from schemas.lesson_schema import LessonRead, LessonUpdate
 from schemas.milestone_schema import MilestoneRead, MilestoneCreate, MilestoneUpdate, MilestoneWithLessons
-from schemas.material_schema import MaterialCreate, MaterialRead, MaterialUpdate
+from schemas.material_schema import MaterialRead
 from schemas.assignment_schema import AssignmentCreate, AssignmentRead, AssignmentUpdate
 from schemas.quiz_schema import QuizCreate, QuizRead, QuizUpdate
 from schemas.ask_baseet_schema import AskBaseetCreate, AskBaseetRead, AskBaseetUpdate
+
 
 # ---------------------------
 # Students Router
@@ -78,52 +80,52 @@ def delete_student_route(student_id: int):
 # Dashboard - Aggregated endpoint
 # ---------------------------
 
-@router.get("/{student_id}/dashboard")
-def get_student_dashboard(student_id: int):
-    """
-    Get all student data in one response: lessons (grouped by milestones), materials, assignments, quizzes, and ask-baseet conversations
-    """
-    student = get_student_by_id(student_id)
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
+# @router.get("/{student_id}/dashboard")
+# def get_student_dashboard(student_id: int):
+#     """
+#     Get all student data in one response: lessons (grouped by milestones), materials, assignments, quizzes, and ask-baseet conversations
+#     """
+#     student = get_student_by_id(student_id)
+#     if not student:
+#         raise HTTPException(status_code=404, detail="Student not found")
     
-    # Get lessons grouped by milestones
-    grouped_lessons = get_lessons_grouped_by_milestones(student_id)
+#     # Get lessons grouped by milestones
+#     grouped_lessons = get_lessons_grouped_by_milestones(student_id)
     
-    # Format lessons data
-    lessons_data = []
-    for item in grouped_lessons:
-        milestone_dict = {
-            "id": item["milestone"].id,
-            "student_id": item["milestone"].student_id,
-            "title": item["milestone"].title,
-            "number": item["milestone"].number,
-            "description": item["milestone"].description,
-            "lessons": [
-                {
-                    "id": lesson.id,
-                    "student_id": lesson.student_id,
-                    "milestone_number": lesson.milestone_number,
-                    "title": lesson.title,
-                    "lesson_number": lesson.lesson_number,
-                    "progress": lesson.progress,
-                    "status": lesson.status,
-                    "description": lesson.description,
-                }
-                for lesson in item["lessons"]
-            ]
-        }
+#     # Format lessons data
+#     lessons_data = []
+#     for item in grouped_lessons:
+#         milestone_dict = {
+#             "id": item["milestone"].id,
+#             "student_id": item["milestone"].student_id,
+#             "title": item["milestone"].title,
+#             "number": item["milestone"].number,
+#             "description": item["milestone"].description,
+#             "lessons": [
+#                 {
+#                     "id": lesson.id,
+#                     "student_id": lesson.student_id,
+#                     "milestone_number": lesson.milestone_number,
+#                     "title": lesson.title,
+#                     "lesson_number": lesson.lesson_number,
+#                     "progress": lesson.progress,
+#                     "status": lesson.status,
+#                     "description": lesson.description,
+#                 }
+#                 for lesson in item["lessons"]
+#             ]
+#         }
 
-        lessons_data.append(milestone_dict)
+#         lessons_data.append(milestone_dict)
     
-    return {
-        "student_id": student_id,
-        "lessons": lessons_data,  # Now grouped by milestones
-        "materials": get_materials(student_id),
-        "assignments": get_assignments(student_id),
-        "quizzes": get_quizzes(student_id),
-        "ask_baseet": get_ask_baseet_conversations(student_id)
-    }
+#     return {
+#         "student_id": student_id,
+#         "lessons": lessons_data,  # Now grouped by milestones
+#         "materials": get_materials(student_id),
+#         "assignments": get_assignments(student_id),
+#         "quizzes": get_quizzes(student_id),
+#         "ask_baseet": get_ask_baseet_conversations(student_id)
+#     }
 
 
 # ---------------------------
@@ -155,15 +157,23 @@ def create_milestone_route(student_id: int, milestone: MilestoneCreate):
 # ---------------------------
 
 @router.get("/{student_id}/lessons", response_model=list[LessonRead])
-def get_lessons_route(student_id: int):
+def get_lessons_route(student_id: int, session: Session = Depends(get_session)):
     student = get_student_by_id(student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    lessons = get_lessons(student_id)
+    lessons = session.exec(
+        select(Lesson).where(Lesson.student_id == student_id)
+    ).all()
 
-    return [
-        LessonRead(
+    # Attach materials to each lesson
+    lessons_with_materials = []
+    for lesson in lessons:
+        materials = session.exec(
+            select(Material).where(Material.lesson_id == lesson.id)
+        ).all()
+
+        lesson_data = LessonRead(
             id=lesson.id,
             student_id=lesson.student_id,
             milestone_number=lesson.milestone_number,
@@ -172,10 +182,12 @@ def get_lessons_route(student_id: int):
             description=lesson.description,
             progress=lesson.progress,
             status=lesson.status,
-            number=f"{lesson.milestone_number}.{lesson.lesson_number}"
+            number=f"{lesson.milestone_number}.{lesson.lesson_number}",
+            materials=materials  # ✅ include materials
         )
-        for lesson in lessons
-    ]
+        lessons_with_materials.append(lesson_data)
+
+    return lessons_with_materials
 
 
 @router.get("/{student_id}/lessons/{lesson_id}", response_model=LessonRead)
@@ -267,67 +279,90 @@ def reset_lesson_route(student_id: int, lesson_id: int, data: LessonUpdate):
 # Materials endpoints
 # ---------------------------
 
-@router.get("/{student_id}/materials", response_model=list[MaterialRead])
-def get_materials_route(student_id: int):
-    """Retrieve all materials for a given student_id"""
-    student = get_student_by_id(student_id)
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-    return get_materials(student_id)
+UPLOAD_DIR = Path("uploads/materials")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)  # ensure folder exists
+
+@router.get(
+    "/{student_id}/lessons/{lesson_id}/materials",
+    response_model=list[MaterialRead]
+)
+def get_lesson_materials(
+    student_id: int,
+    lesson_id: int,
+    session: Session = Depends(get_session)
+):
+    lesson = session.get(Lesson, lesson_id)
+    if not lesson or lesson.student_id != student_id:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    # Return all materials regardless of lesson status
+    materials = session.exec(
+        select(Material).where(Material.lesson_id == lesson_id)
+    ).all()
+
+    return materials
 
 
-@router.post("/{student_id}/materials", response_model=MaterialRead)
-def create_material_route(student_id: int, material: MaterialCreate):
-    """Create a new material for a student"""
-    student = get_student_by_id(student_id)
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-    
-    material_data = Material(student_id=student_id, **material.dict(exclude={"student_id"}))
-    return create_material(material_data)
+@router.post("/{lesson_id}/materials", response_model=MaterialRead)
+async def upload_material(
+    lesson_id: int,
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+):
+    lesson = session.get(Lesson, lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
 
+    # clean filename to avoid issues
+    safe_filename = f"{lesson_id}_{file.filename.replace(' ', '_')}"
+    file_path = UPLOAD_DIR / safe_filename
 
-@router.get("/{student_id}/materials/{material_id}", response_model=MaterialRead)
-def get_material_route(student_id: int, material_id: int):
-    """Get a specific material"""
-    student = get_student_by_id(student_id)
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-    
-    material = get_material_by_id(material_id)
-    if not material or material.student_id != student_id:
-        raise HTTPException(status_code=404, detail="Material not found")
+    # save file to disk
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+
+    # save metadata in DB
+    material = Material(
+        lesson_id=lesson_id,
+        title=file.filename,
+        description="Uploaded file",
+        material_type=file.filename.split(".")[-1],
+        file_url=f"/uploads/materials/{safe_filename}"  # URL for frontend
+    )
+    session.add(material)
+    session.commit()
+    session.refresh(material)
     return material
 
 
-@router.put("/{student_id}/materials/{material_id}", response_model=MaterialRead)
-def update_material_route(student_id: int, material_id: int, material: MaterialUpdate):
-    """Update a material"""
-    student = get_student_by_id(student_id)
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-    
-    existing_material = get_material_by_id(material_id)
-    if not existing_material or existing_material.student_id != student_id:
+@router.get("/students/{student_id}/lessons/{lesson_id}/materials/{material_id}/download")
+def download_material(
+    student_id: int,
+    lesson_id: int,
+    material_id: int,
+    session: Session = Depends(get_session)
+):
+    # 1️⃣ Get the material
+    material = session.get(Material, material_id)
+    if not material:
         raise HTTPException(status_code=404, detail="Material not found")
-    
-    updated = update_material(material_id, **material.dict(exclude_unset=True))
-    return updated
 
+    # 2️⃣ Ensure material belongs to the lesson
+    if material.lesson_id != lesson_id:
+        raise HTTPException(status_code=404, detail="Material does not belong to this lesson")
 
-@router.delete("/{student_id}/materials/{material_id}")
-def delete_material_route(student_id: int, material_id: int):
-    """Delete a material"""
-    student = get_student_by_id(student_id)
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-    
-    material = get_material_by_id(material_id)
-    if not material or material.student_id != student_id:
-        raise HTTPException(status_code=404, detail="Material not found")
-    
-    delete_material(material_id)
-    return {"deleted": material_id}
+    # 3️⃣ Build safe file path
+    file_path = Path("uploads") / "materials" / Path(material.title).name
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    # 4️⃣ Return as downloadable file
+    return FileResponse(
+        path=file_path,
+        filename=material.title,
+        media_type="application/octet-stream"
+    )
+
 
 
 # ---------------------------
@@ -529,14 +564,3 @@ def delete_ask_baseet_route(student_id: int, ask_baseet_id: int):
     
     delete_ask_baseet(ask_baseet_id)
     return {"deleted": ask_baseet_id}
-
-
-
-
-
-
-
-
-
-
-
