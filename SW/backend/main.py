@@ -1,6 +1,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from db.crud import create_tables
 from routers.user_router import router as user_router
 from routers.student_router import router as student_router
@@ -16,6 +17,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Ensure uploads folder exists
+os.makedirs("uploads/materials", exist_ok=True)
+
+# Mount uploads folder to serve static files
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Create tables on startup
 @app.on_event("startup")
