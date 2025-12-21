@@ -1,5 +1,8 @@
-from typing import Optional
-from sqlmodel import SQLModel, Field
+from typing import Optional, List, TYPE_CHECKING
+from sqlmodel import SQLModel, Field, Relationship
+
+if TYPE_CHECKING:
+    from models.material import Material
 
 
 class Lesson(SQLModel, table=True):
@@ -16,3 +19,6 @@ class Lesson(SQLModel, table=True):
 
     progress: int = 0
     status: str = "locked"
+
+    # Relationship
+    materials: List["Material"] = Relationship(back_populates="lesson")

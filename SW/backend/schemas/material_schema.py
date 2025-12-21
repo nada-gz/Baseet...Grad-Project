@@ -1,34 +1,18 @@
 from typing import Optional
-from pydantic import BaseModel
+from sqlmodel import SQLModel
 
 
-class MaterialCreate(BaseModel):
-    student_id: int
+class MaterialBase(SQLModel):
     title: str
     description: Optional[str] = None
-    file_url: Optional[str] = None
-    file_type: Optional[str] = None
-    lesson_id: Optional[int] = None
+    material_type: str
+    file_url: str
 
 
-class MaterialRead(BaseModel):
+class MaterialCreate(MaterialBase):
+    lesson_id: int
+
+
+class MaterialRead(MaterialBase):
     id: int
-    student_id: int
-    title: str
-    description: Optional[str] = None
-    file_url: Optional[str] = None
-    file_type: Optional[str] = None
-    lesson_id: Optional[int] = None
-    created_at: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
-
-class MaterialUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    file_url: Optional[str] = None
-    file_type: Optional[str] = None
-    lesson_id: Optional[int] = None
-
+    lesson_id: int
