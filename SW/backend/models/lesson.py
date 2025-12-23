@@ -21,6 +21,5 @@ class Lesson(SQLModel, table=True):
     progress: int = 0
     status: str = "locked"
 
-    # Relationship
     materials: List["Material"] = Relationship(back_populates="lesson")
-    assignments: list["Assignment"] = Relationship(back_populates="lesson")
+    assignments: List["Assignment"] = Relationship(back_populates="lesson")

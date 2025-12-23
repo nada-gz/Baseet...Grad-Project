@@ -1,8 +1,10 @@
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, List, TYPE_CHECKING
+from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
 
 if TYPE_CHECKING:
     from models.lesson import Lesson
+    from models.submission import Submission
 
 
 class Assignment(SQLModel, table=True):
@@ -13,11 +15,10 @@ class Assignment(SQLModel, table=True):
 
     title: str
     description: Optional[str] = None
+    assignment_type: str = "unknown"
+    file_url: str = ""
 
-    # pdf | docx | img | zip | link
-    assignment_type: str
+    deadline: Optional[datetime] = None
 
-    file_url: str
-
-    # Relationship
     lesson: Optional["Lesson"] = Relationship(back_populates="assignments")
+    submissions: List["Submission"] = Relationship(back_populates="assignment")

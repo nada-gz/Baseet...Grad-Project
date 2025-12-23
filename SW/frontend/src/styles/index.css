@@ -1161,8 +1161,10 @@ a:hover {
 
 
 /* -------------------------------------
-   Student Materials Page
--------------------------------------- */
+----------------------------------------
+   Student Materials & Assignments Pages
+----------------------------------------
+---------------------------------------- */
 
 .materials-page {
   display: flex;
@@ -1177,7 +1179,10 @@ a:hover {
   color: var(--highlight);
 }
 
-/* Milestone Card */
+/* -------------------------------------
+   Milestone Card
+-------------------------------------- */
+
 .milestone-card {
   background: var(--secondary-bg);
   border: 1px solid var(--highlight);
@@ -1202,7 +1207,10 @@ a:hover {
   color: var(--highlight);
 }
 
-/* Lesson Block */
+/* -------------------------------------
+   Lesson Block
+-------------------------------------- */
+
 .lesson-block {
   border-top: 1px solid var(--neutral);
 }
@@ -1218,13 +1226,16 @@ a:hover {
   border-bottom: 1px solid var(--neutral);
 }
 
-/* Materials List */
+/* -------------------------------------
+   Materials / Assignments List
+-------------------------------------- */
+
 .materials-list {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding-left: 2rem; /* indentation for hierarchy */
-  padding-bottom: 14px;
+  padding-left: 2rem;
+  padding-bottom: 16px;
 }
 
 .material-item {
@@ -1236,12 +1247,23 @@ a:hover {
   padding: 16px 18px;
   margin-top: 15px;
   margin-right: 30px;
+  gap: 20px;
 }
+
+.material-item.locked {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* -------------------------------------
+   Material Info
+-------------------------------------- */
 
 .material-info {
   display: flex;
   align-items: flex-start;
   gap: 14px;
+  flex: 1;
 }
 
 .material-icon {
@@ -1253,6 +1275,7 @@ a:hover {
 .material-text {
   display: flex;
   flex-direction: column;
+  gap: 4px;
 }
 
 .material-title {
@@ -1262,31 +1285,32 @@ a:hover {
 .material-description {
   font-size: 0.85rem;
   color: var(--secondary-text);
-  margin-top: 2px;
 }
 
-/* Actions & Locked */
+/* -------------------------------------
+   Actions
+-------------------------------------- */
 
-/* Material Buttons Container */
 .material-actions {
   display: flex;
   gap: 10px;
-  margin-top: auto; /* optional: align buttons to bottom if inside flex container */
+  align-items: center;
 }
 
-/* Base button style */
+/* Base button */
 .material-btn {
   display: flex;
   align-items: center;
-  gap: 5px; /* space between icon and text */
-  padding: 0.5rem 1.5rem;
-  font-size: 0.9rem;
-  border-radius: 0.5rem; /* rounded like dashboard */
+  gap: 6px;
+  padding: 0.45rem 1.2rem;
+  font-size: 0.85rem;
+  border-radius: 8px;
   font-weight: 500;
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
-/* Outline style (View button) */
+/* View / Upload */
 .material-btn-outline {
   background-color: var(--highlight);
   border: 1px solid var(--highlight);
@@ -1298,28 +1322,74 @@ a:hover {
   color: var(--highlight);
 }
 
-/* Primary style (Download button) */
-.material-btn-primary {
+/* Resubmit / Update */
+.material-btn-secondary {
+  background-color: transparent;
+  border: 1px dashed var(--highlight);
+  color: var(--highlight);
+}
+
+.material-btn-secondary:hover {
   background-color: var(--highlight);
-  color: white;
-  border: none;
+  color: var(--secondary-bg);
 }
 
-.material-btn-primary:hover {
-  opacity: 0.7;
-  color: white;      /* keep text color same */
-  border: none;      /* no movement */
+/* Disabled */
+.material-btn.disabled {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
+/* -------------------------------------
+   Equal Buttons & Submitted Label
+-------------------------------------- */
+
+/* Equal buttons */
+.material-btn-equal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  min-width: 80px; /* make all buttons same width */
+  height: 35px; /* force equal height */
+}
+
+/* Submitted label highlight */
+.submitted-label {
+  color: var(--secondary-text);
+  font-weight: 500;
+  display: flex;
+  flex-direction: column; /* allows submitted files to stack */
+  justify-content: center;
+  gap: 4px;
+  min-width: 120px; /* ensure consistent spacing from buttons */
+  margin-right: 10px;
+  margin-top: 2px;
+}
+
+/* Wrapper for submitted info + buttons */
+.material-actions-wrapper {
+  display: flex;
+  gap: 10px;
+  align-items: stretch; /* equal height buttons */
+  margin-top: 4px;
+}
+
+/* -------------------------------------
+   Locked State
+-------------------------------------- */
 
 .material-locked {
   margin-top: 8px;
   margin-right: 8px;
-  font-size: 0.85rem;
   color: var(--secondary-text);
 }
 
-/* Empty Materials with Icon */
+/* -------------------------------------
+   Empty State
+-------------------------------------- */
+
 .materials-empty-icon {
   display: flex;
   align-items: center;
@@ -1327,11 +1397,83 @@ a:hover {
   color: var(--secondary-text);
   font-size: 0.9rem;
   opacity: 0.6;
-  padding-left: 2rem; /* align with materials */
+  padding-left: 2rem;
   margin-left: 40px;
 }
 
 .materials-empty-icon .sad-icon {
   width: 1.2rem;
   opacity: 0.3;
+}
+
+/* Deadline */ 
+.material-deadline {
+  color: rgb(238, 53, 53);
+}
+
+/* New wrapper under the assignment list */
+.submission-feedback-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+/* Card-like style but connected to main card */
+.submission-feedback-card {
+  background: var(--secondary-bg);
+  border-radius: 12px;
+  padding: 12px 16px;
+  border-top: none; /* looks connected */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+/* Adjust submitted section inside new card */
+.submitted-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.submitted-label {
+  font-weight: 500;
+  color: var(--highlight);
+}
+
+.submitted-files {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+  text-decoration: underline;
+  color: var(--highlight);
+}
+
+/* Feedback box inside card */
+.feedback-box {
+  padding: 10px 12px;
+  border-left: 4px solid var(--highlight);
+  background: var(--primary-bg);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-top: 6px;
+}
+
+.feedback-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.feedback-comment {
+  color: var(--secondary-text);
+  margin-bottom: 4px;
+}
+
+.feedback-rating {
+  font-weight: 600;
+  color: var(--highlight);
 }
