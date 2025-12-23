@@ -267,11 +267,12 @@ def delete_material(material_id: int):
 # ---------------------------
 # Assignments CRUD
 # ---------------------------
-
-def get_assignments(student_id: int):
+    
+def get_assignments_by_lesson(lesson_id: int):
     with Session(engine) as session:
-        statement = select(Assignment).where(Assignment.student_id == student_id)
-        return session.exec(statement).all()
+        return session.exec(
+            select(Assignment).where(Assignment.lesson_id == lesson_id)
+        ).all()
 
 
 def get_assignment_by_id(assignment_id: int):
@@ -279,22 +280,8 @@ def get_assignment_by_id(assignment_id: int):
         return session.get(Assignment, assignment_id)
 
 
-def create_assignment(assignment_data: Assignment):
+def create_assignment(assignment: Assignment):
     with Session(engine) as session:
-        session.add(assignment_data)
-        session.commit()
-        session.refresh(assignment_data)
-        return assignment_data
-
-
-def update_assignment(assignment_id: int, **kwargs):
-    with Session(engine) as session:
-        assignment = session.get(Assignment, assignment_id)
-        if not assignment:
-            return None
-        for key, value in kwargs.items():
-            if hasattr(assignment, key):
-                setattr(assignment, key, value)
         session.add(assignment)
         session.commit()
         session.refresh(assignment)

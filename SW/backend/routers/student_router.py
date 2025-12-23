@@ -7,7 +7,6 @@ from db.crud import (
     create_student, get_all_students, get_student_by_id, update_student, delete_student,
     get_lessons, get_lessons_grouped_by_milestones, create_lesson, update_lesson,
     get_milestones, get_milestone_by_id, create_milestone, update_milestone, delete_milestone,
-    get_assignments, create_assignment, get_assignment_by_id, update_assignment, delete_assignment,
     get_quizzes, create_quiz, get_quiz_by_id, update_quiz, delete_quiz,
     get_ask_baseet_conversations, create_ask_baseet, get_ask_baseet_by_id, update_ask_baseet, delete_ask_baseet
 )
@@ -22,7 +21,7 @@ from schemas.student_schema import StudentCreate, StudentRead, StudentUpdate
 from schemas.lesson_schema import LessonRead, LessonUpdate
 from schemas.milestone_schema import MilestoneRead, MilestoneCreate, MilestoneUpdate, MilestoneWithLessons
 from schemas.material_schema import MaterialRead
-from schemas.assignment_schema import AssignmentCreate, AssignmentRead, AssignmentUpdate
+from schemas.assignment_schema import AssignmentRead
 from schemas.quiz_schema import QuizCreate, QuizRead, QuizUpdate
 from schemas.ask_baseet_schema import AskBaseetCreate, AskBaseetRead, AskBaseetUpdate
 
@@ -369,67 +368,81 @@ def download_material(
 # Assignments endpoints
 # ---------------------------
 
-@router.get("/{student_id}/assignments", response_model=list[AssignmentRead])
-def get_assignments_route(student_id: int):
-    """Retrieve all assignments for a given student_id"""
-    student = get_student_by_id(student_id)
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-    return get_assignments(student_id)
+UPLOAD_DIR = Path("uploads/assignments")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
-@router.post("/{student_id}/assignments", response_model=AssignmentRead)
-def create_assignment_route(student_id: int, assignment: AssignmentCreate):
-    """Create a new assignment for a student"""
-    student = get_student_by_id(student_id)
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-    
-    assignment_data = Assignment(student_id=student_id, **assignment.dict(exclude={"student_id"}))
-    return create_assignment(assignment_data)
+@router.get(
+    "/{student_id}/lessons/{lesson_id}/assignments",
+    response_model=list[AssignmentRead]
+)
+def get_lesson_assignments(
+    student_id: int,
+    lesson_id: int,
+    session: Session = Depends(get_session)
+):
+    lesson = session.get(Lesson, lesson_id)
+    if not lesson or lesson.student_id != student_id:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    return session.exec(
+        select(Assignment).where(Assignment.lesson_id == lesson_id)
+    ).all()
 
 
-@router.get("/{student_id}/assignments/{assignment_id}", response_model=AssignmentRead)
-def get_assignment_route(student_id: int, assignment_id: int):
-    """Get a specific assignment"""
-    student = get_student_by_id(student_id)
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-    
-    assignment = get_assignment_by_id(assignment_id)
-    if not assignment or assignment.student_id != student_id:
-        raise HTTPException(status_code=404, detail="Assignment not found")
+@router.post("/{lesson_id}/assignments", response_model=AssignmentRead)
+async def upload_assignment(
+    lesson_id: int,
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session),
+):
+    lesson = session.get(Lesson, lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    safe_filename = f"{lesson_id}_{file.filename.replace(' ', '_')}"
+    file_path = UPLOAD_DIR / safe_filename
+
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+
+    assignment = Assignment(
+        lesson_id=lesson_id,
+        title=file.filename,
+        description="Assignment file",
+        assignment_type=file.filename.split(".")[-1],
+        file_url=f"/uploads/assignments/{safe_filename}",
+    )
+
+    session.add(assignment)
+    session.commit()
+    session.refresh(assignment)
+
     return assignment
 
 
-@router.put("/{student_id}/assignments/{assignment_id}", response_model=AssignmentRead)
-def update_assignment_route(student_id: int, assignment_id: int, assignment: AssignmentUpdate):
-    """Update an assignment (e.g., submit assignment)"""
-    student = get_student_by_id(student_id)
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-    
-    existing_assignment = get_assignment_by_id(assignment_id)
-    if not existing_assignment or existing_assignment.student_id != student_id:
+@router.get(
+    "/{student_id}/lessons/{lesson_id}/assignments/{assignment_id}/download"
+)
+def download_assignment(
+    student_id: int,
+    lesson_id: int,
+    assignment_id: int,
+    session: Session = Depends(get_session)
+):
+    assignment = session.get(Assignment, assignment_id)
+    if not assignment or assignment.lesson_id != lesson_id:
         raise HTTPException(status_code=404, detail="Assignment not found")
-    
-    updated = update_assignment(assignment_id, **assignment.dict(exclude_unset=True))
-    return updated
 
+    file_path = Path("uploads/assignments") / Path(assignment.file_url).name
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
 
-@router.delete("/{student_id}/assignments/{assignment_id}")
-def delete_assignment_route(student_id: int, assignment_id: int):
-    """Delete an assignment"""
-    student = get_student_by_id(student_id)
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-    
-    assignment = get_assignment_by_id(assignment_id)
-    if not assignment or assignment.student_id != student_id:
-        raise HTTPException(status_code=404, detail="Assignment not found")
-    
-    delete_assignment(assignment_id)
-    return {"deleted": assignment_id}
+    return FileResponse(
+        path=file_path,
+        filename=assignment.title,
+        media_type="application/octet-stream",
+    )
 
 
 # ---------------------------
