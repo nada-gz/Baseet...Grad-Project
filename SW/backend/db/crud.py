@@ -7,6 +7,9 @@ from models.milestone import Milestone
 from models.lesson import Lesson
 from models.material import Material
 from models.assignment import Assignment
+from models.submission import Submission
+from models.submission_file import SubmissionFile
+from models.feedback import Feedback
 from models.quiz import Quiz
 from models.ask_baseet import AskBaseet
 from utils.auth import hash_password
@@ -267,11 +270,12 @@ def delete_material(material_id: int):
 # ---------------------------
 # Assignments CRUD
 # ---------------------------
-
-def get_assignments(student_id: int):
+    
+def get_assignments_by_lesson(lesson_id: int):
     with Session(engine) as session:
-        statement = select(Assignment).where(Assignment.student_id == student_id)
-        return session.exec(statement).all()
+        return session.exec(
+            select(Assignment).where(Assignment.lesson_id == lesson_id)
+        ).all()
 
 
 def get_assignment_by_id(assignment_id: int):
@@ -279,22 +283,8 @@ def get_assignment_by_id(assignment_id: int):
         return session.get(Assignment, assignment_id)
 
 
-def create_assignment(assignment_data: Assignment):
+def create_assignment(assignment: Assignment):
     with Session(engine) as session:
-        session.add(assignment_data)
-        session.commit()
-        session.refresh(assignment_data)
-        return assignment_data
-
-
-def update_assignment(assignment_id: int, **kwargs):
-    with Session(engine) as session:
-        assignment = session.get(Assignment, assignment_id)
-        if not assignment:
-            return None
-        for key, value in kwargs.items():
-            if hasattr(assignment, key):
-                setattr(assignment, key, value)
         session.add(assignment)
         session.commit()
         session.refresh(assignment)
@@ -309,97 +299,113 @@ def delete_assignment(assignment_id: int):
         session.delete(assignment)
         session.commit()
         return assignment
+    
 
-
-# ---------------------------
-# Quizzes CRUD
-# ---------------------------
-
-def get_quizzes(student_id: int):
+def get_submission(student_id: int, assignment_id: int):
     with Session(engine) as session:
-        statement = select(Quiz).where(Quiz.student_id == student_id)
-        return session.exec(statement).all()
+        return session.exec(
+            select(Submission)
+            .where(
+                Submission.student_id == student_id,
+                Submission.assignment_id == assignment_id
+            )
+        ).first()
 
 
-def get_quiz_by_id(quiz_id: int):
+def create_submission(student_id: int, assignment_id: int, description: str | None):
     with Session(engine) as session:
-        return session.get(Quiz, quiz_id)
-
-
-def create_quiz(quiz_data: Quiz):
-    with Session(engine) as session:
-        session.add(quiz_data)
+        submission = Submission(
+            student_id=student_id,
+            assignment_id=assignment_id,
+            description=description
+        )
+        session.add(submission)
         session.commit()
-        session.refresh(quiz_data)
-        return quiz_data
+        session.refresh(submission)
+        return submission
 
 
-def update_quiz(quiz_id: int, **kwargs):
+def update_submission(submission: Submission, description: str | None):
     with Session(engine) as session:
-        quiz = session.get(Quiz, quiz_id)
-        if not quiz:
-            return None
-        for key, value in kwargs.items():
-            if hasattr(quiz, key):
-                setattr(quiz, key, value)
-        session.add(quiz)
+        submission.description = description
+        submission.updated_at = datetime.utcnow()
+        session.add(submission)
         session.commit()
-        session.refresh(quiz)
-        return quiz
+        session.refresh(submission)
+        return submission
 
 
-def delete_quiz(quiz_id: int):
+def replace_submission_files(submission_id: int, files: list[dict]):
+    """
+    files = [{file_name, file_url}]
+    """
     with Session(engine) as session:
-        quiz = session.get(Quiz, quiz_id)
-        if not quiz:
-            return None
-        session.delete(quiz)
+        session.exec(
+            select(SubmissionFile)
+            .where(SubmissionFile.submission_id == submission_id)
+        ).delete()
+
+        for f in files:
+            session.add(
+                SubmissionFile(
+                    submission_id=submission_id,
+                    file_name=f["file_name"],
+                    file_url=f["file_url"]
+                )
+            )
+
         session.commit()
-        return quiz
 
 
-# ---------------------------
-# Ask Baseet CRUD
-# ---------------------------
-
-def get_ask_baseet_conversations(student_id: int):
+def get_feedback(submission_id: int):
     with Session(engine) as session:
-        statement = select(AskBaseet).where(AskBaseet.student_id == student_id)
-        return session.exec(statement).all()
+        return session.exec(
+            select(Feedback)
+            .where(Feedback.submission_id == submission_id)
+        ).first()
 
 
-def get_ask_baseet_by_id(ask_baseet_id: int):
+def create_or_update_feedback(submission_id: int, comment: str, rating: int | None):
     with Session(engine) as session:
-        return session.get(AskBaseet, ask_baseet_id)
+        feedback = session.exec(
+            select(Feedback)
+            .where(Feedback.submission_id == submission_id)
+        ).first()
 
+        if feedback:
+            feedback.comment = comment
+            feedback.rating = rating
+        else:
+            feedback = Feedback(
+                submission_id=submission_id,
+                comment=comment,
+                rating=rating
+            )
+            session.add(feedback)
 
-def create_ask_baseet(ask_baseet_data: AskBaseet):
-    with Session(engine) as session:
-        session.add(ask_baseet_data)
         session.commit()
-        session.refresh(ask_baseet_data)
-        return ask_baseet_data
-
-
-def update_ask_baseet(ask_baseet_id: int, **kwargs):
+        session.refresh(feedback)
+        return feedback
+    
+def get_assignments_with_submission(student_id: int, lesson_id: int):
+    """
+    Returns assignments + submission + files + feedback
+    """
     with Session(engine) as session:
-        ask_baseet = session.get(AskBaseet, ask_baseet_id)
-        if not ask_baseet:
-            return None
-        for key, value in kwargs.items():
-            if hasattr(ask_baseet, key):
-                setattr(ask_baseet, key, value)
-        session.add(ask_baseet)
-        session.commit()
-        session.refresh(ask_baseet)
-        return ask_baseet
+        assignments = session.exec(
+            select(Assignment).where(Assignment.lesson_id == lesson_id)
+        ).all()
 
+        for assignment in assignments:
+            submission = session.exec(
+                select(Submission)
+                .where(
+                    Submission.assignment_id == assignment.id,
+                    Submission.student_id == student_id
+                )
+            ).first()
 
-def delete_ask_baseet(ask_baseet_id: int):
-    with Session(engine) as session:
-        ask_baseet = session.get(AskBaseet, ask_baseet_id)
-        if not ask_baseet:
-            return None
-        session.delete(ask_baseet)
-        session.commit()
-        return ask_baseet
+            assignment.submission = submission
+
+        return assignments
+    
