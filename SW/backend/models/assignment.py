@@ -1,21 +1,24 @@
-from typing import Optional
-from sqlmodel import SQLModel, Field
+from typing import Optional, List, TYPE_CHECKING
+from datetime import datetime
+from sqlmodel import SQLModel, Field, Relationship
+
+if TYPE_CHECKING:
+    from models.lesson import Lesson
+    from models.submission import Submission
 
 
 class Assignment(SQLModel, table=True):
     __tablename__ = "assignments"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    student_id: int = Field(foreign_key="students.id")
-    
+    lesson_id: int = Field(foreign_key="lessons.id")
+
     title: str
     description: Optional[str] = None
-    lesson_id: Optional[int] = None  # Optional link to a specific lesson
-    status: str = "pending"  # pending | submitted | graded
-    submission_url: Optional[str] = None  # URL to student's submission
-    grade: Optional[float] = None
-    feedback: Optional[str] = None
-    due_date: Optional[str] = None  # ISO format datetime string
-    submitted_at: Optional[str] = None  # ISO format datetime string
-    created_at: Optional[str] = None  # ISO format datetime string
+    assignment_type: str = "unknown"
+    file_url: str = ""
 
+    deadline: Optional[datetime] = None
+
+    lesson: Optional["Lesson"] = Relationship(back_populates="assignments")
+    submissions: List["Submission"] = Relationship(back_populates="assignment")

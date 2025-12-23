@@ -3,6 +3,7 @@ from sqlmodel import SQLModel, Field, Relationship
 
 if TYPE_CHECKING:
     from models.material import Material
+    from models.assignment import Assignment
 
 
 class Lesson(SQLModel, table=True):
@@ -20,5 +21,5 @@ class Lesson(SQLModel, table=True):
     progress: int = 0
     status: str = "locked"
 
-    # Relationship
     materials: List["Material"] = Relationship(back_populates="lesson")
+    assignments: List["Assignment"] = Relationship(back_populates="lesson")

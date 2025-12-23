@@ -1,39 +1,18 @@
 from typing import Optional
-from pydantic import BaseModel 
+from sqlmodel import SQLModel
 
 
-class AssignmentCreate(BaseModel):
-    student_id: int
+class AssignmentBase(SQLModel):
     title: str
     description: Optional[str] = None
-    lesson_id: Optional[int] = None
-    due_date: Optional[str] = None
+    assignment_type: str
+    file_url: str
 
 
-class AssignmentRead(BaseModel):
+class AssignmentCreate(AssignmentBase):
+    lesson_id: int
+
+
+class AssignmentRead(AssignmentBase):
     id: int
-    student_id: int
-    title: str
-    description: Optional[str] = None
-    lesson_id: Optional[int] = None
-    status: str
-    submission_url: Optional[str] = None
-    grade: Optional[float] = None
-    feedback: Optional[str] = None
-    due_date: Optional[str] = None
-    submitted_at: Optional[str] = None
-    created_at: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
-
-class AssignmentUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    status: Optional[str] = None
-    submission_url: Optional[str] = None
-    grade: Optional[float] = None
-    feedback: Optional[str] = None
-    submitted_at: Optional[str] = None
-
+    lesson_id: int
