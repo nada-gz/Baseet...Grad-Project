@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form
 from sqlmodel import Session, select, update
 from pathlib import Path
 from fastapi.responses import FileResponse
+from services.ocr import process_image_for_ocr, process_pdf_for_ocr
 from datetime import datetime
 from db.database import engine, get_session
 from db.crud import (
@@ -22,6 +23,8 @@ from schemas.lesson_schema import LessonRead, LessonUpdate
 from schemas.milestone_schema import MilestoneRead, MilestoneCreate
 from schemas.material_schema import MaterialRead
 from schemas.assignment_schema import AssignmentRead
+
+import traceback
 
 # ---------------------------
 # Students Router
@@ -201,24 +204,49 @@ def get_lesson_materials(student_id: int, lesson_id: int, session: Session = Dep
 
 
 @router.post("/{lesson_id}/materials", response_model=MaterialRead)
-async def upload_material(lesson_id: int, file: UploadFile = File(...), session: Session = Depends(get_session)):
+async def upload_material(
+    lesson_id: int,
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session)
+):
     lesson = session.get(Lesson, lesson_id)
     if not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
 
+    # Save file
     safe_filename = f"{lesson_id}_{file.filename.replace(' ', '_')}"
     file_path = MATERIAL_UPLOAD_DIR / safe_filename
 
+    file_bytes = await file.read()
+
     with open(file_path, "wb") as f:
-        f.write(await file.read())
+        f.write(file_bytes)
+
+
+    # -------- OCR PART --------
+    extracted_text = None
+    file_ext = file.filename.lower()
+
+    try:
+        if file_ext.endswith(".pdf"):
+            extracted_text = process_pdf_for_ocr(file_bytes, "ara+eng")
+        elif file_ext.endswith((".png", ".jpg", ".jpeg")):
+            extracted_text = process_image_for_ocr(file_bytes, "ara+eng")
+    except Exception as e:
+        print("OCR failed:", e)
+        traceback.print_exc()
+        extracted_text = None
+    # --------------------------
 
     material = Material(
         lesson_id=lesson_id,
         title=file.filename,
         description="Uploaded file",
         material_type=file.filename.split(".")[-1],
-        file_url=f"/uploads/materials/{safe_filename}"
+        file_url=f"/uploads/materials/{safe_filename}",
+        extracted_text=extracted_text
     )
+
     session.add(material)
     session.commit()
     session.refresh(material)
