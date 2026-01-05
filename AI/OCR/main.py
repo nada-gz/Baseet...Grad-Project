@@ -8,7 +8,7 @@ from bidi.algorithm import get_display
 
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
-app = FastAPI(title="OCR API (No Database)")
+app = FastAPI(title="OCR API")
 
 # Helper function to reshape Arabic text so it displays correctly (Right-to-Left)
 def format_arabic_text(text, lang):
@@ -68,9 +68,6 @@ async def ocr_upload(file: UploadFile = File(...), language: str = "ara+eng"):
 
         # Return result directly (No database saving)
         return {
-            "message": "OCR completed successfully",
-            "filename": file.filename,
-            "language": language,
             "extracted_text": extracted.strip()
         }
 
@@ -79,4 +76,4 @@ async def ocr_upload(file: UploadFile = File(...), language: str = "ara+eng"):
 
 @app.get("/")
 def root():
-    return {"message": "OCR API running (No Database)"}
+    return {"message": "OCR API running"}
