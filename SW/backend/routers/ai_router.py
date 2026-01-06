@@ -1,5 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
+import datetime
+
 from services.ai.ai_service import (
     sessions,
     fetch_next_topic,
@@ -12,59 +14,110 @@ from services.ai.ai_service import (
     CLARIFICATION_PHRASES,
     CONFIRMATION_PHRASES
 )
-import datetime
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
-# --- Pydantic Models ---
-class UserRequest(BaseModel):
-    user_id: str
+
+# =========================
+# Pydantic Models
+# =========================
+class StartLessonRequest(BaseModel):
+    lesson_id: int
+    student_id: int
+
+
+class ChatRequest(BaseModel):
+    lesson_id: int
+    student_id: int
     message: str = ""
 
+
 class BotResponse(BaseModel):
-    response: str
+    message: str
     state: str
 
-# --- AI Chat Endpoint ---
-@router.post("/chat", response_model=BotResponse)
-async def chat_endpoint(request: UserRequest):
-    user_id = request.user_id
+
+# =========================
+# START LESSON (Frontend calls this first)
+# =========================
+@router.post("/lesson/start", response_model=BotResponse)
+async def start_lesson(request: StartLessonRequest):
+    student_id = str(request.student_id)
+
+    last_topic_id = get_last_progress()
+    sessions[student_id] = {
+        "status": "start",  # start | awaiting_confirmation | awaiting_mcq
+        "topic_id": last_topic_id,
+        "topic_content": "",
+        "context_str": "",
+        "current_mcq": None
+    }
+
+    # Trigger first topic immediately
+    return await chat_lesson(
+        ChatRequest(
+            lesson_id=request.lesson_id,
+            student_id=request.student_id,
+            message=""
+        )
+    )
+
+
+# =========================
+# AI CHAT (Main Loop)
+# =========================
+@router.post("/lesson/chat", response_model=BotResponse)
+async def chat_lesson(request: ChatRequest):
+    student_id = str(request.student_id)
     user_input = request.message.strip()
 
-    # Initialize session if new
-    if user_id not in sessions:
-        last_id = get_last_progress()
-        sessions[user_id] = {
-            "status": "start",           # start, awaiting_confirmation, awaiting_mcq
-            "topic_id": last_id,
+    # -------------------------
+    # Ensure session exists
+    # -------------------------
+    if student_id not in sessions:
+        last_topic_id = get_last_progress()
+        sessions[student_id] = {
+            "status": "start",
+            "topic_id": last_topic_id,
             "topic_content": "",
             "context_str": "",
             "current_mcq": None
         }
 
-    session = sessions[user_id]
+    session = sessions[student_id]
     response_text = ""
 
-    # --- CASE A: START / NEXT TOPIC ---
+    # ==================================================
+    # CASE A: START / NEXT TOPIC
+    # ==================================================
     if session["status"] == "start":
         topic_data = fetch_next_topic(session["topic_id"])
-        if not topic_data:
-            return BotResponse(response="🎉 خلصنا كل الدروس النهاردة! شاطر جداً.", state="finished")
 
-        # Save Topic Info
+        if not topic_data:
+            return BotResponse(
+                message="🎉 خلصنا كل الدروس النهاردة! شاطر جداً.",
+                state="finished"
+            )
+
         session["topic_id"] = topic_data["id"]
         session["topic_content"] = topic_data["content"]
 
-        # RAG Context
         context = get_context_from_db(topic_data["content"])
-        session["context_str"] = "\n".join([c['original_content'].get('autism_friendly_ar', '') for c in context])
+        session["context_str"] = "\n".join(
+            c["original_content"].get("autism_friendly_ar", "")
+            for c in context
+        )
 
-        # Generate explanation
         explanation = generate_explanation(topic_data["content"], context)
-        response_text = f"📝 موضوع جديد: {topic_data['content']}\n\n{explanation}\n\n😊 فهمت يا بطل؟"
+
+        response_text = (
+            f"📝 موضوع جديد:\n{topic_data['content']}\n\n"
+            f"{explanation}\n\n"
+            "😊 فهمت يا بطل؟"
+        )
+
         session["status"] = "awaiting_confirmation"
 
-        # Log start
         log_interaction_db({
             "timestamp": datetime.datetime.now(),
             "user_input": "SYSTEM_START",
@@ -73,18 +126,25 @@ async def chat_endpoint(request: UserRequest):
             "topic_id": topic_data["id"]
         })
 
-    # --- CASE B: AWAITING CONFIRMATION ---
+    # ==================================================
+    # CASE B: AWAITING CONFIRMATION
+    # ==================================================
     elif session["status"] == "awaiting_confirmation":
         is_clarification = any(p in user_input for p in CLARIFICATION_PHRASES)
         is_confirmation = any(p in user_input for p in CONFIRMATION_PHRASES)
 
         if is_clarification:
-            new_explanation = generate_explanation(
+            explanation = generate_explanation(
                 session["topic_content"],
-                [{"original_content": {"autism_friendly_ar": session["context_str"]}}],
+                [{
+                    "original_content": {
+                        "autism_friendly_ar": session["context_str"]
+                    }
+                }],
                 is_clarification=True
             )
-            response_text = f"{new_explanation}\n\nها؟ كده أوضح؟"
+
+            response_text = f"{explanation}\n\nها؟ كده أوضح؟"
 
             log_interaction_db({
                 "timestamp": datetime.datetime.now(),
@@ -96,56 +156,85 @@ async def chat_endpoint(request: UserRequest):
 
         elif is_confirmation:
             mcq = generate_mcq_ai(session["context_str"])
+
             if mcq:
                 session["current_mcq"] = mcq
-                options_str = "\n".join([f"{i+1}. {opt}" for i, opt in enumerate(mcq['options_ar'])])
-                response_text = f"✅ شاطر! طب خد السؤال ده:\n\n❓ {mcq['question_ar']}\n\n{options_str}\n\nاكتب رقم الإجابة (1 أو 2 أو 3)."
                 session["status"] = "awaiting_mcq"
+
+                options = "\n".join(
+                    f"{i + 1}. {opt}"
+                    for i, opt in enumerate(mcq["options_ar"])
+                )
+
+                response_text = (
+                    "✅ شاطر! خد السؤال ده:\n\n"
+                    f"❓ {mcq['question_ar']}\n\n"
+                    f"{options}\n\n"
+                    "اكتب رقم الإجابة (1 أو 2 أو 3)."
+                )
             else:
-                # Skip to next topic if MCQ fails
                 session["status"] = "start"
-                return await chat_endpoint(request)
+                return await chat_lesson(request)
 
         else:
-            response_text = "حبيبي، قول 'فهمت' لو تمام، أو 'مش فاهم' لو عايزني أشرح تاني."
+            response_text = (
+                "قولّي 'فهمت' لو تمام 👌\n"
+                "أو 'مش فاهم' لو تحب أشرح تاني 😊"
+            )
 
-    # --- CASE C: AWAITING MCQ ANSWER ---
+    # ==================================================
+    # CASE C: AWAITING MCQ ANSWER
+    # ==================================================
     elif session["status"] == "awaiting_mcq":
         mcq = session["current_mcq"]
+
         try:
             choice_idx = int(user_input) - 1
-            correct_idx = int(mcq['correct_answer_ar']) - 1
-            is_correct = (choice_idx == correct_idx)
-            user_choice_text = mcq['options_ar'][choice_idx] if 0 <= choice_idx < len(mcq['options_ar']) else "Invalid"
-        except:
+            correct_idx = int(mcq["correct_answer_ar"]) - 1
+            is_correct = choice_idx == correct_idx
+
+            user_choice_text = mcq["options_ar"][choice_idx]
+        except Exception:
             is_correct = False
             user_choice_text = "Invalid"
 
         feedback = generate_feedback(
-            mcq['question_ar'],
-            mcq['options_ar'][int(mcq['correct_answer_ar']) - 1],
+            mcq["question_ar"],
+            mcq["options_ar"][correct_idx],
             user_choice_text,
             is_correct
         )
 
-        # Log MCQ result
         log_interaction_db({
             "timestamp": datetime.datetime.now(),
             "user_input": user_input,
             "intent": "MCQ_Attempt",
             "topic": session["topic_content"],
-            "question": mcq['question_ar'],
+            "question": mcq["question_ar"],
             "correct": is_correct,
-            "correct_answer": mcq['options_ar'][int(mcq['correct_answer_ar']) - 1],
+            "correct_answer": mcq["options_ar"][correct_idx],
             "user_choice": user_choice_text,
             "topic_id": session["topic_id"]
         })
 
-        response_text = f"{feedback}\n\n🔄 جاري الانتقال للموضوع التالي..."
-
-        # Reset to next topic
         session["status"] = "start"
-        next_topic_response = await chat_endpoint(request)
-        response_text += f"\n\n----------------\n{next_topic_response.response}"
 
-    return BotResponse(response=response_text, state=session["status"])
+        next_topic = await chat_lesson(
+            ChatRequest(
+                lesson_id=request.lesson_id,
+                student_id=request.student_id,
+                message=""
+            )
+        )
+
+        response_text = (
+            f"{feedback}\n\n"
+            "🔄 نكمل على اللي بعده 👇\n\n"
+            "----------------\n"
+            f"{next_topic.message}"
+        )
+
+    return BotResponse(
+        message=response_text,
+        state=session["status"]
+    )
