@@ -1477,3 +1477,128 @@ a:hover {
   font-weight: 600;
   color: var(--highlight);
 }
+
+
+/* -------------------------------------
+   Lesson Chat (Child Friendly)
+-------------------------------------- */
+
+.lesson-chat {
+  position: relative;
+  width: calc(70vw - 60px);
+  margin-left: 90px;
+  background: var(--secondary-bg);
+  border-radius: 22px;
+  padding: 30px;
+  border: 1px solid var(--neutral);
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 150px);
+  margin-top: 30px;
+}
+
+/* Floating Baseet */
+.chat-floating-baseet {
+  position: absolute;
+  top: -40px;
+  right: 30px;
+  width: 120px;
+  pointer-events: none;
+}
+
+/* Header */
+.lesson-chat-header h1 {
+  font-family: var(--font-title);
+  font-size: 1.9rem;
+  color: var(--highlight);
+  margin-bottom: 15px;
+}
+
+.chat-helper {
+  font-size: 1.1rem;
+  color: var(--secondary-text);
+}
+
+/* Messages Area */
+.chat-messages {
+  flex: 1;
+  margin-top: 20px;
+  padding-right: 10px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Chat Bubbles */
+.chat-bubble {
+  max-width: 70%;
+  padding: 14px 18px;
+  border-radius: 18px;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.chat-bubble.ai {
+  background: rgba(108, 99, 255, 0.12);
+  align-self: flex-start;
+}
+
+.chat-bubble.user {
+  background: var(--highlight);
+  color: white;
+  align-self: flex-end;
+}
+
+.chat-bubble.typing {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* Input */
+.chat-input {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.chat-input textarea {
+  flex: 1;
+  resize: none;
+  height: 55px;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.eyes-border-chat {
+  position: absolute;
+  width: 50px; 
+  height: auto;
+  pointer-events: none;
+  z-index: 10;
+  animation: borderMoveChat 15s linear infinite;
+}
+
+/* Animation along rectangular border with left/right shift */
+@keyframes borderMoveChat {
+  0% {
+    top: -30px;               /* top-left */
+    left: -15px;              /* shift left 15px */
+  }
+  25% {
+    top: -30px;               /* top-right */
+    left: calc(100% - 50px + 15px); /* shift right 15px */
+  }
+  50% {
+    top: calc(100% - 50px);   /* bottom-right */
+    left: calc(100% - 50px + 15px); /* shift right 15px */
+  }
+  75% {
+    top: calc(100% - 50px);   /* bottom-left */
+    left: -15px;              /* shift left 15px */
+  }
+  100% {
+    top: -30px;               /* back to top-left */
+    left: -15px;
+  }
+}

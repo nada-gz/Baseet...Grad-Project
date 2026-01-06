@@ -18,6 +18,7 @@ import TeacherDashboard from "./pages/dashboards/TeacherDashboard";
 
 import StudentDashboard from "./pages/dashboards/Student/StudentDashboard";
 import LessonPlayer from "./pages/dashboards/Student/LessonPlayer";
+import LessonChat from "./pages/dashboards/Student/LessonChat";
 import StudentLessons from "./pages/dashboards/Student/StudentLessons";
 import StudentMaterials from "./pages/dashboards/Student/StudentMaterials";
 import StudentAssignments from "./pages/dashboards/Student/StudentAssignments";
@@ -65,8 +66,8 @@ const router = createBrowserRouter([
         // Lessons list
         { path: "/dashboard/student/lessons", element: <StudentLessons /> },
 
-        // Single lesson player
-        { path: "/dashboard/student/lesson/:lessonId", element: <LessonPlayer /> },
+        // Single lesson chat
+        { path: "/dashboard/student/lesson/:lessonId", element: <LessonChat /> },
 
         // Materials
         { path: "/dashboard/student/materials", element: <StudentMaterials /> },
