@@ -19,5 +19,7 @@ class Material(SQLModel, table=True):
 
     file_url: str
 
+    extracted_text: Optional[str] = None
+
     # Relationship
     lesson: Optional["Lesson"] = Relationship(back_populates="materials")
