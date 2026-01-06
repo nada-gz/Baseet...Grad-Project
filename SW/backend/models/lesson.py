@@ -4,6 +4,7 @@ from sqlmodel import SQLModel, Field, Relationship
 if TYPE_CHECKING:
     from models.material import Material
     from models.assignment import Assignment
+    from models.log import Log
 
 
 class Lesson(SQLModel, table=True):
@@ -23,3 +24,4 @@ class Lesson(SQLModel, table=True):
 
     materials: List["Material"] = Relationship(back_populates="lesson")
     assignments: List["Assignment"] = Relationship(back_populates="lesson")
+    logs: List["Log"] = Relationship(back_populates="lesson")
