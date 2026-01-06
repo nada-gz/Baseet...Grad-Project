@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -7,6 +10,7 @@ from routers.user_router import router as user_router
 from routers.student_router import router as student_router
 from routers.auth_router import router as auth_router
 from routers.dashboard_router import router as dashboard_router
+from routers.ai_router import router as ai_router
 
 app = FastAPI(title="My Backend Project")
 
@@ -34,6 +38,7 @@ app.include_router(user_router)
 app.include_router(student_router)
 app.include_router(auth_router)
 app.include_router(dashboard_router)
+app.include_router(ai_router)
 
 # Root route
 @app.get("/")
