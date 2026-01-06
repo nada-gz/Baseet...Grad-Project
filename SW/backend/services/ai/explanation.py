@@ -1,0 +1,147 @@
+import os
+import json
+import chromadb
+from google import genai
+from sentence_transformers import SentenceTransformer
+import torch
+import textwrap
+from dotenv import load_dotenv
+
+load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+CHROMA_DB_PATH = "./autism_rag_db"
+COLLECTION_NAME = "autism_content_arabic"
+EMBEDDING_MODEL_NAME = 'intfloat/multilingual-e5-large'
+GENERATION_MODEL = 'gemini-2.5-flash'
+
+
+def setup_retrieval_model():
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    query_model = SentenceTransformer(EMBEDDING_MODEL_NAME, device=device)
+    return query_model
+
+
+def get_context_from_db(chroma_client, query_text, embed_model, k=3):
+    """Fetches top-k context documents from ChromaDB for the given query."""
+    try:
+        collection = chroma_client.get_collection(COLLECTION_NAME)
+    except Exception as e:
+        return []
+
+    query_vector = embed_model.encode([f"query: {query_text}"], normalize_embeddings=True)[0].tolist()
+    results = collection.query(
+        query_embeddings=[query_vector],
+        n_results=k,
+        include=['documents', 'metadatas', 'distances']
+    )
+
+    context = []
+    if results and results.get('documents') and results['documents'][0]:
+        for doc, meta, dist in zip(results['documents'][0], results['metadatas'][0], results['distances'][0]):
+            context.append({
+                "text_to_embed": doc,
+                "original_content": meta,
+                "distance": dist
+            })
+    return context
+
+
+def initialize_chat_session(client, system_instruction):
+    """Initializes a persistent chat session with Gemini."""
+    chat = client.chats.create(
+        model=GENERATION_MODEL,
+        config=dict(system_instruction=system_instruction)
+    )
+    return chat
+
+
+def generate_rag_answer_with_chat(chat_session, query_text, context_string, is_clarification=False):
+    """Sends query + RAG context to the chat session."""
+    if is_clarification:
+        intent_instruction = (
+            "**نية الطفل (Intent):** طلب توضيح/إعادة شرح ('مش فاهم').\n"
+            "**تعليمات خاصة:** يجب عليك الآن تغيير طريقة الشرح بالكامل لنفس الموضوع، باستخدام تشبيه جديد أو مثال يومي مختلف. لا تكرر إجابتك السابقة أبداً، ولكن التزم بالسياق المرجعي. ركز على التبسيط الشديد."
+        )
+    else:
+        intent_instruction = (
+            "**نية الطفل (Intent):** سؤال جديد/موضوع جديد.\n"
+            "**تعليمات خاصة:** **استخدم جميع** المعلومات المتوفرة في 'البيانات المرجعية' لتقديم شرح **كامل وواضح ومبسط** للطفل. لا تكتفِ بجملة واحدة. الشرح يجب أن يكون ودوداً ومركزاً على نقل المعرفة الأساسية."
+        )
+
+    prompt = (
+        f"{intent_instruction}\n\n"
+        f"**البيانات المرجعية (Context):**\n"
+        f"```\n{context_string if context_string else 'لا توجد بيانات مرجعية جديدة متوفرة. اعتمد على سياق المحادثة وتوجيهاتك السابقة.'}\n```\n\n"
+        f"**استعلام الطفل:** {query_text}"
+    )
+
+    try:
+        response = chat_session.send_message(prompt)
+        return response.text
+    except Exception as e:
+        return f"❌ حصل خطأ أثناء محاولة توليد الإجابة من Gemini. (Error during generation): {e}"
+
+
+def generate_mcq(client, context_string):
+    """Generates one MCQ in Egyptian Arabic based on provided context."""
+    output_format_description = """
+        The output MUST be a JSON object with the following structure:
+        {
+          "question_ar": "The MCQ question in simple Egyptian Arabic.",
+          "correct_answer_ar": "The correct answer option (e.g., '1' or '2' or '3').",
+          "options_ar": [
+            "Option 1 in Egyptian Arabic",
+            "Option 2 in Egyptian Arabic",
+            "Option 3 in Egyptian Arabic"
+          ]
+        }
+    """
+
+    prompt = textwrap.dedent(f"""
+        بناءً على المعلومات الموجودة في "البيانات المرجعية"، قم بتوليد سؤال اختيار من متعدد (MCQ) واحد فقط.
+        **قواعد توليد السؤال:**
+        1. يجب أن يكون السؤال بسيطًا جدًا ومناسبًا لطفل على طيف التوحد (Autistic child).
+        2. الإجابة الصحيحة يجب أن تكون مباشرة من "البيانات المرجعية".
+        3. يجب أن تحتوي قائمة الخيارات على 3 خيارات (إجابة صحيحة واثنان خاطئان).
+        4. يجب أن تكون الخيارات والسؤال بلهجة مصرية عامية بسيطة.
+
+        **البيانات المرجعية (Context):**
+        ```
+        {context_string}
+        ```
+        
+        {output_format_description}
+    """)
+
+    try:
+        response = client.models.generate_content(
+            model=GENERATION_MODEL,
+            contents=[prompt]
+        )
+        text = response.text.strip()
+        if text.startswith("```json"):
+            text = text[len("```json"):]
+            if text.endswith("```"):
+                text = text[:-len("```")]
+        return json.loads(text.strip())
+    except Exception as e:
+        print(f"❌ خطأ في توليد السؤال أو تحليل JSON: {e}")
+        return None
+
+
+# --- Backend-ready Utilities (No CLI / No local JSONL logging) ---
+def prepare_system_instruction():
+    """Returns the default system instruction for initializing a chat session."""
+    return textwrap.dedent("""
+        أنت مساعد تعليمي متخصص في شرح المحتوى العلمي بلهجة مصرية بسيطة جدًا ومناسبة للأطفال ذوي طيف التوحد (Autistic children).
+        يجب أن تكون إجابتك مباشرة، وودودة، وبلهجة عامية مصرية (Egyptian Colloquial Arabic).
+        
+        **قواعد التفاعل:**
+        1. **الرد الأولي/موضوع جديد:** استخدم المعلومات المتوفرة في 'البيانات المرجعية' لتقديم إجابتك. يجب أن تكون الإجابة قصيرة، إيجابية، ومركزة.
+        2. **التعامل مع 'مش فاهم' (Clarification):** إذا قال الطفل عبارة تدل على عدم الفهم، **يجب عليك تغيير طريقة الشرح** بالكامل لنفس الموضوع الذي تم شرحه سابقاً.
+            - استخدم تشبيهاً مختلفاً أو مثالاً يومياً لم يتم ذكره سابقاً.
+            - يمكنك استخدام طريقة "سؤال وجواب" بسيطة لتبسيط المفهوم.
+            - **لا تكرر الإجابة السابقة أبداً.**
+        3. **اللغة:** صيغ الإجابة لتكون بلهجة مصرية عامية (ECA).
+    """)

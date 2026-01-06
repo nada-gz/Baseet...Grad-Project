@@ -12,6 +12,7 @@ from models.submission_file import SubmissionFile
 from models.feedback import Feedback
 from models.quiz import Quiz
 from models.ask_baseet import AskBaseet
+from models.log import Log
 from utils.auth import hash_password
 from datetime import datetime
 
