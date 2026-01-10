@@ -14,7 +14,7 @@ import NotAllowed from "./pages/auth/NotAllowed";
 import MyAccount from "./pages/account/MyAccount";
 import StudentProfile from "./pages/dashboards/Common/StudentProfile";
 
-import TeacherDashboard from "./pages/dashboards/TeacherDashboard";
+import TeacherDashboard from "./pages/dashboards/Teacher/TeacherDashboard";
 
 import StudentDashboard from "./pages/dashboards/Student/StudentDashboard";
 import LessonPlayer from "./pages/dashboards/Student/LessonPlayer";

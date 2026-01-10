@@ -1,6 +1,14 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { BookOpen, Folder, ClipboardList, HelpCircle, PlayCircle } from "lucide-react";
+import {
+  BookOpen,
+  Folder,
+  ClipboardList,
+  HelpCircle,
+  PlayCircle,
+  Users,
+  School
+} from "lucide-react";
 import Logo from "../components/ui/logo";
 import HiBaseet from "../assets/hii_baseet.png";
 
@@ -13,53 +21,70 @@ export default function MainLayout() {
     switch (role) {
       case "teacher":
         return [
-          { label: "Students", path: "/dashboard/teacher", icon: "👥" },
-          { label: "Content", path: "/dashboard/teacher/content", icon: "📚" },
-          { label: "Classrooms", path: "/dashboard/teacher/classrooms", icon: "🏫" },
+          {
+            label: "Students",
+            path: "/dashboard/teacher/students",
+            icon: <Users size={20} />
+          },
+          {
+            label: "Classrooms",
+            path: "/dashboard/teacher/classrooms",
+            icon: <School size={20} />
+          },
+          {
+            label: "Content",
+            path: "/dashboard/teacher/content",
+            icon: <BookOpen size={20} />
+          }
         ];
+
       case "parent":
         return [
           { label: "Child Progress", path: "/dashboard/parent/progress", icon: "📊" },
-          { label: "Reports", path: "/dashboard/parent/reports", icon: "📄" },
+          { label: "Reports", path: "/dashboard/parent/reports", icon: "📄" }
         ];
-        case "student":
-          return [
-            {
-              label: "Lessons",
-              path: "/dashboard/student/lessons",
-              icon: <BookOpen size={20} />
-            },
-            {
-              label: "Materials",
-              path: "/dashboard/student/materials",
-              icon: <Folder size={20} />
-            },
-            {
-              label: "Assignments",
-              path: "/dashboard/student/assignments",
-              icon: <ClipboardList size={20} />
-            },
-            {
-              label: "Quizzes",
-              path: "/dashboard/student/quizzes",
-              icon: <HelpCircle size={20} />
-            },
-            {
-              label: "Ask Baseet",
-              path: "/dashboard/student/ask-baseet",
-              icon: <img 
-                      src={require("../assets/eyes_baseet.png")} 
-                      alt="Ask Baseet" 
-                      style={{ width: 80, height: 80 }} 
-                    />
-            },
-          ];        
-        
+
+      case "student":
+        return [
+          {
+            label: "Lessons",
+            path: "/dashboard/student/lessons",
+            icon: <BookOpen size={20} />
+          },
+          {
+            label: "Materials",
+            path: "/dashboard/student/materials",
+            icon: <Folder size={20} />
+          },
+          {
+            label: "Assignments",
+            path: "/dashboard/student/assignments",
+            icon: <ClipboardList size={20} />
+          },
+          {
+            label: "Quizzes",
+            path: "/dashboard/student/quizzes",
+            icon: <HelpCircle size={20} />
+          },
+          {
+            label: "Ask Baseet",
+            path: "/dashboard/student/ask-baseet",
+            icon: (
+              <img
+                src={require("../assets/eyes_baseet.png")}
+                alt="Ask Baseet"
+                style={{ width: 80, height: 80 }}
+              />
+            )
+          }
+        ];
+
       case "supervisor":
         return [
           { label: "Analytics", path: "/dashboard/supervisor/analytics", icon: "📈" },
-          { label: "Student List", path: "/dashboard/supervisor/students", icon: "👨‍🎓" },
+          { label: "Student List", path: "/dashboard/supervisor/students", icon: "👨‍🎓" }
         ];
+
       default:
         return [];
     }
@@ -73,21 +98,15 @@ export default function MainLayout() {
   const sidebarItems = getSidebarItems();
 
   const renderTopbarExtras = () => {
-    // Only show for logged-in students
     if (role !== "student" || !user) return null;
-  
+
     return (
       <>
-        {/* Middle/left continue button */}
-        <Link
-          to={`/dashboard/student`}
-          className="topbar-continue"
-        >
+        <Link to="/dashboard/student" className="topbar-continue">
           <PlayCircle size={20} />
           <span>Continue</span>
         </Link>
-  
-        {/* Right side links */}
+
         <div className="topbar-actions">
           <Link to="/dashboard/student/analytics" className="topbar-link">
             Analytics
@@ -99,25 +118,23 @@ export default function MainLayout() {
       </>
     );
   };
-  
 
   return (
     <div className="layout-container">
-
       {/* Sidebar */}
       <aside className="sidebar">
         <div>
-          {/* Logo section */}
           <div className="sidebar-logo">
             <Logo />
           </div>
 
-          {/* Role text */}
-          <div className="sidebar-role-container" style={{ textAlign: "center", marginBottom: "20px" }}>
+          <div
+            className="sidebar-role-container"
+            style={{ textAlign: "center", marginBottom: "20px" }}
+          >
             <p className="sidebar-role">{role} Portal</p>
           </div>
 
-          {/* Menu */}
           <nav className="sidebar-menu">
             {sidebarItems.map((item) => {
               const isActive =
@@ -170,14 +187,11 @@ export default function MainLayout() {
 
           <div className="topbar-user">
             {renderTopbarExtras()}
-            {/* <span className="topbar-role">{role}</span> */}
             <Link to="/account" className="avatar avatar-clickable">
               {user?.username?.[0]?.toUpperCase()}
             </Link>
-
           </div>
         </header>
-
 
         <div className="content">
           <Outlet />
