@@ -36,24 +36,21 @@ def get_db_connection():
     db_url = os.getenv("DATABASE_URL")
     assert db_url, "DATABASE_URL is not set"
 
-    # psycopg2 does NOT understand +psycopg
     if db_url.startswith("postgresql+psycopg://"):
         db_url = db_url.replace("postgresql+psycopg://", "postgresql://")
 
     return psycopg2.connect(db_url)
 
-def fetch_next_topic(last_topic_id):
+def fetch_lesson_by_id(lesson_id):
+    """Fetch lesson by lesson_id instead of fetching next lesson."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        # Use lessons table
         cursor.execute("""
             SELECT id, title || ': ' || description AS content
             FROM lessons
-            WHERE id > %s
-            ORDER BY id ASC
-            LIMIT 1;
-        """, (last_topic_id,))
+            WHERE id = %s;
+        """, (lesson_id,))
         row = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -63,19 +60,6 @@ def fetch_next_topic(last_topic_id):
     except Exception as e:
         print(f"❌ DB Error: {e}")
         return None
-
-def get_last_progress():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT MAX(topic_id) FROM log_table;")
-        result = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        return result[0] if result[0] is not None else 0
-    except Exception as e:
-        print(f"❌ DB Error: {e}")
-        return 0
 
 def log_interaction_db(data):
     try:

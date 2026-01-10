@@ -4,8 +4,7 @@ import datetime
 
 from services.ai.ai_service import (
     sessions,
-    fetch_next_topic,
-    get_last_progress,
+    fetch_lesson_by_id,
     get_context_from_db,
     generate_explanation,
     generate_mcq_ai,
@@ -16,7 +15,6 @@ from services.ai.ai_service import (
 )
 
 router = APIRouter(prefix="/ai", tags=["AI"])
-
 
 # =========================
 # Pydantic Models
@@ -44,16 +42,19 @@ class BotResponse(BaseModel):
 async def start_lesson(request: StartLessonRequest):
     student_id = str(request.student_id)
 
-    last_topic_id = get_last_progress()
+    # Load the specific lesson only
+    lesson_data = fetch_lesson_by_id(request.lesson_id)
+    if not lesson_data:
+        return BotResponse(message="❌ الدرس غير موجود", state="error")
+
     sessions[student_id] = {
-        "status": "start",  # start | awaiting_confirmation | awaiting_mcq
-        "topic_id": last_topic_id,
-        "topic_content": "",
+        "status": "start",
+        "topic_id": lesson_data["id"],
+        "topic_content": lesson_data["content"],
         "context_str": "",
         "current_mcq": None
     }
 
-    # Trigger first topic immediately
     return await chat_lesson(
         ChatRequest(
             lesson_id=request.lesson_id,
@@ -71,60 +72,48 @@ async def chat_lesson(request: ChatRequest):
     student_id = str(request.student_id)
     user_input = request.message.strip()
 
-    # -------------------------
-    # Ensure session exists
-    # -------------------------
     if student_id not in sessions:
-        last_topic_id = get_last_progress()
-        sessions[student_id] = {
-            "status": "start",
-            "topic_id": last_topic_id,
-            "topic_content": "",
-            "context_str": "",
-            "current_mcq": None
-        }
+        return BotResponse(
+            message="❌ برجاء بدء الدرس أولاً من صفحة الدروس",
+            state="error"
+        )
 
     session = sessions[student_id]
-    response_text = ""
 
     # ==================================================
-    # CASE A: START / NEXT TOPIC
+    # CASE A: START / EXPLAIN LESSON
     # ==================================================
     if session["status"] == "start":
-        topic_data = fetch_next_topic(session["topic_id"])
+        lesson_data = fetch_lesson_by_id(request.lesson_id)
+        if not lesson_data:
+            return BotResponse(message="❌ الدرس غير موجود", state="error")
 
-        if not topic_data:
-            return BotResponse(
-                message="🎉 خلصنا كل الدروس النهاردة! شاطر جداً.",
-                state="finished"
-            )
-
-        session["topic_id"] = topic_data["id"]
-        session["topic_content"] = topic_data["content"]
-
-        context = get_context_from_db(topic_data["content"])
+        context = get_context_from_db(lesson_data["content"])
         session["context_str"] = "\n".join(
             c["original_content"].get("autism_friendly_ar", "")
             for c in context
         )
 
-        explanation = generate_explanation(topic_data["content"], context)
-
-        response_text = (
-            f"📝 موضوع جديد:\n{topic_data['content']}\n\n"
-            f"{explanation}\n\n"
-            "😊 فهمت يا بطل؟"
-        )
+        explanation = generate_explanation(lesson_data["content"], context)
 
         session["status"] = "awaiting_confirmation"
 
         log_interaction_db({
             "timestamp": datetime.datetime.now(),
             "user_input": "SYSTEM_START",
-            "intent": "New_Topic",
-            "topic": topic_data["content"],
-            "topic_id": topic_data["id"]
+            "intent": "Lesson_Start",
+            "topic": lesson_data["content"],
+            "topic_id": lesson_data["id"]
         })
+
+        return BotResponse(
+            message=(
+                f"📝 درس جديد:\n{lesson_data['content']}\n\n"
+                f"{explanation}\n\n"
+                "😊 فهمت يا بطل؟"
+            ),
+            state=session["status"]
+        )
 
     # ==================================================
     # CASE B: AWAITING CONFIRMATION
@@ -136,50 +125,47 @@ async def chat_lesson(request: ChatRequest):
         if is_clarification:
             explanation = generate_explanation(
                 session["topic_content"],
-                [{
-                    "original_content": {
-                        "autism_friendly_ar": session["context_str"]
-                    }
-                }],
+                [{"original_content": {"autism_friendly_ar": session["context_str"]}}],
                 is_clarification=True
             )
 
-            response_text = f"{explanation}\n\nها؟ كده أوضح؟"
-
-            log_interaction_db({
-                "timestamp": datetime.datetime.now(),
-                "user_input": user_input,
-                "intent": "Clarification",
-                "topic": session["topic_content"],
-                "topic_id": session["topic_id"]
-            })
+            return BotResponse(
+                message=f"{explanation}\n\nها؟ كده أوضح؟",
+                state=session["status"]
+            )
 
         elif is_confirmation:
             mcq = generate_mcq_ai(session["context_str"])
-
-            if mcq:
-                session["current_mcq"] = mcq
-                session["status"] = "awaiting_mcq"
-
-                options = "\n".join(
-                    f"{i + 1}. {opt}"
-                    for i, opt in enumerate(mcq["options_ar"])
+            if not mcq:
+                return BotResponse(
+                    message="❌ حصل خطأ، حاول تاني.",
+                    state=session["status"]
                 )
 
-                response_text = (
+            session["current_mcq"] = mcq
+            session["status"] = "awaiting_mcq"
+
+            options = "\n".join(
+                f"{i+1}. {opt}" for i, opt in enumerate(mcq["options_ar"])
+            )
+
+            return BotResponse(
+                message=(
                     "✅ شاطر! خد السؤال ده:\n\n"
                     f"❓ {mcq['question_ar']}\n\n"
                     f"{options}\n\n"
                     "اكتب رقم الإجابة (1 أو 2 أو 3)."
-                )
-            else:
-                session["status"] = "start"
-                return await chat_lesson(request)
+                ),
+                state=session["status"]
+            )
 
         else:
-            response_text = (
-                "قولّي 'فهمت' لو تمام 👌\n"
-                "أو 'مش فاهم' لو تحب أشرح تاني 😊"
+            return BotResponse(
+                message=(
+                    "قولّي 'فهمت' لو تمام 👌\n"
+                    "أو 'مش فاهم' لو تحب أشرح تاني 😊"
+                ),
+                state=session["status"]
             )
 
     # ==================================================
@@ -192,7 +178,6 @@ async def chat_lesson(request: ChatRequest):
             choice_idx = int(user_input) - 1
             correct_idx = int(mcq["correct_answer_ar"]) - 1
             is_correct = choice_idx == correct_idx
-
             user_choice_text = mcq["options_ar"][choice_idx]
         except Exception:
             is_correct = False
@@ -217,24 +202,21 @@ async def chat_lesson(request: ChatRequest):
             "topic_id": session["topic_id"]
         })
 
-        session["status"] = "start"
+        session["status"] = "finished"
 
-        next_topic = await chat_lesson(
-            ChatRequest(
-                lesson_id=request.lesson_id,
-                student_id=request.student_id,
-                message=""
-            )
+        return BotResponse(
+            message=(
+                f"{feedback}\n\n"
+                "🎉 انتهى الدرس! ارجع لصفحة الدروس لاختيار درس آخر."
+            ),
+            state=session["status"]
         )
 
-        response_text = (
-            f"{feedback}\n\n"
-            "🔄 نكمل على اللي بعده 👇\n\n"
-            "----------------\n"
-            f"{next_topic.message}"
+    # ==================================================
+    # CASE D: LESSON FINISHED (ANY MESSAGE)
+    # ==================================================
+    elif session["status"] == "finished":
+        return BotResponse(
+            message="🎉 انتهى الدرس! ارجع لصفحة الدروس لاختيار درس آخر.",
+            state="finished"
         )
-
-    return BotResponse(
-        message=response_text,
-        state=session["status"]
-    )
