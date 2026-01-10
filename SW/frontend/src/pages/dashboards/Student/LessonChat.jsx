@@ -19,7 +19,7 @@ export default function LessonChat() {
   // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, loadingAI]);
 
   // Load lesson + start explanation
   useEffect(() => {
@@ -27,6 +27,8 @@ export default function LessonChat() {
 
     const startLesson = async () => {
       try {
+        setLoadingAI(true);
+
         const res = await api.get(
           `/students/${student.id}/lessons/${lessonId}`
         );
@@ -45,6 +47,8 @@ export default function LessonChat() {
         ]);
       } catch (err) {
         console.error("Failed to load lesson chat", err);
+      } finally {
+        setLoadingAI(false);
       }
     };
 
@@ -113,7 +117,6 @@ export default function LessonChat() {
                 style={{
                   textAlign: "right",
                   lineHeight: "1.8",
-                  whiteSpace: "normal",
                 }}
               >
                 <ReactMarkdown>{msg.text}</ReactMarkdown>
@@ -124,6 +127,7 @@ export default function LessonChat() {
           </div>
         ))}
 
+        {/* ✅ SHOW THINKING EVEN BEFORE FIRST MESSAGE */}
         {loadingAI && (
           <div className="chat-bubble ai typing">
             Baseet is thinking...
