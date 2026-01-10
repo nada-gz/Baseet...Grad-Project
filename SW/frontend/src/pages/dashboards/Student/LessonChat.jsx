@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import api from "../../../services/api";
 import useAuth from "../../../hooks/useAuth";
 import { Send } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 export default function LessonChat() {
   const { lessonId } = useParams();
@@ -31,7 +32,6 @@ export default function LessonChat() {
         );
         setLesson(res.data);
 
-        // Ask backend to start explanation
         const aiRes = await api.post("/ai/lesson/start", {
           lesson_id: lessonId,
           student_id: student.id,
@@ -79,14 +79,12 @@ export default function LessonChat() {
 
   return (
     <div className="lesson-chat">
-
       <img
         src={require("../../../assets/eyes_baseet.png")}
         alt="Eyes on border"
         className="eyes-border-chat"
       />
 
-      {/* Right Side Floating Asset */}
       <img
         src={require("../../../assets/crazy_baseet.png")}
         alt="falling Baseet"
@@ -109,7 +107,20 @@ export default function LessonChat() {
             key={idx}
             className={`chat-bubble ${msg.role === "ai" ? "ai" : "user"}`}
           >
-            {msg.text}
+            {msg.role === "ai" ? (
+              <div
+                dir="rtl"
+                style={{
+                  textAlign: "right",
+                  lineHeight: "1.8",
+                  whiteSpace: "normal",
+                }}
+              >
+                <ReactMarkdown>{msg.text}</ReactMarkdown>
+              </div>
+            ) : (
+              msg.text
+            )}
           </div>
         ))}
 
@@ -125,7 +136,9 @@ export default function LessonChat() {
       {/* Input */}
       <div className="chat-input">
         <textarea
-          placeholder="Type your answer or question here ✨"
+          dir="rtl"
+          style={{ textAlign: "right" }}
+          placeholder="اكتب إجابتك أو سؤالك هنا ✨"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && sendMessage()}
