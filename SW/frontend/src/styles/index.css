@@ -1602,3 +1602,62 @@ a:hover {
     left: -15px;
   }
 }
+
+
+
+/* -------------------------------------
+   Teacher Dashboard
+-------------------------------------- */
+
+.teacher-cards-row {
+  margin-top: 110px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2.5rem;
+  justify-content: center; /* center the cards horizontally */
+}
+
+.teacher-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  width: 310px;   /* a bit narrower */
+  height: 380px;  /* taller for more presence */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between; /* vertical centering of content */
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+.teacher-card:hover {
+  transform: translateY(-10px); /* card goes up */
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  background-color: rgba(255, 255, 255, 0.95); /* subtle hover effect */
+}
+
+.teacher-card .card-icon {
+  margin-bottom: 1rem;
+}
+
+.teacher-card .card-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.teacher-card .card-description {
+  font-size: 1.1rem; /* larger paragraph font */
+  text-align: center;
+  flex-grow: 1; /* vertical spacing */
+}
+
+.teacher-card .card-buttons {
+  margin-top: 1rem;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
