@@ -5,12 +5,48 @@ from pathlib import Path
 from db.database import get_session
 from models.content_lesson import ContentLesson
 from models.content_material import ContentMaterial
-from schemas.content_schema import ContentLessonRead
+from models.content_level import ContentLevel
+from schemas.content_schema import ContentLessonRead, ContentLevelRead, ContentLevelCreate
 
 router = APIRouter(prefix="/teacher", tags=["Teacher"])
 
 UPLOAD_DIR = Path("uploads/content")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+# -----------------------
+# Get all levels
+# -----------------------
+@router.get("/levels", response_model=list[ContentLevelRead])
+def get_content_levels(session: Session = Depends(get_session)):
+    return session.exec(select(ContentLevel)).all()
+
+
+# -----------------------
+# Create/Update Level
+# -----------------------
+@router.post("/levels", response_model=ContentLevelRead)
+def create_content_level(
+    level_data: ContentLevelCreate,
+    session: Session = Depends(get_session)
+):
+    statement = select(ContentLevel).where(ContentLevel.level_number == level_data.level_number)
+    existing_level = session.exec(statement).first()
+
+    if existing_level:
+        existing_level.description = level_data.description
+        session.add(existing_level)
+        session.commit()
+        session.refresh(existing_level)
+        return existing_level
+
+    new_level = ContentLevel(
+        level_number=level_data.level_number,
+        description=level_data.description
+    )
+    session.add(new_level)
+    session.commit()
+    session.refresh(new_level)
+    return new_level
 
 # -----------------------
 # Create content lesson
@@ -194,6 +230,7 @@ def delete_content_level(
     level_number: int,
     session: Session = Depends(get_session)
 ):
+    # Delete lessons (and their materials)
     statement = select(ContentLesson).where(
         ContentLesson.level_number == level_number
     )
@@ -203,6 +240,12 @@ def delete_content_level(
         for material in lesson.materials:
             session.delete(material)
         session.delete(lesson)
+
+    # Delete the level metadata
+    level_statement = select(ContentLevel).where(ContentLevel.level_number == level_number)
+    level_obj = session.exec(level_statement).first()
+    if level_obj:
+        session.delete(level_obj)
 
     session.commit()
     return {"ok": True}

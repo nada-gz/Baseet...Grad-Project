@@ -3,6 +3,19 @@ from pydantic import BaseModel
 
 
 
+class ContentLevelRead(BaseModel):
+    id: int
+    level_number: int
+    description: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+class ContentLevelCreate(BaseModel):
+    level_number: int
+    description: Optional[str] = None
+
+
 class ContentMaterialRead(BaseModel):
     id: int
     lesson_id: int
