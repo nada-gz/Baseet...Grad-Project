@@ -98,25 +98,39 @@ export default function MainLayout() {
   const sidebarItems = getSidebarItems();
 
   const renderTopbarExtras = () => {
-    if (role !== "student" || !user) return null;
+    if (!user) return null;
 
-    return (
-      <>
-        <Link to="/dashboard/student" className="topbar-continue">
-          <PlayCircle size={20} />
-          <span>Continue</span>
-        </Link>
-
-        <div className="topbar-actions">
-          <Link to="/dashboard/student/analytics" className="topbar-link">
-            Analytics
+    if (role === "student") {
+      return (
+        <>
+          <Link to="/dashboard/student" className="topbar-continue">
+            <PlayCircle size={20} />
+            <span>Continue</span>
           </Link>
-          <Link to={`/students/${user.id}/profile`} className="topbar-link">
-            My Profile
+
+          <div className="topbar-actions">
+            <Link to="/dashboard/student/analytics" className="topbar-link">
+              Analytics
+            </Link>
+            <Link to={`/students/${user.id}/profile`} className="topbar-link">
+              My Profile
+            </Link>
+          </div>
+        </>
+      );
+    }
+
+    if (role === "teacher") {
+      return (
+        <div className="topbar-actions">
+          <Link to="/dashboard/teacher" className="topbar-link">
+            Home
           </Link>
         </div>
-      </>
-    );
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -172,17 +186,17 @@ export default function MainLayout() {
                 location.pathname === item.path ||
                 location.pathname.startsWith(item.path + "/")
             )?.label || (
-              <span className="topbar-greeting">
-                Hi, {user?.username || "there"}
-                {role === "student" && (
-                  <img
-                    src={HiBaseet}
-                    alt="Hi Baseet"
-                    className="topbar-hi-icon"
-                  />
-                )}
-              </span>
-            )}
+                <span className="topbar-greeting">
+                  Hi, {user?.username || "there"}
+                  {role === "student" && (
+                    <img
+                      src={HiBaseet}
+                      alt="Hi Baseet"
+                      className="topbar-hi-icon"
+                    />
+                  )}
+                </span>
+              )}
           </h2>
 
           <div className="topbar-user">

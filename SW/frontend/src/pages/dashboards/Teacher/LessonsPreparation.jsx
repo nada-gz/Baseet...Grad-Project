@@ -4,16 +4,29 @@ import { Trash2, FileText } from "lucide-react";
 
 export default function LessonPreparation() {
   const [levels, setLevels] = useState([]);
+  const [levelDescriptions, setLevelDescriptions] = useState({}); // { level_number: "desc" }
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState("dashboard"); // "dashboard" | "detail"
+  const [selectedLevel, setSelectedLevel] = useState(null);
 
-  // ---------------- FETCH CONTENT ----------------
   // ---------------- FETCH CONTENT ----------------
   const fetchLessons = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/teacher/lessons");
-      const grouped = groupByLevels(res.data || []);
+      const [lessonsRes, levelsRes] = await Promise.all([
+        api.get("/teacher/lessons"),
+        api.get("/teacher/levels")
+      ]);
+
+      const grouped = groupByLevels(lessonsRes.data || []);
       setLevels(grouped);
+
+      const descMap = {};
+      (levelsRes.data || []).forEach(l => {
+        descMap[l.level_number] = l.description || "";
+      });
+      setLevelDescriptions(descMap);
+
     } catch (err) {
       console.error("Fetch content lessons error:", err);
     } finally {
@@ -69,13 +82,19 @@ export default function LessonPreparation() {
         : 1;
 
     setLevels([...levels, { level_number: next, milestones: [] }]);
+    setLevelDescriptions(prev => ({ ...prev, [next]: "" }));
   };
 
-  const deleteLevel = async (num) => {
+  const deleteLevel = async (num, e) => {
+    e.stopPropagation(); // prevent card click
     if (window.confirm("Are you sure you want to delete this level and all its contents? This cannot be undone.")) {
       try {
         await api.delete(`/teacher/levels/${num}`);
         setLevels(levels.filter((l) => l.level_number !== num));
+        // Remove description local
+        const newDescs = { ...levelDescriptions };
+        delete newDescs[num];
+        setLevelDescriptions(newDescs);
       } catch (err) {
         console.error("Delete Level Error:", err);
         // Fallback for unsaved levels (local only)
@@ -302,6 +321,15 @@ export default function LessonPreparation() {
   // ---------------- SAVE ----------------
   const saveLevels = async () => {
     try {
+      // 1. Save Level Metadata
+      for (const level of levels) {
+        await api.post("/teacher/levels", {
+          level_number: level.level_number,
+          description: levelDescriptions[level.level_number] || ""
+        });
+      }
+
+      // 2. Save Lessons
       for (const level of levels) {
         for (const milestone of level.milestones) {
           for (const lesson of milestone.lessons) {
@@ -356,120 +384,185 @@ export default function LessonPreparation() {
 
   if (loading) return <p>Loading...</p>;
 
-  return (
-    <div className="lesson-prep-container">
-      <button className="btn btn-primary mb-6" onClick={addLevel}>
-        Add Level
-      </button>
+  // --- DASHBOARD VIEW ---
+  if (view === "dashboard") {
+    return (
+      <div className="lesson-prep-container level-prep-container">
+        <button className="btn btn-primary mb-6" onClick={addLevel}>
+          Add Level
+        </button>
 
-      {levels.map((level) => (
-        <div key={level.level_number} className="level-card">
-          <div className="level-header">
-            <h2>Level {level.level_number}</h2>
-            <button
-              className="delete-btn"
-              onClick={() => deleteLevel(level.level_number)}
+        <div className="levels-grid">
+          {levels.map((level) => (
+            <div
+              key={level.level_number}
+              className="level-card-dashboard"
+              onClick={() => {
+                setSelectedLevel(level);
+                setView("detail");
+              }}
             >
-              <Trash2 size={22} />
-            </button>
-          </div>
-
-          <button
-            className="btn btn-outline mb-4"
-            onClick={() => addMilestone(level.level_number)}
-          >
-            Add Milestone
-          </button>
-
-          {level.milestones.map((m) => (
-            <div key={m.milestone_number} className="milestone-card">
-              <div className="milestone-header">
-                <h3>Milestone {m.milestone_number}</h3>
+              <div className="level-card-header">
+                <h2 className="level-card-title">Level {level.level_number}</h2>
                 <button
-                  className="delete-btn"
-                  onClick={() => deleteMilestone(level.level_number, m.milestone_number)}
+                  className="level-delete-btn"
+                  title="Delete Level"
+                  onClick={(e) => deleteLevel(level.level_number, e)}
                 >
-                  <Trash2 size={18} />
+                  <Trash2 size={20} />
                 </button>
               </div>
 
-              <button
-                className="btn btn-outline mb-4 add-lesson"
-                onClick={() => addLesson(level.level_number, m.milestone_number)}
-              >
-                Add Lesson
-              </button>
+              <div className="mb-2" style={{ flexGrow: 1 }}>
+                <label className="level-card-desc-label">Description</label>
+                <textarea
+                  className="level-card-textarea"
+                  rows={4}
+                  placeholder="Enter a brief description for this level..."
+                  value={levelDescriptions[level.level_number] || ""}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) =>
+                    setLevelDescriptions({
+                      ...levelDescriptions,
+                      [level.level_number]: e.target.value
+                    })
+                  }
+                />
+              </div>
 
-              {m.lessons.map((l) => (
-                <div key={l.lesson_number} className="lesson-card">
-                  <div className="lesson-header">
-                    <span>
-                      {level.level_number}.{m.milestone_number}.{l.lesson_number}
-                    </span>
-
-                    <input
-                      type="text"
-                      value={l.title}
-                      placeholder="Lesson Title"
-                      onChange={(e) =>
-                        handleLessonTitleChange(
-                          level.level_number,
-                          m.milestone_number,
-                          l.lesson_number,
-                          e.target.value
-                        )
-                      }
-                    />
-                    <button
-                      className="delete-btn"
-                      onClick={() =>
-                        deleteLesson(level.level_number, m.milestone_number, l.lesson_number, l.id)
-                      }
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-
-                  <div className="lesson-files">
-                    {l.files.map((f, idx) => (
-                      <div key={idx} className="file-item">
-                        <span><FileText size={16} /> {f.name}</span>
-                        <button
-                          className="delete-btn-sm"
-                          style={{ marginLeft: "10px", background: "none", border: "none", cursor: "pointer", color: "red" }}
-                          onClick={() =>
-                            deleteFile(
-                              level.level_number,
-                              m.milestone_number,
-                              l.lesson_number,
-                              idx,
-                              f.id,
-                              l.id
-                            )
-                          }
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
-
-                    <input
-                      type="file"
-                      multiple
-                      onChange={(e) =>
-                        handleFileUpload(level.level_number, m.milestone_number, l.lesson_number, e)
-                      }
-                    />
-                  </div>
-                </div>
-              ))}
+              <div className="level-card-footer">
+                <span>{level.milestones.length} Milestones</span>
+              </div>
             </div>
           ))}
         </div>
-      ))}
 
-      <button className="btn btn-save mt-6" onClick={saveLevels}>
-        Save All
+        <button className="btn btn-save mt-6" onClick={saveLevels}>
+          Save All
+        </button>
+      </div>
+    );
+  }
+
+  // --- DETAIL VIEW ---
+  // Ensure we are working with the latest state of the selected level
+  const level = levels.find(l => l.level_number === selectedLevel.level_number);
+
+  if (!level) return <p>Level not found</p>;
+
+  return (
+    <div className="lesson-prep-container">
+      <div className="flex items-center mb-6">
+        <div class="back-box">
+          <button
+            className="mr-4 back"
+            onClick={() => {
+              setView("dashboard");
+              setSelectedLevel(null);
+            }}
+          >
+            &larr; Back to Levels
+          </button>
+        </div>
+        <h1 className="text-2xl level-card-title">Level {level.level_number}: {levelDescriptions[level.level_number]}</h1>
+      </div>
+
+      <div className="level-detail-view">
+        <button
+          className="btn btn-outline mb-4 add-milestone"
+          onClick={() => addMilestone(level.level_number)}
+        >
+          Add Milestone
+        </button>
+
+        {level.milestones.map((m) => (
+          <div key={m.milestone_number} className="milestone-card">
+            <div className="milestone-header">
+              <h3>Milestone {m.milestone_number}</h3>
+              <button
+                className="delete-btn"
+                onClick={() => deleteMilestone(level.level_number, m.milestone_number)}
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+
+            <button
+              className="btn btn-outline mb-4 add-lesson"
+              onClick={() => addLesson(level.level_number, m.milestone_number)}
+            >
+              Add Lesson
+            </button>
+
+            {m.lessons.map((l) => (
+              <div key={l.lesson_number} className="lesson-card">
+                <div className="lesson-header">
+                  <span>
+                    {level.level_number}.{m.milestone_number}.{l.lesson_number}
+                  </span>
+
+                  <input
+                    type="text"
+                    value={l.title}
+                    placeholder="Lesson Title"
+                    onChange={(e) =>
+                      handleLessonTitleChange(
+                        level.level_number,
+                        m.milestone_number,
+                        l.lesson_number,
+                        e.target.value
+                      )
+                    }
+                  />
+                  <button
+                    className="delete-btn"
+                    onClick={() =>
+                      deleteLesson(level.level_number, m.milestone_number, l.lesson_number, l.id)
+                    }
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+
+                <div className="lesson-files">
+                  {l.files.map((f, idx) => (
+                    <div key={idx} className="file-item">
+                      <span><FileText size={16} /> {f.name}</span>
+                      <button
+                        className="delete-btn-sm"
+                        style={{ marginLeft: "10px", background: "none", border: "none", cursor: "pointer", color: "red" }}
+                        onClick={() =>
+                          deleteFile(
+                            level.level_number,
+                            m.milestone_number,
+                            l.lesson_number,
+                            idx,
+                            f.id,
+                            l.id
+                          )
+                        }
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+
+                  <input
+                    type="file"
+                    multiple
+                    onChange={(e) =>
+                      handleFileUpload(level.level_number, m.milestone_number, l.lesson_number, e)
+                    }
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <button className="btn detail-save mt-6" onClick={saveLevels}>
+        Save
       </button>
     </div>
   );
