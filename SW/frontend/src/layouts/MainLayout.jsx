@@ -33,7 +33,7 @@ export default function MainLayout() {
           },
           {
             label: "Content",
-            path: "/dashboard/teacher/content",
+            path: "/dashboard/teacher/lessons-prep",
             icon: <BookOpen size={20} />
           }
         ];

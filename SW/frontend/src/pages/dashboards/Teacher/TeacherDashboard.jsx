@@ -12,6 +12,24 @@ export default function TeacherDashboard() {
     <div className="p-6">
 
       <div className="teacher-cards-row">
+
+        {/* Student Monitoring Card */}
+        <div className="teacher-card">
+          <div className="card-icon">
+            <ChartBar className="h-12 w-12 text-primary" />
+          </div>
+          <div className="card-title text-primary">Monitor Students</div>
+          <div className="card-description">
+            Track student progress, review performance, and provide feedback to help them improve.
+          </div>
+          <div className="card-buttons">
+            <Link to="/dashboard/teacher/students" className="btn btn-primary">
+              Go to Student Monitoring
+            </Link>
+          </div>
+        </div>
+
+        
         {/* Class Management Card */}
         <div className="teacher-card">
           <div className="card-icon">
@@ -38,27 +56,13 @@ export default function TeacherDashboard() {
             Create and upload lessons, learning materials, and exercises for your students to access.
           </div>
           <div className="card-buttons">
-            <Link to="/dashboard/teacher/content" className="btn btn-primary">
+            <Link to="/dashboard/teacher/lessons-prep" className="btn btn-primary">
               Go to Lesson Preparation
             </Link>
           </div>
         </div>
 
-        {/* Student Monitoring Card */}
-        <div className="teacher-card">
-          <div className="card-icon">
-            <ChartBar className="h-12 w-12 text-primary" />
-          </div>
-          <div className="card-title text-primary">Monitor Students</div>
-          <div className="card-description">
-            Track student progress, review performance, and provide feedback to help them improve.
-          </div>
-          <div className="card-buttons">
-            <Link to="/dashboard/teacher/students" className="btn btn-primary">
-              Go to Student Monitoring
-            </Link>
-          </div>
-        </div>
+        
       </div>
     </div>
   );
