@@ -10,11 +10,11 @@ import Register from "./pages/auth/Register";
 import NotAllowed from "./pages/auth/NotAllowed";
 
 // Pages - Protected - Dashboards
-
 import MyAccount from "./pages/account/MyAccount";
 import StudentProfile from "./pages/dashboards/Common/StudentProfile";
 
 import TeacherDashboard from "./pages/dashboards/Teacher/TeacherDashboard";
+import LessonPreparation from "./pages/dashboards/Teacher/LessonsPreparation";
 
 import StudentDashboard from "./pages/dashboards/Student/StudentDashboard";
 import LessonPlayer from "./pages/dashboards/Student/LessonPlayer";
@@ -26,12 +26,7 @@ import StudentQuizzes from "./pages/dashboards/Student/StudentQuizzes";
 import StudentAnalytics from "./pages/dashboards/Student/StudentAnalytics";
 
 import ParentDashboard from "./pages/dashboards/ParentDashboard";
-
 import SupervisorDashboard from "./pages/dashboards/SupervisorDashboard";
-
-
-
-
 import AllStudents from "./pages/dashboards/Common/AllStudents";
 
 const router = createBrowserRouter([
@@ -48,45 +43,32 @@ const router = createBrowserRouter([
         element: <MainLayout />,
         children: [
           { path: "/dashboard/teacher", element: <TeacherDashboard /> },
+
+          // New route: Lesson Preparation
+          { path: "/dashboard/teacher/lessons-prep", element: <LessonPreparation /> },
         ],
       },
     ],
   },
 
-
   // Protected routes - Student
-{
-  element: <ProtectedRoute allowedRoles={["student"]} />,
-  children: [
-    {
-      element: <MainLayout />,
-      children: [
-        { path: "/dashboard/student", element: <StudentDashboard /> },
-
-        // Lessons list
-        { path: "/dashboard/student/lessons", element: <StudentLessons /> },
-
-        // Single lesson chat
-        { path: "/dashboard/student/lesson/:lessonId", element: <LessonChat /> },
-
-        // Materials
-        { path: "/dashboard/student/materials", element: <StudentMaterials /> },
-
-        // Assignments
-        { path: "/dashboard/student/assignments", element: <StudentAssignments /> },
-
-        // Quizzes
-        { path: "/dashboard/student/quizzes", element: <StudentQuizzes /> },
-
-        // Analytics
-        { path: "/dashboard/student/analytics", element: <StudentAnalytics /> },
-
-        // Profile
-      ],
-    },
-  ],
-},
-
+  {
+    element: <ProtectedRoute allowedRoles={["student"]} />,
+    children: [
+      {
+        element: <MainLayout />,
+        children: [
+          { path: "/dashboard/student", element: <StudentDashboard /> },
+          { path: "/dashboard/student/lessons", element: <StudentLessons /> },
+          { path: "/dashboard/student/lesson/:lessonId", element: <LessonChat /> },
+          { path: "/dashboard/student/materials", element: <StudentMaterials /> },
+          { path: "/dashboard/student/assignments", element: <StudentAssignments /> },
+          { path: "/dashboard/student/quizzes", element: <StudentQuizzes /> },
+          { path: "/dashboard/student/analytics", element: <StudentAnalytics /> },
+        ],
+      },
+    ],
+  },
 
   // Protected routes - Parent
   {
@@ -94,9 +76,7 @@ const router = createBrowserRouter([
     children: [
       {
         element: <MainLayout />,
-        children: [
-          { path: "/dashboard/parent", element: <ParentDashboard /> },
-        ],
+        children: [{ path: "/dashboard/parent", element: <ParentDashboard /> }],
       },
     ],
   },
@@ -130,15 +110,11 @@ const router = createBrowserRouter([
       {
         element: <MainLayout />,
         children: [
-          {
-            path: "/students/:studentId/profile",
-            element: <StudentProfile />,
-          },
+          { path: "/students/:studentId/profile", element: <StudentProfile /> },
         ],
       },
     ],
   },
-  
 
   // Protected routes - Account (student / parent / teacher / supervisor)
   {
@@ -146,14 +122,10 @@ const router = createBrowserRouter([
     children: [
       {
         element: <MainLayout />,
-        children: [
-          { path: "/account", element: <MyAccount /> },
-        ],
+        children: [{ path: "/account", element: <MyAccount /> }],
       },
     ],
   },
-  
-
 
   // Default redirect
   { path: "/", element: <Navigate to="/login" replace /> },

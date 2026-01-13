@@ -13,6 +13,8 @@ from models.feedback import Feedback
 from models.quiz import Quiz
 from models.ask_baseet import AskBaseet
 from models.log import Log
+from models.content_lesson import ContentLesson
+from models.content_material import ContentMaterial
 from utils.auth import hash_password
 from datetime import datetime
 
