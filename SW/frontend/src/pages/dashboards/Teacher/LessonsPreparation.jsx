@@ -18,9 +18,29 @@ export default function LessonPreparation() {
         api.get("/teacher/levels")
       ]);
 
-      const grouped = groupByLevels(lessonsRes.data || []);
-      setLevels(grouped);
+      // 1. Group lessons by level
+      const groupedLessons = groupByLevels(lessonsRes.data || []);
 
+      // 2. Identify all unique level numbers from metadata + lessons
+      const allLevelNumbers = new Set([
+        ...(levelsRes.data || []).map(l => l.level_number),
+        ...groupedLessons.map(l => l.level_number)
+      ]);
+
+      // 3. Construct the merged levels array
+      const mergedLevels = Array.from(allLevelNumbers)
+        .sort((a, b) => a - b)
+        .map(num => {
+          // Find existing group or create empty one
+          const existingGroup = groupedLessons.find(g => g.level_number === num);
+          if (existingGroup) return existingGroup;
+
+          return { level_number: num, milestones: [] };
+        });
+
+      setLevels(mergedLevels);
+
+      // 4. Map descriptions
       const descMap = {};
       (levelsRes.data || []).forEach(l => {
         descMap[l.level_number] = l.description || "";
