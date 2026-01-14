@@ -6,7 +6,9 @@ from db.database import get_session
 from models.content_lesson import ContentLesson
 from models.content_material import ContentMaterial
 from models.content_level import ContentLevel
-from schemas.content_schema import ContentLessonRead, ContentLevelRead, ContentLevelCreate
+from models.student import Student
+from models.user import User
+from schemas.content_schema import ContentLessonRead, ContentLevelRead, ContentLevelCreate, StudentReadWithUser
 
 router = APIRouter(prefix="/teacher", tags=["Teacher"])
 
@@ -47,6 +49,29 @@ def create_content_level(
     session.commit()
     session.refresh(new_level)
     return new_level
+
+
+# -----------------------
+# Get All Students (with Level)
+# -----------------------
+@router.get("/students", response_model=list[StudentReadWithUser])
+def get_all_students(session: Session = Depends(get_session)):
+    # Join Student and User to get name/email
+    statement = select(Student, User).join(User)
+    results = session.exec(statement).all()
+    
+    students_list = []
+    for student, user in results:
+        students_list.append(StudentReadWithUser(
+            id=student.id,
+            user_id=student.user_id,
+            level_number=student.level_number,
+            username=user.username,
+            email=user.email,
+            age=student.age
+        ))
+    return students_list
+
 
 # -----------------------
 # Create content lesson

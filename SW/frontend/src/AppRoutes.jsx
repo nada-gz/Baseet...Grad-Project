@@ -15,6 +15,7 @@ import StudentProfile from "./pages/dashboards/Common/StudentProfile";
 
 import TeacherDashboard from "./pages/dashboards/Teacher/TeacherDashboard";
 import LessonPreparation from "./pages/dashboards/Teacher/LessonsPreparation";
+import StudentMonitoring from "./pages/dashboards/Teacher/StudentMonitoring";
 
 import StudentDashboard from "./pages/dashboards/Student/StudentDashboard";
 import LessonPlayer from "./pages/dashboards/Student/LessonPlayer";
@@ -46,6 +47,7 @@ const router = createBrowserRouter([
 
           // New route: Lesson Preparation
           { path: "/dashboard/teacher/lessons-prep", element: <LessonPreparation /> },
+          { path: "/dashboard/teacher/students", element: <StudentMonitoring /> },
         ],
       },
     ],

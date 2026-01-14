@@ -26,6 +26,15 @@ class ContentMaterialRead(BaseModel):
     class Config:
         orm_mode = True
 
+class StudentReadWithUser(BaseModel):
+    id: int
+    user_id: int
+    level_number: Optional[int]
+    username: str
+    email: str
+    age: Optional[int]
+
+
 
 class ContentLessonRead(BaseModel):
     id: int
