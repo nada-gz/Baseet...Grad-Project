@@ -1,10 +1,11 @@
-
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../../services/api";
-import { Trash2, User as UserIcon } from "lucide-react";
+import { Trash2, User as UserIcon, BookOpen, Activity } from "lucide-react";
 import "../../../styles/index.css"; // Reuse existing styles
 
 export default function StudentMonitoring() {
+    const navigate = useNavigate();
     const [levels, setLevels] = useState([]); // Array of level objects with descriptions
     const [allStudents, setAllStudents] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -135,15 +136,40 @@ export default function StudentMonitoring() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {levelStudents.map(student => (
-                            <div key={student.id} className="student-card cursor-pointer hover:shadow-lg transition">
-                                <div className="card-icon">
+                            <div key={student.id} className="student-card cursor-pointer hover:shadow-lg transition bg-white p-6 rounded-lg shadow">
+                                <div className="flex justify-center mb-4 text-gray-400">
                                     <UserIcon size={40} />
                                 </div>
-                                <h3 className="card-title">{student.username}</h3>
-                                <p className="card-description">{student.email}</p>
-                                {/* Future: Add buttons for monitoring actions */}
-                                <div className="mt-4">
-                                    <span className="text-xs font-semibold bg-gray-200 px-2 py-1 rounded text-gray-700">
+                                <h3 className="text-xl font-bold text-center mb-1">{student.username}</h3>
+                                <p className="text-sm text-gray-500 text-center mb-4">{student.email}</p>
+
+                                <div className="flex justify-center gap-12 mt-12">
+                                    <button
+                                        className="btn btn-sm btn-outline flex items-center gap-2 hover:bg-blue-50 transition-colors"
+                                        style={{ fontSize: '0.9rem', padding: '0.7rem 1.5rem', borderColor: '#e2e8f0' }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/dashboard/teacher/students/${student.id}/progress`);
+                                        }}
+                                    >
+                                        <BookOpen size={18} className="text-blue-500" />
+                                        <span className="font-medium text-gray-700">Academic</span>
+                                    </button>
+                                    <button
+                                        className="btn btn-sm btn-primary flex items-center gap-2 hover:opacity-90 transition-opacity shadow-sm"
+                                        style={{ fontSize: '0.9rem', padding: '0.7rem 1.5rem' }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/dashboard/teacher/students/${student.id}/live`);
+                                        }}
+                                    >
+                                        <Activity size={18} />
+                                        <span className="font-medium">Live</span>
+                                    </button>
+                                </div>
+
+                                <div className="mt-4 text-center">
+                                    <span className="text-xs font-semibold bg-gray-100 px-2 py-1 rounded text-gray-600">
                                         Age: {student.age || "N/A"}
                                     </span>
                                 </div>
@@ -155,3 +181,4 @@ export default function StudentMonitoring() {
         </div>
     );
 }
+
