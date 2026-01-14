@@ -15,6 +15,7 @@ class Student(SQLModel, table=True):
     sensitivities: Optional[str] = None  # or JSON if using PostgreSQL (later)
     learning_style: Optional[str] = None
     baseline_engagement: Optional[float] = None
+    level_number: Optional[int] = None
 
     # Relationship to User
     user: "User" = Relationship(back_populates="student")
