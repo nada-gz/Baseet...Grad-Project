@@ -3,49 +3,49 @@ import api from "../../../services/api";
 import { Trash2, FileText } from "lucide-react";
 
 export default function LessonPreparation() {
-  const [levels, setLevels] = useState([]);
-  const [levelDescriptions, setLevelDescriptions] = useState({}); // { level_number: "desc" }
+  const [courses, setCourses] = useState([]);
+  const [courseDescriptions, setCourseDescriptions] = useState({}); // { course_number: "desc" }
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("dashboard"); // "dashboard" | "detail"
-  const [selectedLevel, setSelectedLevel] = useState(null);
+  const [selectedCourse, setSelectedCourse] = useState(null);
 
   // ---------------- FETCH CONTENT ----------------
   const fetchLessons = async () => {
     setLoading(true);
     try {
-      const [lessonsRes, levelsRes] = await Promise.all([
+      const [lessonsRes, coursesRes] = await Promise.all([
         api.get("/teacher/lessons"),
-        api.get("/teacher/levels")
+        api.get("/teacher/courses")
       ]);
 
-      // 1. Group lessons by level
-      const groupedLessons = groupByLevels(lessonsRes.data || []);
+      // 1. Group lessons by course
+      const groupedLessons = groupByCourses(lessonsRes.data || []);
 
-      // 2. Identify all unique level numbers from metadata + lessons
-      const allLevelNumbers = new Set([
-        ...(levelsRes.data || []).map(l => l.level_number),
-        ...groupedLessons.map(l => l.level_number)
+      // 2. Identify all unique course numbers from metadata + lessons
+      const allCourseNumbers = new Set([
+        ...(coursesRes.data || []).map(c => c.course_number),
+        ...groupedLessons.map(c => c.course_number)
       ]);
 
-      // 3. Construct the merged levels array
-      const mergedLevels = Array.from(allLevelNumbers)
+      // 3. Construct the merged courses array
+      const mergedCourses = Array.from(allCourseNumbers)
         .sort((a, b) => a - b)
         .map(num => {
           // Find existing group or create empty one
-          const existingGroup = groupedLessons.find(g => g.level_number === num);
+          const existingGroup = groupedLessons.find(g => g.course_number === num);
           if (existingGroup) return existingGroup;
 
-          return { level_number: num, milestones: [] };
+          return { course_number: num, milestones: [] };
         });
 
-      setLevels(mergedLevels);
+      setCourses(mergedCourses);
 
       // 4. Map descriptions
       const descMap = {};
-      (levelsRes.data || []).forEach(l => {
-        descMap[l.level_number] = l.description || "";
+      (coursesRes.data || []).forEach(c => {
+        descMap[c.course_number] = c.description || "";
       });
-      setLevelDescriptions(descMap);
+      setCourseDescriptions(descMap);
 
     } catch (err) {
       console.error("Fetch content lessons error:", err);
@@ -58,23 +58,23 @@ export default function LessonPreparation() {
     fetchLessons();
   }, []);
 
-  const groupByLevels = (lessons) => {
-    const levelsMap = {};
+  const groupByCourses = (lessons) => {
+    const coursesMap = {};
 
     lessons.forEach((lesson) => {
-      const levelNum = lesson.level_number;
+      const courseNum = lesson.course_number;
 
-      if (!levelsMap[levelNum]) {
-        levelsMap[levelNum] = { level_number: levelNum, milestones: [] };
+      if (!coursesMap[courseNum]) {
+        coursesMap[courseNum] = { course_number: courseNum, milestones: [] };
       }
 
-      let milestone = levelsMap[levelNum].milestones.find(
+      let milestone = coursesMap[courseNum].milestones.find(
         (m) => m.milestone_number === lesson.milestone_number
       );
 
       if (!milestone) {
         milestone = { milestone_number: lesson.milestone_number, lessons: [] };
-        levelsMap[levelNum].milestones.push(milestone);
+        coursesMap[courseNum].milestones.push(milestone);
       }
 
       milestone.lessons.push({
@@ -91,65 +91,65 @@ export default function LessonPreparation() {
       });
     });
 
-    return Object.values(levelsMap);
+    return Object.values(coursesMap);
   };
 
-  // ---------------- LEVELS ----------------
-  const addLevel = () => {
+  // ---------------- COURSES ----------------
+  const addCourse = () => {
     const next =
-      levels.length > 0
-        ? Math.max(...levels.map((l) => l.level_number)) + 1
+      courses.length > 0
+        ? Math.max(...courses.map((c) => c.course_number)) + 1
         : 1;
 
-    setLevels([...levels, { level_number: next, milestones: [] }]);
-    setLevelDescriptions(prev => ({ ...prev, [next]: "" }));
+    setCourses([...courses, { course_number: next, milestones: [] }]);
+    setCourseDescriptions(prev => ({ ...prev, [next]: "" }));
   };
 
-  const deleteLevel = async (num, e) => {
+  const deleteCourse = async (num, e) => {
     e.stopPropagation(); // prevent card click
-    if (window.confirm("Are you sure you want to delete this level and all its contents? This cannot be undone.")) {
+    if (window.confirm("Are you sure you want to delete this course and all its contents? This cannot be undone.")) {
       try {
-        await api.delete(`/teacher/levels/${num}`);
-        setLevels(levels.filter((l) => l.level_number !== num));
+        await api.delete(`/teacher/courses/${num}`);
+        setCourses(courses.filter((c) => c.course_number !== num));
         // Remove description local
-        const newDescs = { ...levelDescriptions };
+        const newDescs = { ...courseDescriptions };
         delete newDescs[num];
-        setLevelDescriptions(newDescs);
+        setCourseDescriptions(newDescs);
       } catch (err) {
-        console.error("Delete Level Error:", err);
-        // Fallback for unsaved levels (local only)
-        setLevels(levels.filter((l) => l.level_number !== num));
+        console.error("Delete Course Error:", err);
+        // Fallback for unsaved courses (local only)
+        setCourses(courses.filter((c) => c.course_number !== num));
       }
     }
   };
 
   // ---------------- MILESTONES ----------------
-  const addMilestone = (levelNumber) => {
-    setLevels((prev) =>
-      prev.map((l) =>
-        l.level_number === levelNumber
+  const addMilestone = (courseNumber) => {
+    setCourses((prev) =>
+      prev.map((c) =>
+        c.course_number === courseNumber
           ? {
-            ...l,
+            ...c,
             milestones: [
-              ...l.milestones,
+              ...c.milestones,
               {
                 milestone_number:
-                  l.milestones.length > 0
-                    ? Math.max(...l.milestones.map((m) => m.milestone_number)) + 1
+                  c.milestones.length > 0
+                    ? Math.max(...c.milestones.map((m) => m.milestone_number)) + 1
                     : 1,
                 lessons: [],
               },
             ],
           }
-          : l
+          : c
       )
     );
   };
 
-  const deleteMilestone = async (levelNumber, milestoneNumber) => {
+  const deleteMilestone = async (courseNumber, milestoneNumber) => {
     if (window.confirm("Delete this milestone and its lessons?")) {
       try {
-        await api.delete(`/teacher/levels/${levelNumber}/milestones/${milestoneNumber}`);
+        await api.delete(`/teacher/courses/${courseNumber}/milestones/${milestoneNumber}`);
         updateMilestoneState();
       } catch (err) {
         console.error("Delete Milestone Error:", err);
@@ -158,27 +158,27 @@ export default function LessonPreparation() {
     }
 
     function updateMilestoneState() {
-      setLevels((prev) =>
-        prev.map((l) =>
-          l.level_number === levelNumber
+      setCourses((prev) =>
+        prev.map((c) =>
+          c.course_number === courseNumber
             ? {
-              ...l,
-              milestones: l.milestones.filter((m) => m.milestone_number !== milestoneNumber),
+              ...c,
+              milestones: c.milestones.filter((m) => m.milestone_number !== milestoneNumber),
             }
-            : l
+            : c
         )
       );
     }
   };
 
   // ---------------- LESSONS ----------------
-  const addLesson = (levelNumber, milestoneNumber) => {
-    setLevels((prev) =>
-      prev.map((l) =>
-        l.level_number === levelNumber
+  const addLesson = (courseNumber, milestoneNumber) => {
+    setCourses((prev) =>
+      prev.map((c) =>
+        c.course_number === courseNumber
           ? {
-            ...l,
-            milestones: l.milestones.map((m) =>
+            ...c,
+            milestones: c.milestones.map((m) =>
               m.milestone_number === milestoneNumber
                 ? {
                   ...m,
@@ -198,12 +198,12 @@ export default function LessonPreparation() {
                 : m
             ),
           }
-          : l
+          : c
       )
     );
   };
 
-  const deleteLesson = async (levelNumber, milestoneNumber, lessonNumber, lessonId) => {
+  const deleteLesson = async (courseNumber, milestoneNumber, lessonNumber, lessonId) => {
     if (window.confirm("Delete this lesson?")) {
       try {
         if (lessonId) {
@@ -217,12 +217,12 @@ export default function LessonPreparation() {
     }
 
     function updateLessonState() {
-      setLevels((prev) =>
-        prev.map((l) =>
-          l.level_number === levelNumber
+      setCourses((prev) =>
+        prev.map((c) =>
+          c.course_number === courseNumber
             ? {
-              ...l,
-              milestones: l.milestones.map((m) =>
+              ...c,
+              milestones: c.milestones.map((m) =>
                 m.milestone_number === milestoneNumber
                   ? {
                     ...m,
@@ -231,19 +231,19 @@ export default function LessonPreparation() {
                   : m
               ),
             }
-            : l
+            : c
         )
       );
     }
   };
 
-  const handleLessonTitleChange = (levelNumber, milestoneNumber, lessonNumber, value) => {
-    setLevels((prev) =>
-      prev.map((l) =>
-        l.level_number === levelNumber
+  const handleLessonTitleChange = (courseNumber, milestoneNumber, lessonNumber, value) => {
+    setCourses((prev) =>
+      prev.map((c) =>
+        c.course_number === courseNumber
           ? {
-            ...l,
-            milestones: l.milestones.map((m) =>
+            ...c,
+            milestones: c.milestones.map((m) =>
               m.milestone_number === milestoneNumber
                 ? {
                   ...m,
@@ -256,12 +256,12 @@ export default function LessonPreparation() {
                 : m
             ),
           }
-          : l
+          : c
       )
     );
   };
 
-  const deleteFile = async (levelNumber, milestoneNumber, lessonNumber, fileIndex, fileId, lessonId) => {
+  const deleteFile = async (courseNumber, milestoneNumber, lessonNumber, fileIndex, fileId, lessonId) => {
     if (fileId && lessonId) {
       if (!window.confirm("Delete this file permanently?")) return;
       try {
@@ -275,12 +275,12 @@ export default function LessonPreparation() {
     }
 
     function updateFileState() {
-      setLevels((prev) =>
-        prev.map((l) =>
-          l.level_number === levelNumber
+      setCourses((prev) =>
+        prev.map((c) =>
+          c.course_number === courseNumber
             ? {
-              ...l,
-              milestones: l.milestones.map((m) =>
+              ...c,
+              milestones: c.milestones.map((m) =>
                 m.milestone_number === milestoneNumber
                   ? {
                     ...m,
@@ -296,21 +296,21 @@ export default function LessonPreparation() {
                   : m
               ),
             }
-            : l
+            : c
         )
       );
     }
   };
 
-  const handleFileUpload = (levelNumber, milestoneNumber, lessonNumber, event) => {
+  const handleFileUpload = (courseNumber, milestoneNumber, lessonNumber, event) => {
     const files = Array.from(event.target.files);
 
-    setLevels((prev) =>
-      prev.map((l) =>
-        l.level_number === levelNumber
+    setCourses((prev) =>
+      prev.map((c) =>
+        c.course_number === courseNumber
           ? {
-            ...l,
-            milestones: l.milestones.map((m) =>
+            ...c,
+            milestones: c.milestones.map((m) =>
               m.milestone_number === milestoneNumber
                 ? {
                   ...m,
@@ -333,37 +333,37 @@ export default function LessonPreparation() {
                 : m
             ),
           }
-          : l
+          : c
       )
     );
   };
 
   // ---------------- SAVE ----------------
-  const saveLevels = async () => {
+  const saveCourses = async () => {
     try {
-      // 1. Save Level Metadata
-      for (const level of levels) {
-        await api.post("/teacher/levels", {
-          level_number: level.level_number,
-          description: levelDescriptions[level.level_number] || ""
+      // 1. Save Course Metadata
+      for (const course of courses) {
+        await api.post("/teacher/courses", {
+          course_number: course.course_number,
+          description: courseDescriptions[course.course_number] || ""
         });
       }
 
       // 2. Save Lessons
-      for (const level of levels) {
-        for (const milestone of level.milestones) {
+      for (const course of courses) {
+        for (const milestone of course.milestones) {
           for (const lesson of milestone.lessons) {
             if (!lesson.title.trim()) continue;
 
             const formData = new FormData();
-            formData.append("level_number", level.level_number);
+            formData.append("course_number", course.course_number);
             formData.append("milestone_number", milestone.milestone_number);
             formData.append("lesson_number", lesson.lesson_number);
             formData.append("title", lesson.title);
             formData.append("description", lesson.description || "");
 
             console.log("Saving lesson:", {
-              level_number: level.level_number,
+              course_number: course.course_number,
               milestone_number: milestone.milestone_number,
               lesson_number: lesson.lesson_number,
               title: lesson.title,
@@ -408,26 +408,26 @@ export default function LessonPreparation() {
   if (view === "dashboard") {
     return (
       <div className="lesson-prep-container level-prep-container">
-        <button className="btn btn-primary mb-6" onClick={addLevel}>
-          Add Level
+        <button className="btn btn-primary mb-6" onClick={addCourse}>
+          Add Course
         </button>
 
         <div className="levels-grid">
-          {levels.map((level) => (
+          {courses.map((course) => (
             <div
-              key={level.level_number}
+              key={course.course_number}
               className="level-card-dashboard"
               onClick={() => {
-                setSelectedLevel(level);
+                setSelectedCourse(course);
                 setView("detail");
               }}
             >
               <div className="level-card-header">
-                <h2 className="level-card-title">Level {level.level_number}</h2>
+                <h2 className="level-card-title">Course {course.course_number}</h2>
                 <button
                   className="level-delete-btn"
-                  title="Delete Level"
-                  onClick={(e) => deleteLevel(level.level_number, e)}
+                  title="Delete Course"
+                  onClick={(e) => deleteCourse(course.course_number, e)}
                 >
                   <Trash2 size={20} />
                 </button>
@@ -438,26 +438,26 @@ export default function LessonPreparation() {
                 <textarea
                   className="level-card-textarea"
                   rows={4}
-                  placeholder="Enter a brief description for this level..."
-                  value={levelDescriptions[level.level_number] || ""}
+                  placeholder="Enter a brief description for this course..."
+                  value={courseDescriptions[course.course_number] || ""}
                   onClick={(e) => e.stopPropagation()}
                   onChange={(e) =>
-                    setLevelDescriptions({
-                      ...levelDescriptions,
-                      [level.level_number]: e.target.value
+                    setCourseDescriptions({
+                      ...courseDescriptions,
+                      [course.course_number]: e.target.value
                     })
                   }
                 />
               </div>
 
               <div className="level-card-footer">
-                <span>{level.milestones.length} Milestones</span>
+                <span>{course.milestones.length} Milestones</span>
               </div>
             </div>
           ))}
         </div>
 
-        <button className="btn btn-save mt-6" onClick={saveLevels}>
+        <button className="btn btn-save mt-6" onClick={saveCourses}>
           Save All
         </button>
       </div>
@@ -465,10 +465,10 @@ export default function LessonPreparation() {
   }
 
   // --- DETAIL VIEW ---
-  // Ensure we are working with the latest state of the selected level
-  const level = levels.find(l => l.level_number === selectedLevel.level_number);
+  // Ensure we are working with the latest state of the selected course
+  const course = courses.find(c => c.course_number === selectedCourse.course_number);
 
-  if (!level) return <p>Level not found</p>;
+  if (!course) return <p>Course not found</p>;
 
   return (
     <div className="lesson-prep-container">
@@ -478,30 +478,30 @@ export default function LessonPreparation() {
             className="mr-4 back"
             onClick={() => {
               setView("dashboard");
-              setSelectedLevel(null);
+              setSelectedCourse(null);
             }}
           >
-            &larr; Back to Levels
+            &larr; Back to Courses
           </button>
         </div>
-        <h1 className="text-2xl level-card-title">Level {level.level_number}: {levelDescriptions[level.level_number]}</h1>
+        <h1 className="text-2xl level-card-title">Course {course.course_number}: {courseDescriptions[course.course_number]}</h1>
       </div>
 
       <div className="level-detail-view">
         <button
           className="btn btn-outline mb-4 add-milestone"
-          onClick={() => addMilestone(level.level_number)}
+          onClick={() => addMilestone(course.course_number)}
         >
           Add Milestone
         </button>
 
-        {level.milestones.map((m) => (
+        {course.milestones.map((m) => (
           <div key={m.milestone_number} className="milestone-card">
             <div className="milestone-header">
               <h3>Milestone {m.milestone_number}</h3>
               <button
                 className="delete-btn"
-                onClick={() => deleteMilestone(level.level_number, m.milestone_number)}
+                onClick={() => deleteMilestone(course.course_number, m.milestone_number)}
               >
                 <Trash2 size={18} />
               </button>
@@ -509,7 +509,7 @@ export default function LessonPreparation() {
 
             <button
               className="btn btn-outline mb-4 add-lesson"
-              onClick={() => addLesson(level.level_number, m.milestone_number)}
+              onClick={() => addLesson(course.course_number, m.milestone_number)}
             >
               Add Lesson
             </button>
@@ -518,7 +518,7 @@ export default function LessonPreparation() {
               <div key={l.lesson_number} className="lesson-card">
                 <div className="lesson-header">
                   <span>
-                    {level.level_number}.{m.milestone_number}.{l.lesson_number}
+                    {course.course_number}.{m.milestone_number}.{l.lesson_number}
                   </span>
 
                   <input
@@ -527,7 +527,7 @@ export default function LessonPreparation() {
                     placeholder="Lesson Title"
                     onChange={(e) =>
                       handleLessonTitleChange(
-                        level.level_number,
+                        course.course_number,
                         m.milestone_number,
                         l.lesson_number,
                         e.target.value
@@ -537,7 +537,7 @@ export default function LessonPreparation() {
                   <button
                     className="delete-btn"
                     onClick={() =>
-                      deleteLesson(level.level_number, m.milestone_number, l.lesson_number, l.id)
+                      deleteLesson(course.course_number, m.milestone_number, l.lesson_number, l.id)
                     }
                   >
                     <Trash2 size={18} />
@@ -553,7 +553,7 @@ export default function LessonPreparation() {
                         style={{ marginLeft: "10px", background: "none", border: "none", cursor: "pointer", color: "red" }}
                         onClick={() =>
                           deleteFile(
-                            level.level_number,
+                            course.course_number,
                             m.milestone_number,
                             l.lesson_number,
                             idx,
@@ -571,7 +571,7 @@ export default function LessonPreparation() {
                     type="file"
                     multiple
                     onChange={(e) =>
-                      handleFileUpload(level.level_number, m.milestone_number, l.lesson_number, e)
+                      handleFileUpload(course.course_number, m.milestone_number, l.lesson_number, e)
                     }
                   />
                 </div>
@@ -581,7 +581,7 @@ export default function LessonPreparation() {
         ))}
       </div>
 
-      <button className="btn detail-save mt-6" onClick={saveLevels}>
+      <button className="btn detail-save mt-6" onClick={saveCourses}>
         Save
       </button>
     </div>

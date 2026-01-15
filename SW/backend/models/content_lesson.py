@@ -10,7 +10,7 @@ class ContentLesson(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
 
-    level_number: int
+    course_number: int
     milestone_number: int
     lesson_number: int
 
