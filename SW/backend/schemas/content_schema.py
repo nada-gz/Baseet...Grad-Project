@@ -1,4 +1,5 @@
 from typing import Optional, List
+from datetime import datetime
 from pydantic import BaseModel
 
 
@@ -34,6 +35,12 @@ class StudentReadWithUser(BaseModel):
     email: str
     age: Optional[int]
     classroom_id: Optional[int] = None
+    classroom_name: Optional[str] = None
+    level_name: Optional[str] = None
+    status: Optional[str] = "Active"
+    online: bool = False
+    last_access: Optional[datetime] = None
+    state: Optional[str] = "Relaxed"
 
 
 

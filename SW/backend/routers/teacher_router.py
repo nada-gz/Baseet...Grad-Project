@@ -64,12 +64,17 @@ def create_content_course(
 # -----------------------
 @router.get("/students", response_model=list[StudentReadWithUser])
 def get_all_students(session: Session = Depends(get_session)):
-    # Join Student and User to get name/email
-    statement = select(Student, User).join(User)
+    # Join Student, User, Classroom, and Level
+    statement = (
+        select(Student, User, Classroom, ClassLevel)
+        .join(User, Student.user_id == User.id)
+        .outerjoin(Classroom, Student.classroom_id == Classroom.id)
+        .outerjoin(ClassLevel, Classroom.level_id == ClassLevel.id)
+    )
     results = session.exec(statement).all()
     
     students_list = []
-    for student, user in results:
+    for student, user, classroom, level in results:
         students_list.append(StudentReadWithUser(
             id=student.id,
             user_id=student.user_id,
@@ -77,7 +82,13 @@ def get_all_students(session: Session = Depends(get_session)):
             username=user.username,
             email=user.email,
             age=student.age,
-            classroom_id=student.classroom_id
+            classroom_id=student.classroom_id,
+            classroom_name=classroom.name if classroom else None,
+            level_name=level.name if level else None,
+            status="Active",
+            online=False,
+            last_access=None,
+            state="Stressed" if student.id % 2 == 0 else "Relaxed"
         ))
     return students_list
 
