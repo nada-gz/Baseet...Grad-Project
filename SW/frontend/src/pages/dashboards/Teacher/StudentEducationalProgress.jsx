@@ -11,7 +11,7 @@ export default function StudentEducationalProgress() {
     const student = { username: "Nada Alaa", email: "nada@example.com" };
     const mockProgress = [
         {
-            level: 1,
+            course: 1,
             milestones: [
                 {
                     id: 1,
@@ -41,10 +41,10 @@ export default function StudentEducationalProgress() {
 
                 {/* Placeholder for future real data implementation */}
                 <div className="space-y-4">
-                    {mockProgress.map(level => (
-                        <div key={level.level} className="border p-4 rounded">
-                            <h3 className="font-bold text-lg mb-2">Level {level.level}</h3>
-                            {level.milestones.map(m => (
+                    {mockProgress.map(course => (
+                        <div key={course.course} className="border p-4 rounded">
+                            <h3 className="font-bold text-lg mb-2">Course {course.course}</h3>
+                            {course.milestones.map(m => (
                                 <div key={m.id} className="ml-4">
                                     <h4 className="font-medium text-gray-700">Milestone {m.number}</h4>
                                     <ul className="list-disc ml-6 mt-2">

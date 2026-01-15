@@ -5,10 +5,18 @@ from pathlib import Path
 from db.database import get_session
 from models.content_lesson import ContentLesson
 from models.content_material import ContentMaterial
-from models.content_level import ContentLevel
+from models.content_course import ContentCourse
 from models.student import Student
 from models.user import User
-from schemas.content_schema import ContentLessonRead, ContentLevelRead, ContentLevelCreate, StudentReadWithUser
+from models.class_level import ClassLevel
+from models.classroom import Classroom, ClassroomCourseLink
+from schemas.content_schema import ContentLessonRead, ContentCourseRead, ContentCourseCreate, StudentReadWithUser
+from schemas.classroom_schema import (
+    ClassLevelRead, ClassLevelCreate,
+    ClassroomRead, ClassroomCreate,
+    AssignStudentsRequest, AssignCoursesRequest
+)
+from typing import List
 
 router = APIRouter(prefix="/teacher", tags=["Teacher"])
 
@@ -16,43 +24,43 @@ UPLOAD_DIR = Path("uploads/content")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # -----------------------
-# Get all levels
+# Get all courses
 # -----------------------
-@router.get("/levels", response_model=list[ContentLevelRead])
-def get_content_levels(session: Session = Depends(get_session)):
-    return session.exec(select(ContentLevel)).all()
+@router.get("/courses", response_model=list[ContentCourseRead])
+def get_content_courses(session: Session = Depends(get_session)):
+    return session.exec(select(ContentCourse)).all()
 
 
 # -----------------------
-# Create/Update Level
+# Create/Update Course
 # -----------------------
-@router.post("/levels", response_model=ContentLevelRead)
-def create_content_level(
-    level_data: ContentLevelCreate,
+@router.post("/courses", response_model=ContentCourseRead)
+def create_content_course(
+    course_data: ContentCourseCreate,
     session: Session = Depends(get_session)
 ):
-    statement = select(ContentLevel).where(ContentLevel.level_number == level_data.level_number)
-    existing_level = session.exec(statement).first()
+    statement = select(ContentCourse).where(ContentCourse.course_number == course_data.course_number)
+    existing_course = session.exec(statement).first()
 
-    if existing_level:
-        existing_level.description = level_data.description
-        session.add(existing_level)
+    if existing_course:
+        existing_course.description = course_data.description
+        session.add(existing_course)
         session.commit()
-        session.refresh(existing_level)
-        return existing_level
+        session.refresh(existing_course)
+        return existing_course
 
-    new_level = ContentLevel(
-        level_number=level_data.level_number,
-        description=level_data.description
+    new_course = ContentCourse(
+        course_number=course_data.course_number,
+        description=course_data.description
     )
-    session.add(new_level)
+    session.add(new_course)
     session.commit()
-    session.refresh(new_level)
-    return new_level
+    session.refresh(new_course)
+    return new_course
 
 
 # -----------------------
-# Get All Students (with Level)
+# Get All Students (with Course)
 # -----------------------
 @router.get("/students", response_model=list[StudentReadWithUser])
 def get_all_students(session: Session = Depends(get_session)):
@@ -65,10 +73,11 @@ def get_all_students(session: Session = Depends(get_session)):
         students_list.append(StudentReadWithUser(
             id=student.id,
             user_id=student.user_id,
-            level_number=student.level_number,
+            course_number=student.course_number,
             username=user.username,
             email=user.email,
-            age=student.age
+            age=student.age,
+            classroom_id=student.classroom_id
         ))
     return students_list
 
@@ -78,7 +87,7 @@ def get_all_students(session: Session = Depends(get_session)):
 # -----------------------
 @router.post("/lessons", response_model=ContentLessonRead)
 def create_content_lesson(
-    level_number: int = Form(...),
+    course_number: int = Form(...),
     milestone_number: int = Form(...),
     lesson_number: int = Form(...),
     title: str = Form(...),
@@ -87,7 +96,7 @@ def create_content_lesson(
 ):
     # Check if lesson exists
     statement = select(ContentLesson).where(
-        ContentLesson.level_number == level_number,
+        ContentLesson.course_number == course_number,
         ContentLesson.milestone_number == milestone_number,
         ContentLesson.lesson_number == lesson_number
     )
@@ -104,7 +113,7 @@ def create_content_lesson(
 
     # Create new
     lesson = ContentLesson(
-        level_number=level_number,
+        course_number=course_number,
         milestone_number=milestone_number,
         lesson_number=lesson_number,
         title=title,
@@ -226,14 +235,14 @@ def delete_content_lesson(
 # -----------------------
 # Delete Milestone (Batch)
 # -----------------------
-@router.delete("/levels/{level_number}/milestones/{milestone_number}")
+@router.delete("/courses/{course_number}/milestones/{milestone_number}")
 def delete_content_milestone(
-    level_number: int,
+    course_number: int,
     milestone_number: int,
     session: Session = Depends(get_session)
 ):
     statement = select(ContentLesson).where(
-        ContentLesson.level_number == level_number,
+        ContentLesson.course_number == course_number,
         ContentLesson.milestone_number == milestone_number
     )
     lessons = session.exec(statement).all()
@@ -248,16 +257,16 @@ def delete_content_milestone(
 
 
 # -----------------------
-# Delete Level (Batch)
+# Delete Course (Batch)
 # -----------------------
-@router.delete("/levels/{level_number}")
-def delete_content_level(
-    level_number: int,
+@router.delete("/courses/{course_number}")
+def delete_content_course(
+    course_number: int,
     session: Session = Depends(get_session)
 ):
     # Delete lessons (and their materials)
     statement = select(ContentLesson).where(
-        ContentLesson.level_number == level_number
+        ContentLesson.course_number == course_number
     )
     lessons = session.exec(statement).all()
 
@@ -266,11 +275,182 @@ def delete_content_level(
             session.delete(material)
         session.delete(lesson)
 
-    # Delete the level metadata
-    level_statement = select(ContentLevel).where(ContentLevel.level_number == level_number)
-    level_obj = session.exec(level_statement).first()
-    if level_obj:
-        session.delete(level_obj)
+    # Delete the course metadata
+    course_statement = select(ContentCourse).where(ContentCourse.course_number == course_number)
+    course_obj = session.exec(course_statement).first()
+    if course_obj:
+        session.delete(course_obj)
 
+    session.commit()
+    return {"ok": True}
+
+# --------------------------
+# Class Management
+# --------------------------
+
+@router.get("/class-management/levels", response_model=List[ClassLevelRead])
+def get_levels(session: Session = Depends(get_session)):
+    levels = session.exec(select(ClassLevel)).all()
+    # Populate student_count for each classroom manually or via query
+    # For simplicity, rely on relationship lazy loading but student_count needs logic
+    result = []
+    for level in levels:
+        classrooms_read = []
+        for classroom in level.classrooms:
+            classrooms_read.append(ClassroomRead(
+                id=classroom.id,
+                name=classroom.name,
+                level_id=classroom.level_id,
+                courses=[ContentCourseRead.from_orm(c) for c in classroom.courses],
+                student_count=len(classroom.students)
+            ))
+        
+        result.append(ClassLevelRead(
+            id=level.id,
+            name=level.name,
+            classrooms=classrooms_read
+        ))
+    return result
+
+@router.post("/class-management/levels", response_model=ClassLevelRead)
+def create_level(level_data: ClassLevelCreate, session: Session = Depends(get_session)):
+    level = ClassLevel(name=level_data.name)
+    session.add(level)
+    session.commit()
+    session.refresh(level)
+    return level
+
+
+@router.post("/class-management/levels/{level_id}/classrooms", response_model=ClassroomRead)
+def create_classroom(level_id: int, classroom_data: ClassroomCreate, session: Session = Depends(get_session)):
+    if classroom_data.level_id != level_id:
+        raise HTTPException(400, "Level ID mismatch")
+    
+    classroom = Classroom(name=classroom_data.name, level_id=level_id)
+    session.add(classroom)
+    session.commit()
+    session.refresh(classroom)
+    
+    return ClassroomRead(
+        id=classroom.id,
+        name=classroom.name,
+        level_id=classroom.level_id,
+        student_count=0,
+        courses=[]
+    )
+
+@router.post("/class-management/classrooms/{classroom_id}/students")
+def assign_students(classroom_id: int, req: AssignStudentsRequest, session: Session = Depends(get_session)):
+    classroom = session.get(Classroom, classroom_id)
+    if not classroom:
+        raise HTTPException(404, "Classroom not found")
+
+    for student_id in req.student_ids:
+        student = session.get(Student, student_id)
+        if student:
+            student.classroom_id = classroom_id
+            session.add(student)
+    
+    session.commit()
+    return {"ok": True}
+
+@router.post("/class-management/classrooms/{classroom_id}/courses")
+def assign_courses(classroom_id: int, req: AssignCoursesRequest, session: Session = Depends(get_session)):
+    classroom = session.get(Classroom, classroom_id)
+    if not classroom:
+        raise HTTPException(404, "Classroom not found")
+
+    current_course_ids = {c.id for c in classroom.courses}
+    
+    for course_id in req.course_ids:
+        if course_id not in current_course_ids:
+            # check if course exists
+            course = session.get(ContentCourse, course_id)
+            if course:
+                classroom.courses.append(course)
+    
+    session.add(classroom)
+    session.commit()
+    return {"ok": True}
+
+@router.get("/class-management/unassigned-students", response_model=List[StudentReadWithUser])
+def get_unassigned_students(session: Session = Depends(get_session)):
+    statement = select(Student, User).join(User).where(Student.classroom_id == None)
+    results = session.exec(statement).all()
+    
+    students_list = []
+    for student, user in results:
+        students_list.append(StudentReadWithUser(
+            id=student.id,
+            user_id=student.user_id,
+            course_number=student.course_number,
+            username=user.username,
+            email=user.email,
+            age=student.age,
+            classroom_id=student.classroom_id 
+        ))
+    return students_list
+    
+@router.delete("/class-management/levels/{level_id}")
+def delete_level(level_id: int, session: Session = Depends(get_session)):
+    level = session.get(ClassLevel, level_id)
+    if not level:
+        raise HTTPException(404, "Level not found")
+    
+    # Cascade delete is not set up in models, so manual clean up might be needed or rely on DB
+    # For now, let's just delete the level. If there are FK constraints, it might fail.
+    # Assuming standard behavior or easy delete for now. 
+    # Actually, let's delete classrooms first to be safe if no cascade
+    for classroom in level.classrooms:
+        # Unassign students
+        for student in classroom.students:
+            student.classroom_id = None
+            session.add(student)
+        # Courses link is many-to-many, should auto-remove from link table if defined correctly, 
+        # or we might need to purge. 
+        # SQLModel usually handles the link table deletion if cascade is set.
+        session.delete(classroom)
+
+    session.delete(level)
+    session.commit()
+    return {"ok": True}
+
+@router.delete("/class-management/classrooms/{classroom_id}/students/{student_id}")
+def unassign_student(classroom_id: int, student_id: int, session: Session = Depends(get_session)):
+    student = session.get(Student, student_id)
+    if not student or student.classroom_id != classroom_id:
+        raise HTTPException(404, "Student not found in this classroom")
+    
+    student.classroom_id = None
+    session.add(student)
+    session.commit()
+    return {"ok": True}
+
+@router.delete("/class-management/classrooms/{classroom_id}/courses/{course_id}")
+def unassign_course(classroom_id: int, course_id: int, session: Session = Depends(get_session)):
+    classroom = session.get(Classroom, classroom_id)
+    if not classroom:
+        raise HTTPException(404, "Classroom not found")
+    
+    course_to_remove = next((c for c in classroom.courses if c.id == course_id), None)
+    if not course_to_remove:
+        raise HTTPException(404, "Course not found in this classroom")
+    
+    classroom.courses.remove(course_to_remove)
+    session.add(classroom)
+    session.commit()
+    return {"ok": True}
+@router.delete("/class-management/classrooms/{classroom_id}")
+def delete_classroom(classroom_id: int, session: Session = Depends(get_session)):
+    classroom = session.get(Classroom, classroom_id)
+    if not classroom:
+        raise HTTPException(404, "Classroom not found")
+
+    # Unassign all students
+    for student in classroom.students:
+        student.classroom_id = None
+        session.add(student)
+
+    session.delete(classroom)
     session.commit()
     return {"ok": True}

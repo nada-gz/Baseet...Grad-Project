@@ -2164,3 +2164,522 @@ a:hover {
 .back:hover {
   opacity: 65%;
 }
+
+/* -------------------------------------
+   Class Management Refinements (Consolidated)
+-------------------------------------- */
+
+.page-container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.level-section {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  margin-bottom: 2rem;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.level-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--neutral);
+}
+
+.level-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-text);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Class Card */
+.class-management-card {
+  background: white;
+  border-radius: 1rem;
+  border: 1px solid var(--neutral);
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.class-management-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -8px rgba(108, 99, 255, 0.15);
+  border-color: var(--highlight);
+}
+
+.class-card-header {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.class-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-text);
+}
+
+.class-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.stat-box {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.stat-box:hover {
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transform: scale(1.02);
+}
+
+.stat-number {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--secondary-text);
+}
+
+/* Manage View Overlay */
+.manage-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.manage-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.manage-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+}
+
+@media (min-width: 1024px) {
+  .manage-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.manage-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f3f4f6;
+  margin-bottom: 1rem;
+}
+
+/* Selection Section (Available Items) */
+.selection-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  /* Compact gap */
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.selection-card {
+  background: white;
+  border: 2px solid var(--neutral);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  /* Compact padding */
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+}
+
+.btn-selected {
+  padding: 0.65rem 1.3rem;
+  font-weight: 600;
+  font-size: 0.75rem;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 2px solid transparent;
+}
+
+.selection-card:hover {
+  border-color: #b0aaff;
+}
+
+.selection-card.selected {
+  background: rgba(108, 99, 255, 0.05);
+  border-color: var(--highlight);
+}
+
+.selection-check-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--neutral);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  background: #f3f4f6;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.selection-card.selected .selection-check-circle {
+  background: var(--highlight);
+  border-color: var(--highlight);
+}
+
+.selection-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  overflow: hidden;
+}
+
+.selection-card-title {
+  font-weight: 700;
+  color: var(--primary-text);
+}
+
+.selection-card-title.selected {
+  color: var(--highlight);
+}
+
+.selection-card-desc {
+  font-size: 0.75rem;
+  color: var(--secondary-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Empty State */
+.empty-state-box {
+  padding: 1.5rem;
+  text-align: center;
+  background-color: #f9fafb;
+  border: 2px dashed var(--neutral);
+  border-radius: 1rem;
+  color: var(--secondary-text);
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Level Actions (Header Buttons) */
+.level-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Add Level Section */
+.add-level-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  border: 1px solid var(--neutral);
+  margin-bottom: 2rem;
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.add-level-input-group {
+  flex: 3;
+}
+
+.add-level-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.add-level-input {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #f9fafb;
+  border: 1px solid var(--neutral);
+  border-radius: 0.75rem;
+  outline: none;
+}
+
+.add-level-input:focus {
+  border-color: var(--highlight);
+  box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.1);
+}
+
+.add-level-btn {
+  padding: 0.75rem 2rem;
+  border-radius: 0.75rem;
+  white-space: nowrap;
+  margin-top: 12px;
+}
+
+/* Generic Delete Button */
+.delete-btn {
+  background: white;
+  border: 1px solid #fee2e2;
+  color: #ef4444;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-btn:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  transform: scale(1.05);
+}
+
+/* Back Button */
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: white;
+  border: 1px solid var(--neutral);
+  border-radius: 0.75rem;
+  color: var(--secondary-text);
+  font-weight: 600;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.back-button:hover {
+  background: #f8f9fa;
+  transform: translateX(-4px);
+}
+/* --- Full Migration Helpers --- */
+
+.loading-state {
+  padding: 2rem;
+  text-align: center;
+  color: var(--secondary-text);
+}
+
+.levels-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.level-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.level-badge {
+  background: #f3f4f6;
+  color: #6b7280;
+  font-size: 0.7rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  font-family: monospace;
+  font-weight: 600;
+}
+
+.add-class-form {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border: 1px solid #e0e7ff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  animation: slideDown 0.3s ease-out;
+}
+
+.add-class-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: #f5f8ff;
+  border: 1px solid #dbeafe;
+  border-radius: 0.75rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.add-class-input:focus {
+  box-shadow: 0 0 0 2px var(--highlight);
+}
+
+.empty-placeholder {
+  padding: 2.5rem;
+  text-align: center;
+  background: #f9fafb;
+  border-radius: 1.5rem;
+  border: 2px dashed #e5e7eb;
+  color: #9ca3af;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.manage-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.manage-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--primary-text);
+}
+
+.manage-subtitle {
+  font-size: 1.125rem;
+  color: var(--secondary-text);
+  margin-top: 0.25rem;
+}
+
+.scroll-area-assigned {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.user-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.avatar-student { background: #3b82f6; }
+.avatar-course { background: #10b981; }
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  overflow: hidden;
+}
+
+.user-name {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.user-email {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.assigned-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.assigned-card-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+
+.icon-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.25rem;
+}
+
+.class-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.level-add-class-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+}
+
+.cancel-btn {
+  color: #6b7280;
+}
+
+.icon-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+
+.highlight-text { color: var(--highlight); }
+.check-icon-green { color: #10b981; }
+.highlight-icon { color: var(--highlight); }
+

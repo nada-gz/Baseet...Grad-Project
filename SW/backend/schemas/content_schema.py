@@ -3,16 +3,16 @@ from pydantic import BaseModel
 
 
 
-class ContentLevelRead(BaseModel):
+class ContentCourseRead(BaseModel):
     id: int
-    level_number: int
+    course_number: int
     description: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
-class ContentLevelCreate(BaseModel):
-    level_number: int
+class ContentCourseCreate(BaseModel):
+    course_number: int
     description: Optional[str] = None
 
 
@@ -24,21 +24,22 @@ class ContentMaterialRead(BaseModel):
     material_type: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class StudentReadWithUser(BaseModel):
     id: int
     user_id: int
-    level_number: Optional[int]
+    course_number: Optional[int]
     username: str
     email: str
     age: Optional[int]
+    classroom_id: Optional[int] = None
 
 
 
 class ContentLessonRead(BaseModel):
     id: int
-    level_number: int
+    course_number: int
     milestone_number: int
     lesson_number: int
     title: str
@@ -46,11 +47,11 @@ class ContentLessonRead(BaseModel):
     materials: List[ContentMaterialRead] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ContentLessonCreate(BaseModel):
-    level_number: int
+    course_number: int
     milestone_number: int
     lesson_number: int
     title: str
