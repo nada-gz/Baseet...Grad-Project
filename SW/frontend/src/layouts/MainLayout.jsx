@@ -23,16 +23,19 @@ export default function MainLayout() {
         return [
           {
             label: "Students",
+            topbarLabel: "Students Monitoring",
             path: "/dashboard/teacher/students",
             icon: <Users size={20} />
           },
           {
             label: "Classrooms",
+            topbarLabel: "Classrooms Management",
             path: "/dashboard/teacher/classrooms",
             icon: <School size={20} />
           },
           {
             label: "Content",
+            topbarLabel: "Content Preparation",
             path: "/dashboard/teacher/lessons-prep",
             icon: <BookOpen size={20} />
           }
@@ -181,11 +184,13 @@ export default function MainLayout() {
       <main className="main">
         <header className="topbar">
           <h2 className="topbar-title">
-            {sidebarItems.find(
-              (item) =>
-                location.pathname === item.path ||
-                location.pathname.startsWith(item.path + "/")
-            )?.label || (
+            {(() => {
+              const activeItem = sidebarItems.find(
+                (item) =>
+                  location.pathname === item.path ||
+                  location.pathname.startsWith(item.path + "/")
+              );
+              return activeItem ? (activeItem.topbarLabel || activeItem.label) : (
                 <span className="topbar-greeting">
                   Hi, {user?.username || "there"}
                   {role === "student" && (
@@ -196,7 +201,8 @@ export default function MainLayout() {
                     />
                   )}
                 </span>
-              )}
+              );
+            })()}
           </h2>
 
           <div className="topbar-user">
