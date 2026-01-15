@@ -1,18 +1,19 @@
 from typing import Optional, List
+from datetime import datetime
 from pydantic import BaseModel
 
 
 
-class ContentLevelRead(BaseModel):
+class ContentCourseRead(BaseModel):
     id: int
-    level_number: int
+    course_number: int
     description: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
-class ContentLevelCreate(BaseModel):
-    level_number: int
+class ContentCourseCreate(BaseModel):
+    course_number: int
     description: Optional[str] = None
 
 
@@ -24,21 +25,55 @@ class ContentMaterialRead(BaseModel):
     material_type: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class StudentReadWithUser(BaseModel):
     id: int
     user_id: int
-    level_number: Optional[int]
     username: str
     email: str
-    age: Optional[int]
+    course_number: Optional[int] = None
+    age: Optional[int] = None
+    classroom_id: Optional[int] = None
+    classroom_name: Optional[str] = None
+    level_name: Optional[str] = None
+    status: Optional[str] = "Active"
+    online: bool = False
+    last_access: Optional[datetime] = None
+    state: Optional[str] = "Relaxed"
 
+    class Config:
+        from_attributes = True
+
+class StudentProgressAssignment(BaseModel):
+    id: int
+    title: str
+    status: str # "not submitted yet", "submitted", "evaluated"
+    submission_date: Optional[datetime] = None
+    feedback: Optional[str] = None
+    rating: Optional[int] = None
+    file_url: Optional[str] = None
+    assignment_file_url: Optional[str] = None
+
+class StudentProgressLesson(BaseModel):
+    id: int
+    title: str
+    status: str # "completed", "in-progress", "locked"
+    progress: int
+    assignments: List[StudentProgressAssignment] = []
+
+class StudentProgressMilestone(BaseModel):
+    milestone_number: int
+    lessons: List[StudentProgressLesson] = []
+
+class StudentProgressResponse(BaseModel):
+    student: StudentReadWithUser
+    milestones: List[StudentProgressMilestone] = []
 
 
 class ContentLessonRead(BaseModel):
     id: int
-    level_number: int
+    course_number: int
     milestone_number: int
     lesson_number: int
     title: str
@@ -46,11 +81,11 @@ class ContentLessonRead(BaseModel):
     materials: List[ContentMaterialRead] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ContentLessonCreate(BaseModel):
-    level_number: int
+    course_number: int
     milestone_number: int
     lesson_number: int
     title: str
