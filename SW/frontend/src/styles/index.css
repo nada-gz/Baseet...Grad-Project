@@ -585,9 +585,9 @@ a:hover {
 .content {
   padding: 90px 25px 25px 25px;
   /* top padding for fixed topbar */
-  overflow-y: auto;
   min-height: calc(100vh - 90px);
   font-family: var(--font-text);
+  /* overflow-y: auto removed to prevent trapping position: sticky */
 }
 
 /* -------------------------------------
@@ -3000,14 +3000,17 @@ a:hover {
   grid-template-columns: 320px 1fr;
   gap: 2rem;
   padding: 1rem;
+  align-items: start;
+  /* Ensure items don't stretch */
 }
 
 .student-info-sidebar {
   position: sticky;
-  top: 50px;
-  /* Aligned with topbar */
-  height: calc(100vh - 140px);
-  /* Fill screen minus topbar */
+  top: 100px;
+  /* Sits below the 90px topbar */
+  align-self: start;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -3317,6 +3320,7 @@ a:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-weight: bolder;
 }
 
 .ass-feed {
