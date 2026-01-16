@@ -22,10 +22,10 @@ export default function MainLayout() {
       case "teacher":
         return [
           {
-            label: "Students",
-            topbarLabel: "Students Monitoring",
-            path: "/dashboard/teacher/students",
-            icon: <Users size={20} />
+            label: "Content",
+            topbarLabel: "Content Preparation",
+            path: "/dashboard/teacher/lessons-prep",
+            icon: <BookOpen size={20} />
           },
           {
             label: "Classrooms",
@@ -34,10 +34,10 @@ export default function MainLayout() {
             icon: <School size={20} />
           },
           {
-            label: "Content",
-            topbarLabel: "Content Preparation",
-            path: "/dashboard/teacher/lessons-prep",
-            icon: <BookOpen size={20} />
+            label: "Students",
+            topbarLabel: "Students Monitoring",
+            path: "/dashboard/teacher/students",
+            icon: <Users size={20} />
           }
         ];
 

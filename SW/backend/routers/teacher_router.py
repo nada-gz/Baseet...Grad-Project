@@ -16,10 +16,12 @@ from models.assignment import Assignment
 from models.submission import Submission
 from models.feedback import Feedback
 from models.submission_file import SubmissionFile
+from models.content_assignment import ContentAssignment
 
 from schemas.content_schema import (
     ContentLessonRead, ContentCourseRead, ContentCourseCreate, StudentReadWithUser,
-    StudentProgressResponse, StudentProgressMilestone, StudentProgressLesson, StudentProgressAssignment
+    StudentProgressResponse, StudentProgressMilestone, StudentProgressLesson, StudentProgressAssignment,
+    ContentAssignmentRead
 )
 from schemas.classroom_schema import (
     ClassLevelRead, ClassLevelCreate,
@@ -206,6 +208,45 @@ async def upload_content_material(
     session.refresh(material)
 
     return material
+
+
+# -----------------------
+# Upload content assignment
+# -----------------------
+@router.post("/lessons/{lesson_id}/assignments")
+async def upload_content_assignment(
+    lesson_id: int,
+    title: str = Form(...),
+    description: str = Form(""),
+    assignment_type: str = Form("unknown"),
+    file: UploadFile = File(None),
+    session: Session = Depends(get_session)
+):
+    lesson = session.get(ContentLesson, lesson_id)
+    if not lesson:
+        raise HTTPException(404, "Lesson not found")
+
+    file_url = ""
+    if file:
+        safe_name = f"assign_{lesson_id}_{file.filename.replace(' ', '_')}"
+        file_path = UPLOAD_DIR / safe_name
+        with open(file_path, "wb") as f:
+            f.write(await file.read())
+        file_url = f"/uploads/content/{safe_name}"
+
+    assignment = ContentAssignment(
+        lesson_id=lesson_id,
+        title=title,
+        description=description,
+        assignment_type=assignment_type,
+        file_url=file_url
+    )
+
+    session.add(assignment)
+    session.commit()
+    session.refresh(assignment)
+
+    return assignment
 
 
 # -----------------------
@@ -512,92 +553,115 @@ def get_student_educational_progress(student_id: int, session: Session = Depends
         state="Stressed" if student_obj.id % 2 == 0 else "Relaxed"
     )
 
-    # 2. Fetch Lessons for this student - JOIN with Milestone to get hierarchy and correct ordering
-    lessons_stmt = (
-        select(Lesson)
-        .join(Milestone, Lesson.milestone_id == Milestone.id)
-        .where(Lesson.student_id == student_id)
-        .order_by(Milestone.course_id, Milestone.number, Lesson.lesson_number)
-    )
-    lessons_list = session.exec(lessons_stmt).all()
-    
-    # Group by (course_id, milestone_number)
-    milestones_dict = {} # Key: (course_id, milestone_number)
-    
-    for lesson in lessons_list:
-        # Lesson object now has access to milestone via relationship
-        m_num = lesson.milestone.number
-        c_id = lesson.milestone.course_id
-        
-        key = (c_id, m_num)
-        if key not in milestones_dict:
-            milestones_dict[key] = []
-        
-        # For each lesson, fetch assignments
-        assign_stmt = select(Assignment).where(Assignment.lesson_id == lesson.id)
-        assignments = session.exec(assign_stmt).all()
-        
-        assign_progress_list = []
-        for assign in assignments:
-            # Fetch submission
-            sub_stmt = select(Submission).where(
-                Submission.assignment_id == assign.id,
-                Submission.student_id == student_id
-            ).order_by(Submission.submitted_at.desc())
-            submission = session.exec(sub_stmt).first()
-            
-            sub_status = "not submitted yet"
-            sub_date = None
-            feedback_text = None
-            rating_val = None
-            file_url_val = None
-            
-            if submission:
-                sub_status = "submitted"
-                sub_date = submission.submitted_at
-                
-                # Fetch feedback
-                feed_stmt = select(Feedback).where(Feedback.submission_id == submission.id)
-                feedback = session.exec(feed_stmt).first()
-                if feedback:
-                    sub_status = "evaluated"
-                    feedback_text = feedback.comment
-                    rating_val = feedback.rating
-                
-                # Fetch first file url for convenience
-                file_stmt = select(SubmissionFile).where(SubmissionFile.submission_id == submission.id)
-                file_obj = session.exec(file_stmt).first()
-                if file_obj:
-                    file_url_val = file_obj.file_url
+    # 2. Get Courses assigned to this student's classroom
+    if not student_obj.classroom_id:
+        return StudentProgressResponse(student=student_data, milestones=[])
 
-            assign_progress_list.append(StudentProgressAssignment(
-                id=assign.id,
-                title=assign.title,
-                status=sub_status,
-                submission_date=sub_date,
-                feedback=feedback_text,
-                rating=rating_val,
-                file_url=file_url_val,
-                assignment_file_url=assign.file_url
+    course_links = session.exec(
+        select(ClassroomCourseLink).where(ClassroomCourseLink.classroom_id == student_obj.classroom_id)
+    ).all()
+    content_course_ids = [link.course_id for link in course_links]
+    
+    if not content_course_ids:
+        return StudentProgressResponse(student=student_data, milestones=[])
+
+    # 3. Fetch all ContentLessons for these courses
+    cl_stmt = (
+        select(ContentLesson)
+        .where(ContentLesson.course_number.in_(content_course_ids))
+        .order_by(ContentLesson.course_number, ContentLesson.milestone_number, ContentLesson.lesson_number)
+    )
+    content_lessons = session.exec(cl_stmt).all()
+    
+    milestones_resp = []
+    # Group by course and milestone using itertools or manual loop
+    from itertools import groupby
+    for (c_num, m_num), group in groupby(content_lessons, key=lambda x: (x.course_number, x.milestone_number)):
+        lessons_progress_list = []
+        for cl in group:
+            # Check for student's progress record
+            lp_stmt = select(Lesson).where(
+                Lesson.student_id == student_id,
+                Lesson.content_lesson_id == cl.id
+            )
+            lesson_progress = session.exec(lp_stmt).first()
+            
+            # Default values
+            progress_val = 0
+            status_val = "locked"
+            lesson_instance_id = cl.id # Fallback
+            
+            if lesson_progress:
+                progress_val = lesson_progress.progress
+                status_val = lesson_progress.status
+                lesson_instance_id = lesson_progress.id
+
+            # Fetch assignments for this template
+            ca_stmt = select(ContentAssignment).where(ContentAssignment.lesson_id == cl.id)
+            content_assigns = session.exec(ca_stmt).all()
+            
+            assign_progress_list = []
+            for ca in content_assigns:
+                # Check for student's instance
+                sa_stmt = select(Assignment).where(
+                    Assignment.student_id == student_id,
+                    Assignment.content_assignment_id == ca.id
+                )
+                student_assign = session.exec(sa_stmt).first()
+                
+                sub_status = "not submitted yet"
+                sub_date = None
+                feedback_text = None
+                rating_val = None
+                file_url_val = None
+                
+                if student_assign:
+                    # Fetch submission
+                    sub_stmt = select(Submission).where(
+                        Submission.assignment_id == student_assign.id,
+                        Submission.student_id == student_id
+                    ).order_by(Submission.submitted_at.desc())
+                    submission = session.exec(sub_stmt).first()
+                    
+                    if submission:
+                        sub_status = "submitted"
+                        sub_date = submission.submitted_at
+                        
+                        feed_stmt = select(Feedback).where(Feedback.submission_id == submission.id)
+                        feedback = session.exec(feed_stmt).first()
+                        if feedback:
+                            sub_status = "evaluated"
+                            feedback_text = feedback.comment
+                            rating_val = feedback.rating
+                        
+                        file_stmt = select(SubmissionFile).where(SubmissionFile.submission_id == submission.id)
+                        file_obj = session.exec(file_stmt).first()
+                        if file_obj:
+                            file_url_val = file_obj.file_url
+
+                assign_progress_list.append(StudentProgressAssignment(
+                    id=student_assign.id if student_assign else ca.id,
+                    title=ca.title,
+                    status=sub_status,
+                    submission_date=sub_date,
+                    feedback=feedback_text,
+                    rating=rating_val,
+                    file_url=file_url_val,
+                    assignment_file_url=ca.file_url
+                ))
+
+            lessons_progress_list.append(StudentProgressLesson(
+                id=lesson_instance_id,
+                title=cl.title,
+                status=status_val,
+                progress=progress_val,
+                assignments=assign_progress_list
             ))
 
-        milestones_dict[key].append(StudentProgressLesson(
-            id=lesson.id,
-            title=lesson.title,
-            status=lesson.status,
-            progress=lesson.progress,
-            assignments=assign_progress_list
-        ))
-
-    milestones_resp = []
-    # Sort keys by course_id, then milestone_number
-    sorted_keys = sorted(milestones_dict.keys())
-    
-    for c_id, m_num in sorted_keys:
         milestones_resp.append(StudentProgressMilestone(
             milestone_number=m_num,
-            course_id=c_id,
-            lessons=milestones_dict[(c_id, m_num)]
+            course_id=c_num,
+            lessons=lessons_progress_list
         ))
     
     return StudentProgressResponse(

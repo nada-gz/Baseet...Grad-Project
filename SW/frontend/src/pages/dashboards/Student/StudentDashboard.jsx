@@ -12,27 +12,48 @@ export default function StudentDashboard() {
   const [currentAssignments, setCurrentAssignments] = useState([]);
   const [assignmentStatus, setAssignmentStatus] = useState("loading"); // 'none', 'not-submitted', 'submitted', 'evaluated'
 
-
   useEffect(() => {
-    const loadLessons = async () => {
+    const loadData = async () => {
+      if (!student?.id) return;
       try {
-        const response = await api.get(`/students/${student.id}/lessons`);
-        console.log("Lessons from API:", response.data);
-        setLessons(response.data);
-      } catch (error) {
-        console.error("Error loading lessons:", error);
+        const coursesRes = await api.get(`/students/${student.id}/assigned-courses`);
+        if (coursesRes.data.length === 0) {
+          setLoading(false);
+          return;
+        }
+
+        // Try to find a lesson across all courses if needed, 
+        // but let's at least try the first few courses if the first one is empty
+        let foundLessons = [];
+        let activeCourseId = null;
+
+        for (const course of coursesRes.data) {
+          const res = await api.get(`/students/${student.id}/lessons`, {
+            params: { course_id: course.id }
+          });
+          if (res.data.length > 0) {
+            foundLessons = res.data;
+            activeCourseId = course.id;
+            // If one of these is in-progress, we are done
+            if (res.data.some(l => l.status === 'in-progress')) {
+              break;
+            }
+          }
+        }
+
+        setLessons(foundLessons);
+      } catch (err) {
+        console.error("Failed to load dashboard data:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    if (student) loadLessons();
-  }, [student]);
+    loadData();
+  }, [student?.id]);
 
-  // ✅ find current in-progress lesson
-  const currentLesson = lessons.find(
-    (lesson) => lesson.status === "in-progress"
-  );
+  // ✅ find current in-progress lesson or default to first
+  const currentLesson = lessons.find((l) => l.status === "in-progress") || lessons[0];
 
   useEffect(() => {
     if (!currentLesson) return;
@@ -210,13 +231,13 @@ export default function StudentDashboard() {
                         <div className="flex justify-between items-center pl-1">
                           {/* Status Badge */}
                           {assignmentStatus === "not-submitted" && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-600">Not Submitted</span>
+                            <p className="ass-status text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-600">Not Submitted</p>
                           )}
                           {assignmentStatus === "submitted" && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-600">Submitted</span>
+                            <p className="ass-status text-[10px] font-bold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-600">Submitted</p>
                           )}
                           {assignmentStatus === "evaluated" && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-600">Evaluated</span>
+                            <p className="ass-status text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-600">Evaluated</p>
                           )}
                         </div>
                       </div>

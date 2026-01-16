@@ -7,6 +7,7 @@ from pydantic import BaseModel
 class ContentCourseRead(BaseModel):
     id: int
     course_number: int
+    title: Optional[str] = None
     description: Optional[str] = None
 
     class Config:
@@ -14,6 +15,7 @@ class ContentCourseRead(BaseModel):
 
 class ContentCourseCreate(BaseModel):
     course_number: int
+    title: Optional[str] = None
     description: Optional[str] = None
 
 
@@ -72,6 +74,18 @@ class StudentProgressResponse(BaseModel):
     milestones: List[StudentProgressMilestone] = []
 
 
+class ContentAssignmentRead(BaseModel):
+    id: int
+    lesson_id: int
+    title: str
+    description: Optional[str] = None
+    assignment_type: str
+    file_url: str
+
+    class Config:
+        from_attributes = True
+
+
 class ContentLessonRead(BaseModel):
     id: int
     course_number: int
@@ -80,6 +94,7 @@ class ContentLessonRead(BaseModel):
     title: str
     description: Optional[str] = None
     materials: List[ContentMaterialRead] = []
+    assignments: List[ContentAssignmentRead] = []
 
     class Config:
         from_attributes = True

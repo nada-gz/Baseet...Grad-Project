@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from models.assignment import Assignment
     from models.log import Log
     from models.milestone import Milestone
+    from models.content_lesson import ContentLesson
 
 
 class Lesson(SQLModel, table=True):
@@ -14,12 +15,14 @@ class Lesson(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     student_id: int = Field(foreign_key="students.id")
 
+    content_lesson_id: Optional[int] = Field(default=None, foreign_key="content_lessons.id")
     milestone_id: Optional[int] = Field(default=None, foreign_key="milestones.id")
     lesson_number: int
 
-    title: str
+    title: Optional[str] = None
     description: Optional[str] = None
     
+    content_lesson: Optional["ContentLesson"] = Relationship()
     milestone: Optional["Milestone"] = Relationship()
 
     @property
