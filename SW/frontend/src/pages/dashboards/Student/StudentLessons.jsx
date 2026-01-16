@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import api from "../../../services/api";
 import useAuth from "../../../hooks/useAuth";
 import { Lock, RotateCcw, Play } from "lucide-react";
 
 export default function StudentLessons() {
   const { user: student } = useAuth();
+  const { courseId } = useParams();
   const navigate = useNavigate();
 
   const getInitialUnlocked = () => {
@@ -42,11 +43,14 @@ export default function StudentLessons() {
 
   const loadLessons = async () => {
     try {
-      const res = await api.get(`/students/${student.id}/lessons`);
+      // Pass course_id to filter lessons by course
+      const res = await api.get(`/students/${student.id}/lessons`, {
+        params: { course_id: courseId }
+      });
       const grouped = groupByMilestone(res.data);
       setMilestones(grouped);
 
-      // unlock new milestones if previous milestone fully completed
+      // unlock new milestones
       setUnlockedMilestones(prevUnlocked => {
         const updatedUnlocked = new Set(prevUnlocked);
         const sortedMilestones = Object.keys(grouped)
@@ -84,7 +88,7 @@ export default function StudentLessons() {
       });
       setConfirmLesson(null);
       navigate(`/dashboard/student/lesson/${lessonId}`);
-      
+
       // reload lessons but DO NOT touch unlockedMilestones
       const res = await api.get(`/students/${student.id}/lessons`);
       setMilestones(groupByMilestone(res.data));

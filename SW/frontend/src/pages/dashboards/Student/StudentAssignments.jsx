@@ -57,10 +57,32 @@ export default function StudentAssignments() {
   const [description, setDescription] = useState("");
   const fileInputsRef = useRef({});
 
+  // Course Filtering
+  const [courses, setCourses] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const res = await api.get("/students/courses");
+        setCourses(res.data);
+        if (res.data.length > 0) setSelectedCourse(res.data[0].id);
+      } catch (err) {
+        console.error("Failed to load courses:", err);
+      }
+    };
+    fetchCourses();
+  }, []);
+
   useEffect(() => {
     const loadLessonsAssignmentsAndSubmissions = async () => {
-      const res = await api.get(`/students/${student.id}/lessons`);
+      const params = selectedCourse ? { course_id: selectedCourse } : {};
+      const res = await api.get(`/students/${student.id}/lessons`, { params });
+
       const grouped = {};
+      const initialOpenMilestones = {};
+      const initialOpenLessons = {};
+
       for (let lesson of res.data) {
         const assRes = await api.get(
           `/students/${student.id}/lessons/${lesson.id}/assignments`
@@ -78,11 +100,17 @@ export default function StudentAssignments() {
         lesson.assignments = assRes.data;
         if (!grouped[lesson.milestone_number]) grouped[lesson.milestone_number] = [];
         grouped[lesson.milestone_number].push(lesson);
+
+        // Expand by default
+        initialOpenMilestones[lesson.milestone_number] = true;
+        initialOpenLessons[lesson.id] = true;
       }
       setMilestones(grouped);
+      setOpenMilestones(initialOpenMilestones);
+      setOpenLessons(initialOpenLessons);
     };
     if (student?.id) loadLessonsAssignmentsAndSubmissions();
-  }, [student]);
+  }, [student, selectedCourse]);
 
   const getLessonStatus = (lesson) => {
     if (lesson.progress === 100) return "completed";
@@ -146,6 +174,21 @@ export default function StudentAssignments() {
 
   return (
     <div className="materials-page">
+      {/* Course Filter */}
+      <div className="course-filter-section" style={{ marginBottom: "1rem" }}>
+        <div className="flex items-center gap-3">
+          <p className="filter-text">Filter by Course:</p>
+          <select
+            className="p-2 border border-slate-300 rounded-lg text-sm bg-white"
+            value={selectedCourse || ""}
+            onChange={(e) => setSelectedCourse(Number(e.target.value) || null)}
+          >
+            {courses.map(course => (
+              <option key={course.id} value={course.id}>{course.title}</option>
+            ))}
+          </select>
+        </div>
+      </div>
       {Object.entries(milestones).map(([milestoneNumber, lessons]) => (
         <div key={milestoneNumber} className="milestone-card">
           <div className="milestone-header" onClick={() => toggleMilestone(milestoneNumber)}>
@@ -247,11 +290,11 @@ export default function StudentAssignments() {
                                       <span className="submitted-label">
                                         Submitted •{" "}
                                         {assignment.submission.updated_at ||
-                                        assignment.submission.submitted_at
+                                          assignment.submission.submitted_at
                                           ? new Date(
-                                              assignment.submission.updated_at ||
-                                                assignment.submission.submitted_at
-                                            ).toLocaleString()
+                                            assignment.submission.updated_at ||
+                                            assignment.submission.submitted_at
+                                          ).toLocaleString()
                                           : "Unknown date"}
                                       </span>
                                       <div className="submitted-files">

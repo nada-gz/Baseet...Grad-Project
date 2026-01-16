@@ -2,13 +2,16 @@ import { useState, useEffect } from "react";
 import api from "../../../services/api";
 import useAuth from "../../../hooks/useAuth";
 import { Link } from "react-router-dom";
-import { PlayCircle, BookOpen, FileText, Edit3 } from "lucide-react";
+import { PlayCircle, BookOpen, FileText, Edit3, Eye } from "lucide-react";
 
 export default function StudentDashboard() {
   const { user: student, loading: authLoading, error: authError } = useAuth();
 
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentAssignments, setCurrentAssignments] = useState([]);
+  const [assignmentStatus, setAssignmentStatus] = useState("loading"); // 'none', 'not-submitted', 'submitted', 'evaluated'
+
 
   useEffect(() => {
     const loadLessons = async () => {
@@ -26,6 +29,51 @@ export default function StudentDashboard() {
     if (student) loadLessons();
   }, [student]);
 
+  // ✅ find current in-progress lesson
+  const currentLesson = lessons.find(
+    (lesson) => lesson.status === "in-progress"
+  );
+
+  useEffect(() => {
+    if (!currentLesson) return;
+
+    const fetchAssignmentsAndStatus = async () => {
+      try {
+        const res = await api.get(
+          `/students/${student.id}/lessons/${currentLesson.id}/assignments`
+        );
+        setCurrentAssignments(res.data);
+
+        if (res.data.length > 0) {
+          // Check submission for the first assignment
+          // Assuming one assignment per lesson for simplicity as per UI
+          try {
+            const subRes = await api.get(
+              `/students/${student.id}/assignments/${res.data[0].id}/submission`
+            );
+            if (subRes.data) {
+              setAssignmentStatus(
+                subRes.data.feedback ? "evaluated" : "submitted"
+              );
+            }
+          } catch (err) {
+            if (err.response && err.response.status === 404) {
+              setAssignmentStatus("not-submitted");
+            } else {
+              console.error("Error checking submission:", err);
+            }
+          }
+        } else {
+          setAssignmentStatus("none");
+        }
+      } catch (err) {
+        console.error("Failed to load assignments for dashboard:", err);
+      }
+    };
+
+    fetchAssignmentsAndStatus();
+  }, [currentLesson, student?.id]);
+
   if (authLoading || loading) {
     return <div className="dashboard-loading">Loading...</div>;
   }
@@ -34,10 +82,6 @@ export default function StudentDashboard() {
     return <div className="dashboard-error">Error loading dashboard.</div>;
   }
 
-  // ✅ find current in-progress lesson
-  const currentLesson = lessons.find(
-    (lesson) => lesson.status === "in-progress"
-  );
 
   return (
     <div className="student-dashboard">
@@ -91,10 +135,46 @@ export default function StudentDashboard() {
                 <div className="card-icon">
                   <BookOpen size={36} />
                 </div>
-                <h2 className="card-title">Lesson Material</h2>
-                <div className="card-buttons">
-                  <button className="btn btn-secondary">View</button>
-                  <button className="btn btn-primary">Download</button>
+                <h2 className="card-title">Lesson Materials</h2>
+
+                {currentLesson.materials && currentLesson.materials.length > 0 ? (
+                  <div className="dashboard-items-list">
+                    {currentLesson.materials.slice(0, 3).map((mat) => (
+                      <div key={mat.id} className="dashboard-item">
+                        <div className="flex items-center overflow-hidden">
+                          <FileText size={16} className="file-show text-slate-400 shrink-0" />
+                          <span className="truncate text-sm text-slate-700" title={mat.title}>
+                            {mat.title}
+                          </span>
+                        </div>
+                        <a
+                          href={`http://127.0.0.1:8000${mat.file_url}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-icon-small"
+                          title="View Material"
+                        >
+                          <Eye size={16} />
+                        </a>
+                      </div>
+                    ))}
+                    {currentLesson.materials.length > 3 && (
+                      <Link to="/dashboard/student/materials" className="text-xs text-indigo-500 text-center block mt-1">
+                        + {currentLesson.materials.length - 3} more
+                      </Link>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-400 mb-4">No materials available</p>
+                )}
+
+                <div className="card-buttons mt-auto">
+                  <Link
+                    to="/dashboard/student/materials"
+                    className="btn btn-secondary w-full text-center"
+                  >
+                    View All
+                  </Link>
                 </div>
               </div>
 
@@ -104,10 +184,57 @@ export default function StudentDashboard() {
                   <FileText size={36} />
                 </div>
                 <h2 className="card-title">Assignment</h2>
-                <div className="card-buttons">
-                  <button className="btn btn-secondary">View</button>
-                  <button className="btn btn-primary">Upload</button>
+
+                {currentAssignments.length > 0 ? (
+                  <div className="dashboard-items-list">
+                    {currentAssignments.map((ass) => (
+                      <div key={ass.id} className="dashboard-item-col">
+                        <div className="dashboard-item" style={{ border: 'none', background: 'transparent', padding: '0', marginBottom: '4px' }}>
+                          <div className="flex items-center gap-2 overflow-hidden flex-1">
+                            <FileText size={16} className="file-show text-slate-400 shrink-0" />
+                            <span className="truncate text-sm text-slate-700" title={ass.title}>
+                              {ass.title}
+                            </span>
+                          </div>
+                          <a
+                            href={`http://127.0.0.1:8000${ass.file_url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-icon-small ml-2 shrink-0"
+                            title="View Assignment File"
+                          >
+                            <Eye size={16} />
+                          </a>
+                        </div>
+
+                        <div className="flex justify-between items-center pl-1">
+                          {/* Status Badge */}
+                          {assignmentStatus === "not-submitted" && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-600">Not Submitted</span>
+                          )}
+                          {assignmentStatus === "submitted" && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-600">Submitted</span>
+                          )}
+                          {assignmentStatus === "evaluated" && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-600">Evaluated</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-400 mb-4">No assignments</p>
+                )}
+
+                <div className="card-buttons mt-auto pt-4">
+                  <Link
+                    to="/dashboard/student/assignments"
+                    className={`btn btn-secondary w-full text-center ${currentAssignments.length === 0 ? "opacity-50 pointer-events-none" : ""}`}
+                  >
+                    View All
+                  </Link>
                 </div>
+
               </div>
 
               {/* Quiz */}
@@ -117,7 +244,9 @@ export default function StudentDashboard() {
                 </div>
                 <h2 className="card-title">Quiz</h2>
                 <p className="card-description">3 attempts allowed</p>
-                <button className="btn btn-primary">Start Quiz</button>
+                <div className="card-buttons mt-auto">
+                  <button className="btn btn-primary w-full">Start Quiz</button>
+                </div>
               </div>
             </div>
           </>
