@@ -5,6 +5,7 @@ if TYPE_CHECKING:
     from models.material import Material
     from models.assignment import Assignment
     from models.log import Log
+    from models.milestone import Milestone
 
 
 class Lesson(SQLModel, table=True):
@@ -13,11 +14,21 @@ class Lesson(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     student_id: int = Field(foreign_key="students.id")
 
-    milestone_number: int
+    milestone_id: Optional[int] = Field(default=None, foreign_key="milestones.id")
     lesson_number: int
 
     title: str
     description: Optional[str] = None
+    
+    milestone: Optional["Milestone"] = Relationship()
+
+    @property
+    def milestone_number(self) -> int:
+        return self.milestone.number if self.milestone else 0
+
+    @property
+    def course_id(self) -> Optional[int]:
+        return self.milestone.course_id if self.milestone else None
 
     progress: int = 0
     status: str = "locked"

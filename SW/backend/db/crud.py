@@ -3,6 +3,7 @@ from sqlmodel import select, SQLModel, Session, update
 from .database import engine
 from models.user import User, RoleEnum
 from models.student import Student
+from models.course import Course
 from models.milestone import Milestone
 from models.lesson import Lesson
 from models.material import Material
@@ -133,13 +134,31 @@ def delete_student(student_id: int):
 
 
 # ---------------------------
+# Course CRUD
+# ---------------------------
+
+def get_courses():
+    with Session(engine) as session:
+        return session.exec(select(Course)).all()
+
+def create_course(course: Course):
+    with Session(engine) as session:
+        session.add(course)
+        session.commit()
+        session.refresh(course)
+        return course
+
+# ---------------------------
 # Milestones CRUD
 # ---------------------------
 
-def get_milestones(student_id: int):
+def get_milestones(student_id: int, course_id: int = None):
     with Session(engine) as session:
-        statement = select(Milestone).where(Milestone.student_id == student_id).order_by(Milestone.number)
-        return session.exec(statement).all()
+        query = select(Milestone).where(Milestone.student_id == student_id)
+        if course_id:
+            query = query.where(Milestone.course_id == course_id)
+        query = query.order_by(Milestone.number)
+        return session.exec(query).all()
 
 
 def get_milestone_by_id(milestone_id: int):
@@ -185,7 +204,7 @@ def delete_milestone(milestone_id: int):
 
 def get_lessons(student_id: int):
     with Session(engine) as session:
-        statement = select(Lesson).where(Lesson.student_id == student_id).order_by(Lesson.milestone_number, Lesson.lesson_number)
+        statement = select(Lesson).join(Milestone).where(Lesson.student_id == student_id).order_by(Milestone.number, Lesson.lesson_number)
         return session.exec(statement).all()
 
 
@@ -196,7 +215,7 @@ def get_lesson_by_id(lesson_id: int):
 
 def get_lessons_by_milestone(milestone_number: int):
     with Session(engine) as session:
-        statement = select(Lesson).where(Lesson.milestone_number == milestone_number).order_by(Lesson.lesson_number)
+        statement = select(Lesson).join(Milestone).where(Milestone.number == milestone_number).order_by(Lesson.lesson_number)
         return session.exec(statement).all()
 
 
@@ -205,7 +224,7 @@ def get_lessons_grouped_by_milestones(student_id: int):
     lessons = get_lessons(student_id)
     result = []
     for milestone in milestones:
-        milestone_lessons = [lesson for lesson in lessons if lesson.milestone_number == milestone.id]
+        milestone_lessons = [lesson for lesson in lessons if lesson.milestone_id == milestone.id]
         result.append({"milestone": milestone, "lessons": milestone_lessons})
     return result
 

@@ -24,6 +24,7 @@ import StudentDashboard from "./pages/dashboards/Student/StudentDashboard";
 import LessonPlayer from "./pages/dashboards/Student/LessonPlayer";
 import LessonChat from "./pages/dashboards/Student/LessonChat";
 import StudentLessons from "./pages/dashboards/Student/StudentLessons";
+import StudentCourses from "./pages/dashboards/Student/StudentCourses";
 import StudentMaterials from "./pages/dashboards/Student/StudentMaterials";
 import StudentAssignments from "./pages/dashboards/Student/StudentAssignments";
 import StudentQuizzes from "./pages/dashboards/Student/StudentQuizzes";
@@ -67,7 +68,8 @@ const router = createBrowserRouter([
         element: <MainLayout />,
         children: [
           { path: "/dashboard/student", element: <StudentDashboard /> },
-          { path: "/dashboard/student/lessons", element: <StudentLessons /> },
+          { path: "/dashboard/student/courses", element: <StudentCourses /> },
+          { path: "/dashboard/student/courses/:courseId", element: <StudentLessons /> },
           { path: "/dashboard/student/lesson/:lessonId", element: <LessonChat /> },
           { path: "/dashboard/student/materials", element: <StudentMaterials /> },
           { path: "/dashboard/student/assignments", element: <StudentAssignments /> },

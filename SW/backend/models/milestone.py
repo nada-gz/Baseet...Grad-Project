@@ -9,6 +9,7 @@ class Milestone(SQLModel, table=True):
 
     student_id: int = Field(foreign_key="students.id")
 
+    course_id: Optional[int] = Field(default=None, foreign_key="courses.id")
     title: str
     number: int   # milestone number (1, 2, 3, ...)
     description: Optional[str] = None

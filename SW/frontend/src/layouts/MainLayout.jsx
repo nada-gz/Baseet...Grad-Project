@@ -50,8 +50,8 @@ export default function MainLayout() {
       case "student":
         return [
           {
-            label: "Lessons",
-            path: "/dashboard/student/lessons",
+            label: "Courses",
+            path: "/dashboard/student/courses",
             icon: <BookOpen size={20} />
           },
           {
