@@ -512,16 +512,26 @@ def get_student_educational_progress(student_id: int, session: Session = Depends
         state="Stressed" if student_obj.id % 2 == 0 else "Relaxed"
     )
 
-    # 2. Fetch Lessons for this student
-    lessons_stmt = select(Lesson).where(Lesson.student_id == student_id).order_by(Lesson.milestone_number, Lesson.lesson_number)
+    # 2. Fetch Lessons for this student - JOIN with Milestone to get hierarchy and correct ordering
+    lessons_stmt = (
+        select(Lesson)
+        .join(Milestone, Lesson.milestone_id == Milestone.id)
+        .where(Lesson.student_id == student_id)
+        .order_by(Milestone.course_id, Milestone.number, Lesson.lesson_number)
+    )
     lessons_list = session.exec(lessons_stmt).all()
     
-    # Group by milestone
-    milestones_dict = {}
+    # Group by (course_id, milestone_number)
+    milestones_dict = {} # Key: (course_id, milestone_number)
+    
     for lesson in lessons_list:
-        m_num = lesson.milestone_number
-        if m_num not in milestones_dict:
-            milestones_dict[m_num] = []
+        # Lesson object now has access to milestone via relationship
+        m_num = lesson.milestone.number
+        c_id = lesson.milestone.course_id
+        
+        key = (c_id, m_num)
+        if key not in milestones_dict:
+            milestones_dict[key] = []
         
         # For each lesson, fetch assignments
         assign_stmt = select(Assignment).where(Assignment.lesson_id == lesson.id)
@@ -571,7 +581,7 @@ def get_student_educational_progress(student_id: int, session: Session = Depends
                 assignment_file_url=assign.file_url
             ))
 
-        milestones_dict[m_num].append(StudentProgressLesson(
+        milestones_dict[key].append(StudentProgressLesson(
             id=lesson.id,
             title=lesson.title,
             status=lesson.status,
@@ -580,10 +590,14 @@ def get_student_educational_progress(student_id: int, session: Session = Depends
         ))
 
     milestones_resp = []
-    for m_num in sorted(milestones_dict.keys()):
+    # Sort keys by course_id, then milestone_number
+    sorted_keys = sorted(milestones_dict.keys())
+    
+    for c_id, m_num in sorted_keys:
         milestones_resp.append(StudentProgressMilestone(
             milestone_number=m_num,
-            lessons=milestones_dict[m_num]
+            course_id=c_id,
+            lessons=milestones_dict[(c_id, m_num)]
         ))
     
     return StudentProgressResponse(

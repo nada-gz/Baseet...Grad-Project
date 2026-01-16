@@ -759,6 +759,7 @@ a:hover {
 .file-show {
   margin-right: 5px;
 }
+
 /* Card Icon */
 .student-card .card-icon {
   color: var(--highlight);
@@ -3433,6 +3434,19 @@ a:hover {
   z-index: 0;
 }
 
+.course-divider-label {
+  font-family: var(--font-title);
+  font-size: 1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--highlight);
+  margin: 2rem 0 1rem 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--neutral);
+  width: fit-content;
+}
+
 .milestone-node {
   position: relative;
   z-index: 1;
@@ -3722,102 +3736,104 @@ a:hover {
 
 .ass-feed {
   margin-bottom: 10px;
-}/* -------------------------------------
+}
+
+/* -------------------------------------
    Student Courses Page (Refined)
    Matches "Lessons Preparation" Card Style
 -------------------------------------- */
 .student-courses-page {
-    padding: 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .student-courses-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 30px;
-    padding: 20px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 30px;
+  padding: 20px 0;
 }
 
 .student-course-card {
-    background-color: white;
-    border-radius: 1rem;
-    padding: 2rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
-    border: 1px solid transparent;
-    display: flex;
-    flex-direction: column;
-    min-height: 280px;
-    text-decoration: none;
-    color: inherit;
-    position: relative;
-    overflow: hidden;
+  background-color: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+  overflow: hidden;
 }
 
 .student-course-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 24px rgba(108, 99, 255, 0.15);
-    border-color: var(--highlight);
-    background: white;
+  transform: translateY(-5px);
+  box-shadow: 0 12px 24px rgba(108, 99, 255, 0.15);
+  border-color: var(--highlight);
+  background: white;
 }
 
 .student-course-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
 }
 
 .student-course-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--primary-text);
-    font-family: var(--font-title);
-    line-height: 1.2;
-    margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-text);
+  font-family: var(--font-title);
+  line-height: 1.2;
+  margin: 0;
 }
 
 .student-course-body {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .student-course-label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--secondary-text);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--secondary-text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .student-course-desc {
-    font-size: 0.95rem;
-    color: var(--primary-text);
-    line-height: 1.6;
-    background: #f8fafc;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    border: 1px solid #f1f5f9;
-    flex-grow: 1;
+  font-size: 0.95rem;
+  color: var(--primary-text);
+  line-height: 1.6;
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #f1f5f9;
+  flex-grow: 1;
 }
 
 .student-course-footer {
-    margin-top: 1.5rem;
-    padding-top: 1rem;
-    border-top: 1px solid #f1f5f9;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: var(--highlight);
-    font-weight: 600;
-    font-size: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--highlight);
+  font-weight: 600;
+  font-size: 1rem;
 }
 
-.filter-text{
-  font-size: 1rem; 
+.filter-text {
+  font-size: 1rem;
   font-weight: 500;
   color: #475569;
   margin-bottom: 10px;

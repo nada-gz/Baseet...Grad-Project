@@ -130,13 +130,13 @@ export default function StudentEducationalProgress() {
 
                                 <span className="text-highlight font-black">
                                     {Math.round(
-                                    milestones.reduce(
-                                        (acc, m) =>
-                                        acc +
-                                        m.lessons.reduce((lacc, l) => lacc + l.progress, 0) /
-                                            (m.lessons.length || 1),
-                                        0
-                                    ) / (milestones.length || 1)
+                                        milestones.reduce(
+                                            (acc, m) =>
+                                                acc +
+                                                m.lessons.reduce((lacc, l) => lacc + l.progress, 0) /
+                                                (m.lessons.length || 1),
+                                            0
+                                        ) / (milestones.length || 1)
                                     )}
                                     %
                                 </span>
@@ -157,8 +157,13 @@ export default function StudentEducationalProgress() {
                     {milestones.length === 0 ? (
                         <div className="empty-placeholder">No milestones assigned yet.</div>
                     ) : (
-                        milestones.map((milestone) => (
-                            <div key={milestone.milestone_number} className="milestone-node">
+                        milestones.map((milestone, index) => (
+                            <div key={`${milestone.id || index}-${milestone.milestone_number}`} className="milestone-node">
+                                {index === 0 || milestones[index - 1].course_id !== milestone.course_id ? (
+                                    <h3 className="course-divider-label">
+                                        Course {milestone.course_id}
+                                    </h3>
+                                ) : null}
                                 <div className="milestone-marker">
                                     {milestone.milestone_number}
                                 </div>
