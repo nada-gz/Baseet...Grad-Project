@@ -64,6 +64,7 @@ class StudentProgressLesson(BaseModel):
 
 class StudentProgressMilestone(BaseModel):
     milestone_number: int
+    course_id: Optional[int] = None
     lessons: List[StudentProgressLesson] = []
 
 class StudentProgressResponse(BaseModel):

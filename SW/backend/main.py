@@ -46,3 +46,9 @@ app.include_router(ai_router)
 @app.get("/")
 def read_root():
     return {"message": "Hello from backend"}
+
+#Health Check Endpoint
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
