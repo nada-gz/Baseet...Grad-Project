@@ -17,6 +17,7 @@ class LessonRead(BaseModel):
     status: str
 
     number: str
+    course_id: Optional[int] = None
     materials: List[MaterialRead] = []
 
     class Config:

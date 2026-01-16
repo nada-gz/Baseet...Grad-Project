@@ -26,6 +26,10 @@ class Lesson(SQLModel, table=True):
     def milestone_number(self) -> int:
         return self.milestone.number if self.milestone else 0
 
+    @property
+    def course_id(self) -> Optional[int]:
+        return self.milestone.course_id if self.milestone else None
+
     progress: int = 0
     status: str = "locked"
 
