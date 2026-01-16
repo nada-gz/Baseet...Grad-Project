@@ -120,7 +120,7 @@ export default function StudentDashboard() {
                 </div>
 
                 <Link
-                  to={`/dashboard/student/courses/${currentLesson.course_id}`} // Assuming course_id is available, or fallback
+                  to={`/dashboard/student/lesson/${currentLesson.id}`}
                   className="btn btn-primary continue-btn"
                 >
                   Continue

@@ -131,6 +131,7 @@ def get_lessons_route(student_id: int, course_id: int = None, session: Session =
                 progress=lesson.progress,
                 status=lesson.status,
                 number=f"{lesson.milestone_number}.{lesson.lesson_number}",
+                course_id=lesson.course_id,
                 materials=materials
             )
         )
