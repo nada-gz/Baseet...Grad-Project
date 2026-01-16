@@ -1718,7 +1718,7 @@ a:hover {
 -------------------------------------- */
 
 .teacher-cards-row {
-  margin-top: 110px;
+  margin-top: 130px;
   display: flex;
   flex-wrap: wrap;
   gap: 2.5rem;
@@ -1733,7 +1733,7 @@ a:hover {
   padding: 2rem;
   width: 310px;
   /* a bit narrower */
-  height: 380px;
+  height: 350px;
   /* taller for more presence */
   display: flex;
   flex-direction: column;
@@ -1751,7 +1751,7 @@ a:hover {
   /* subtle hover effect */
 }
 
-.teacher-card .card-icon {
+.teacher-card .card-icon .ass-status{
   margin-bottom: 1rem;
 }
 

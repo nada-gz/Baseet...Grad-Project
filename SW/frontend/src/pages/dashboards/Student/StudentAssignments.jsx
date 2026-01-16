@@ -63,16 +63,22 @@ export default function StudentAssignments() {
 
   useEffect(() => {
     const fetchCourses = async () => {
+      if (!student?.id) return;
       try {
-        const res = await api.get("/students/courses");
-        setCourses(res.data);
-        if (res.data.length > 0) setSelectedCourse(res.data[0].id);
+        const res = await api.get(`/students/${student.id}/assigned-courses`);
+        const sortedCourses = res.data.sort((a, b) => {
+          const titleA = (a.title || `Course ${a.course_number}`).toLowerCase();
+          const titleB = (b.title || `Course ${b.course_number}`).toLowerCase();
+          return titleA.localeCompare(titleB);
+        });
+        setCourses(sortedCourses);
+        if (sortedCourses.length > 0) setSelectedCourse(sortedCourses[0].id);
       } catch (err) {
         console.error("Failed to load courses:", err);
       }
     };
     fetchCourses();
-  }, []);
+  }, [student?.id]);
 
   useEffect(() => {
     const loadLessonsAssignmentsAndSubmissions = async () => {
@@ -109,8 +115,8 @@ export default function StudentAssignments() {
       setOpenMilestones(initialOpenMilestones);
       setOpenLessons(initialOpenLessons);
     };
-    if (student?.id) loadLessonsAssignmentsAndSubmissions();
-  }, [student, selectedCourse]);
+    if (student?.id && selectedCourse) loadLessonsAssignmentsAndSubmissions();
+  }, [student?.id, selectedCourse]);
 
   const getLessonStatus = (lesson) => {
     if (lesson.progress === 100) return "completed";
@@ -174,175 +180,214 @@ export default function StudentAssignments() {
 
   return (
     <div className="materials-page">
-      {/* Course Filter */}
-      <div className="course-filter-section" style={{ marginBottom: "1rem" }}>
-        <div className="flex items-center gap-3">
-          <p className="filter-text">Filter by Course:</p>
-          <select
-            className="p-2 border border-slate-300 rounded-lg text-sm bg-white"
-            value={selectedCourse || ""}
-            onChange={(e) => setSelectedCourse(Number(e.target.value) || null)}
-          >
-            {courses.map(course => (
-              <option key={course.id} value={course.id}>{course.title}</option>
-            ))}
-          </select>
+      {courses.length === 0 ? (
+        <div className="text-center p-10 bg-white rounded-lg border border-dashed border-slate-300">
+          <p className="text-slate-500">No courses assigned yet.</p>
         </div>
-      </div>
-      {Object.entries(milestones).map(([milestoneNumber, lessons]) => (
-        <div key={milestoneNumber} className="milestone-card">
-          <div className="milestone-header" onClick={() => toggleMilestone(milestoneNumber)}>
-            {openMilestones[milestoneNumber] ? (
-              <ChevronDown size={18} color="var(--highlight)" />
-            ) : (
-              <ChevronRight size={18} color="var(--highlight)" />
-            )}
-            <h2>Milestone {milestoneNumber}</h2>
+      ) : (
+        <>
+          {/* Course Filter */}
+          <div className="course-filter-section" style={{ marginBottom: "1rem" }}>
+            <div className="flex items-center gap-3">
+              <p className="filter-text">Filter by Course:</p>
+              <select
+                className="p-2 border border-slate-300 rounded-lg text-sm bg-white"
+                value={selectedCourse || ""}
+                onChange={(e) => setSelectedCourse(Number(e.target.value) || null)}
+              >
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.title || `Course ${course.course_number}`}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          {openMilestones[milestoneNumber] &&
-            lessons.map((lesson) => {
-              const status = getLessonStatus(lesson);
-              return (
-                <div key={lesson.id} className="lesson-block">
-                  <div className="lesson-header" onClick={() => toggleLesson(lesson.id)}>
-                    {openLessons[lesson.id] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                    <span>
-                      Lesson {lesson.lesson_number}: {lesson.title}
-                    </span>
-                  </div>
+          {Object.keys(milestones).length === 0 ? (
+            <div className="text-center p-10 bg-white rounded-lg border border-dashed border-slate-300 mt-4">
+              <p className="text-slate-500 italic">No milestones assigned yet for this course.</p>
+            </div>
+          ) : (
+            Object.entries(milestones).map(([milestoneNumber, lessons]) => (
+              <div key={milestoneNumber} className="milestone-card">
+                <div
+                  className="milestone-header"
+                  onClick={() => toggleMilestone(milestoneNumber)}
+                >
+                  {openMilestones[milestoneNumber] ? (
+                    <ChevronDown size={18} color="var(--highlight)" />
+                  ) : (
+                    <ChevronRight size={18} color="var(--highlight)" />
+                  )}
+                  <h2>Milestone {milestoneNumber}</h2>
+                </div>
 
-                  {openLessons[lesson.id] ? (
-                    lesson.assignments?.length > 0 ? (
-                      <>
-                        <div className="materials-list">
-                          {lesson.assignments.map((assignment) => (
-                            <div key={assignment.id} className="material-item">
-                              <div className="material-info">
-                                <div className="material-icon">
-                                  {assignmentIcons[assignment.assignment_type] || <File size={18} />}
-                                </div>
-                                <div className="material-text">
-                                  <p className="material-title">{assignment.title}</p>
-                                  {assignment.description && (
-                                    <p className="material-description">{assignment.description}</p>
-                                  )}
-                                  {assignment.deadline && (
-                                    <p className="material-deadline">
-                                      Deadline: {new Date(assignment.deadline).toLocaleString()} (
-                                      {formatRemaining(assignment.deadline)})
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-
-                              <input
-                                type="file"
-                                multiple
-                                style={{ display: "none" }}
-                                ref={(el) => (fileInputsRef.current[assignment.id] = el)}
-                                onChange={(e) => handleFileChange(assignment.id, e)}
-                              />
-
-                              {status === "locked" ? (
-                                <span className="material-locked">
-                                  <Lock size={24} />
-                                </span>
-                              ) : (
-                                <div className="material-actions-wrapper">
-                                  <a
-                                    href={`http://127.0.0.1:8000${assignment.file_url}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="material-btn material-btn-outline material-btn-equal"
-                                  >
-                                    <Eye size={16} /> View
-                                  </a>
-
-                                  <button
-                                    className="material-btn material-btn-outline material-btn-equal"
-                                    onClick={() => handleUploadClick(assignment.id)}
-                                  >
-                                    {assignment.submission ? (
-                                      <>
-                                        <RefreshCcw size={16} /> Resubmit
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Upload size={16} /> Upload
-                                      </>
-                                    )}
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          ))}
+                {openMilestones[milestoneNumber] &&
+                  lessons.map((lesson) => {
+                    const status = getLessonStatus(lesson);
+                    return (
+                      <div key={lesson.id} className="lesson-block">
+                        <div
+                          className="lesson-header"
+                          onClick={() => toggleLesson(lesson.id)}
+                        >
+                          {openLessons[lesson.id] ? (
+                            <ChevronDown size={16} />
+                          ) : (
+                            <ChevronRight size={16} />
+                          )}
+                          <span>
+                            Lesson {lesson.lesson_number}: {lesson.title}
+                          </span>
                         </div>
 
-                        {/* Submitted & Feedback Section */}
-                        {lesson.assignments.some((a) => a.submission) && (
-                          <div className="submission-feedback-wrapper">
-                            {lesson.assignments.map(
-                              (assignment) =>
-                                assignment.submission && (
-                                  <div key={assignment.id} className="submission-feedback-card">
-                                    <div className="submitted-section">
-                                      <span className="submitted-label">
-                                        Submitted •{" "}
-                                        {assignment.submission.updated_at ||
-                                          assignment.submission.submitted_at
-                                          ? new Date(
-                                            assignment.submission.updated_at ||
-                                            assignment.submission.submitted_at
-                                          ).toLocaleString()
-                                          : "Unknown date"}
-                                      </span>
-                                      <div className="submitted-files">
-                                        {assignment.submission.submission_files?.map((file, i) => (
-                                          <a
-                                            key={i}
-                                            href={`http://127.0.0.1:8000${file.file_url}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="submitted-file-small link"
-                                          >
-                                            {file.file_name}
-                                          </a>
-                                        ))}
+                        {openLessons[lesson.id] ? (
+                          lesson.assignments?.length > 0 ? (
+                            <>
+                              <div className="materials-list">
+                                {lesson.assignments.map((assignment) => (
+                                  <div key={assignment.id} className="material-item">
+                                    <div className="material-info">
+                                      <div className="material-icon">
+                                        {assignmentIcons[assignment.assignment_type] || (
+                                          <File size={18} />
+                                        )}
+                                      </div>
+                                      <div className="material-text">
+                                        <p className="material-title">{assignment.title}</p>
+                                        {assignment.description && (
+                                          <p className="material-description">
+                                            {assignment.description}
+                                          </p>
+                                        )}
+                                        {assignment.deadline && (
+                                          <p className="material-deadline">
+                                            Deadline:{" "}
+                                            {new Date(assignment.deadline).toLocaleString()} (
+                                            {formatRemaining(assignment.deadline)})
+                                          </p>
+                                        )}
                                       </div>
                                     </div>
 
-                                    {assignment.submission.feedback && (
-                                      <div className="feedback-box">
-                                        <div className="feedback-title">Feedback</div>
-                                        <div className="feedback-comment">
-                                          {assignment.submission.feedback.comment}
-                                        </div>
-                                        {assignment.submission.feedback.rating && (
-                                          <div className="feedback-rating">
-                                            {renderStars(assignment.submission.feedback.rating)}
-                                          </div>
-                                        )}
+                                    <input
+                                      type="file"
+                                      multiple
+                                      style={{ display: "none" }}
+                                      ref={(el) => (fileInputsRef.current[assignment.id] = el)}
+                                      onChange={(e) => handleFileChange(assignment.id, e)}
+                                    />
+
+                                    {status === "locked" ? (
+                                      <span className="material-locked">
+                                        <Lock size={24} />
+                                      </span>
+                                    ) : (
+                                      <div className="material-actions-wrapper">
+                                        <a
+                                          href={`http://127.0.0.1:8000${assignment.file_url}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="material-btn material-btn-outline material-btn-equal"
+                                        >
+                                          <Eye size={16} /> View
+                                        </a>
+
+                                        <button
+                                          className="material-btn material-btn-outline material-btn-equal"
+                                          onClick={() => handleUploadClick(assignment.id)}
+                                        >
+                                          {assignment.submission ? (
+                                            <>
+                                              <RefreshCcw size={16} /> Resubmit
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Upload size={16} /> Upload
+                                            </>
+                                          )}
+                                        </button>
                                       </div>
                                     )}
                                   </div>
-                                )
-                            )}
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="materials-empty-icon">
-                        <span>No assignments uploaded yet</span>
-                        <Frown size={24} className="sad-icon" />
+                                ))}
+                              </div>
+
+                              {/* Submitted & Feedback Section */}
+                              {lesson.assignments.some((a) => a.submission) && (
+                                <div className="submission-feedback-wrapper">
+                                  {lesson.assignments.map(
+                                    (assignment) =>
+                                      assignment.submission && (
+                                        <div
+                                          key={assignment.id}
+                                          className="submission-feedback-card"
+                                        >
+                                          <div className="submitted-section">
+                                            <span className="submitted-label">
+                                              Submitted •{" "}
+                                              {assignment.submission.updated_at ||
+                                                assignment.submission.submitted_at
+                                                ? new Date(
+                                                  assignment.submission.updated_at ||
+                                                  assignment.submission.submitted_at
+                                                ).toLocaleString()
+                                                : "Unknown date"}
+                                            </span>
+                                            <div className="submitted-files">
+                                              {assignment.submission.submission_files?.map(
+                                                (file, i) => (
+                                                  <a
+                                                    key={i}
+                                                    href={`http://127.0.0.1:8000${file.file_url}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="submitted-file-small link"
+                                                  >
+                                                    {file.file_name}
+                                                  </a>
+                                                )
+                                              )}
+                                            </div>
+                                          </div>
+
+                                          {assignment.submission.feedback && (
+                                            <div className="feedback-box">
+                                              <div className="feedback-title">Feedback</div>
+                                              <div className="feedback-comment">
+                                                {assignment.submission.feedback.comment}
+                                              </div>
+                                              {assignment.submission.feedback.rating && (
+                                                <div className="feedback-rating">
+                                                  {renderStars(
+                                                    assignment.submission.feedback.rating
+                                                  )}
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )
+                                  )}
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <div className="materials-empty-icon">
+                              <span>No assignments uploaded yet</span>
+                              <Frown size={24} className="sad-icon" />
+                            </div>
+                          )
+                        ) : null}
                       </div>
-                    )
-                  ) : null}
-                </div>
-              );
-            })}
-        </div>
-      ))}
+                    );
+                  })}
+              </div>
+            ))
+          )}
+        </>
+      )}
     </div>
   );
 }

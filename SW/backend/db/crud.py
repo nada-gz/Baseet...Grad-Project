@@ -17,6 +17,7 @@ from models.log import Log
 from models.content_lesson import ContentLesson
 from models.content_material import ContentMaterial
 from models.content_course import ContentCourse
+from models.content_assignment import ContentAssignment
 from models.class_level import ClassLevel
 from models.classroom import Classroom, ClassroomCourseLink
 from utils.auth import hash_password
