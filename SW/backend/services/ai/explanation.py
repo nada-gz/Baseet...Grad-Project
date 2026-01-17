@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-CHROMA_DB_PATH = "./autism_rag_db"
+CHROMA_DB_PATH = os.path.join(os.path.dirname(__file__), "autism_rag_db")  # Full path to local autism_rag_db
 COLLECTION_NAME = "autism_content_arabic"
 EMBEDDING_MODEL_NAME = 'intfloat/multilingual-e5-large'
 GENERATION_MODEL = 'gemini-2.5-flash'
@@ -145,3 +145,152 @@ def prepare_system_instruction():
             - **لا تكرر الإجابة السابقة أبداً.**
         3. **اللغة:** صيغ الإجابة لتكون بلهجة مصرية عامية (ECA).
     """)
+
+# ==========================================
+# 5. GEMINI AGENT TOOLS (for agentic architecture)
+# ==========================================
+
+# Define Gemini function calling tools for Explanation Agent
+EXPLANATION_TOOLS = [
+    {
+        "function_declarations": [
+            {
+                "name": "retrieve_context",
+                "description": "Retrieves relevant context from the ChromaDB knowledge base for a given query",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "The query text to search for in the knowledge base"
+                        },
+                        "k": {
+                            "type": "integer",
+                            "description": "Number of top results to retrieve (default: 3)",
+                            "default": 3
+                        }
+                    },
+                    "required": ["query"]
+                }
+            },
+            {
+                "name": "generate_mcq_question",
+                "description": "Generates a multiple choice question (MCQ) in Egyptian Arabic based on provided context",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "context": {
+                            "type": "string",
+                            "description": "The context/content to base the MCQ on"
+                        }
+                    },
+                    "required": ["context"]
+                }
+            },
+            {
+                "name": "create_chat_session",
+                "description": "Initializes a new Gemini chat session with system instructions for autism-friendly explanations",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "system_instruction": {
+                            "type": "string",
+                            "description": "Optional custom system instruction (uses default if not provided)"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "generate_explanation",
+                "description": "Generates an autism-friendly explanation using RAG context",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "The query or topic to explain"
+                        },
+                        "context": {
+                            "type": "string",
+                            "description": "Retrieved context to use for explanation"
+                        },
+                        "is_clarification": {
+                            "type": "boolean",
+                            "description": "Whether this is a clarification request",
+                            "default": False
+                        }
+                    },
+                    "required": ["query", "context"]
+                }
+            }
+        ]
+    }
+]
+
+def execute_explanation_tool(tool_name, args, chroma_client=None, embed_model=None, gemini_client=None):
+    """
+    Execute an explanation tool based on Gemini function call
+    
+    Args:
+        tool_name: Name of the tool to execute
+        args: Dictionary of arguments for the tool
+        chroma_client: ChromaDB client (required for retrieve_context)
+        embed_model: Embedding model (required for retrieve_context)
+        gemini_client: Gemini client (required for other tools)
+    
+    Returns:
+        Tool execution result
+    """
+    try:
+        if tool_name == "retrieve_context":
+            if not chroma_client or not embed_model:
+                return {"error": "ChromaDB client and embed model required", "success": False}
+            
+            query = args.get("query", "")
+            k = args.get("k", 3)
+            context = get_context_from_db(chroma_client, query, embed_model, k=k)
+            return {
+                "context": context,
+                "num_results": len(context),
+                "success": True
+            }
+        
+        elif tool_name == "generate_mcq_question":
+            if not gemini_client:
+                return {"error": "Gemini client required", "success": False}
+            
+            context = args.get("context", "")
+            mcq = generate_mcq(gemini_client, context)
+            if mcq:
+                return {"mcq": mcq, "success": True}
+            else:
+                return {"error": "Failed to generate MCQ", "success": False}
+        
+        elif tool_name == "create_chat_session":
+            if not gemini_client:
+                return {"error": "Gemini client required", "success": False}
+            
+            system_instruction = args.get("system_instruction") or prepare_system_instruction()
+            chat = initialize_chat_session(gemini_client, system_instruction)
+            return {"chat_id": id(chat), "success": True, "chat_session": chat}
+        
+        elif tool_name == "generate_explanation":
+            query = args.get("query", "")
+            context = args.get("context", "")
+            is_clarification = args.get("is_clarification", False)
+            
+            # For now, return the context-based explanation structure
+            # In full implementation, this would use chat session
+            return {
+                "query": query,
+                "context_provided": bool(context),
+                "is_clarification": is_clarification,
+                "success": True
+            }
+        
+        else:
+            return {"error": f"Unknown tool: {tool_name}", "success": False}
+    
+    except Exception as e:
+        return {"error": str(e), "success": False}
+
