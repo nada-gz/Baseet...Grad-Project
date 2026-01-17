@@ -9,4 +9,9 @@ email-validator
 psycopg2-binary
 google-generativeai
 numpy
-gmqtt
+
+# OCR dependencies
+pillow
+pytesseract
+arabic-reshaper
+python-bidi
