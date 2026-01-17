@@ -64,6 +64,7 @@ app.include_router(iot_router)
 def read_root():
     return {"message": "Hello from backend"}
 
+# deployment refresh
 @app.get("/health")
 def health():
     return {"status": "ok"}
