@@ -1,5 +1,6 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from typing import Optional
 import datetime
 
 from services.ai.ai_service import (
@@ -11,7 +12,11 @@ from services.ai.ai_service import (
     generate_feedback,
     log_interaction_db,
     CLARIFICATION_PHRASES,
-    CONFIRMATION_PHRASES
+    CONFIRMATION_PHRASES,
+    orchestrator,
+    process_text_input,
+    process_voice_input,
+    speak_text
 )
 
 router = APIRouter(prefix="/ai", tags=["AI"])
@@ -220,3 +225,127 @@ async def chat_lesson(request: ChatRequest):
             message="🎉 انتهى الدرس! ارجع لصفحة الدروس لاختيار درس آخر.",
             state="finished"
         )
+
+
+# =========================
+# STT & TTS ENDPOINTS
+# =========================
+
+class VoiceInputRequest(BaseModel):
+    """Request model for voice input (STT)."""
+    session_id: Optional[str] = "default"
+
+
+class TTSRequest(BaseModel):
+    """Request model for text-to-speech."""
+    text: str
+
+
+class TextInputRequest(BaseModel):
+    """Request model for SmartOrchestrator text input."""
+    text: str
+    session_id: Optional[str] = "default"
+
+
+@router.post("/voice")
+async def process_voice_endpoint(request: VoiceInputRequest):
+    """
+    Process voice input using STT module.
+    
+    Flow:
+    1. Captures audio via microphone
+    2. Transcribes using Wav2Vec2 (Egyptian Arabic)
+    3. Saves to shared_data.json
+    4. Routes through SmartOrchestrator
+    
+    Returns:
+        Dictionary with transcription and AI response
+    """
+    try:
+        result = process_voice_input(request.session_id)
+        
+        if not result.get("success"):
+            raise HTTPException(
+                status_code=400,
+                detail=result.get("error", "Voice processing failed")
+            )
+        
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Voice processing error: {str(e)}")
+
+
+@router.post("/speak")
+async def text_to_speech_endpoint(request: TTSRequest):
+    """
+    Convert text to speech using TTS module.
+    
+    Flow:
+    1. Normalizes Arabic text for TTS
+    2. Converts to speech using ElevenLabs
+    3. Plays audio
+    
+    Returns:
+        Success status with normalized text
+    """
+    if not request.text or not request.text.strip():
+        raise HTTPException(status_code=400, detail="Text is required for TTS")
+    
+    try:
+        result = speak_text(request.text)
+        
+        if not result.get("success"):
+            raise HTTPException(
+                status_code=400,
+                detail=result.get("error", "TTS failed")
+            )
+        
+        return {
+            "success": True,
+            "message": "Audio generated and playing",
+            "original_text": request.text,
+            "normalized_text": result.get("normalized_text")
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"TTS error: {str(e)}")
+
+
+@router.post("/orchestrator/process")
+async def smart_orchestrator_endpoint(request: TextInputRequest):
+    """
+    Process text input through SmartOrchestrator.
+    
+    Rule-based routing:
+    - If word_count > 10 → Cutter (text chunking)
+    - Otherwise → Explanation with RAG
+    
+    Returns:
+        AI response with appropriate routing
+    """
+    if not request.text or not request.text.strip():
+        raise HTTPException(status_code=400, detail="Text input is required")
+    
+    try:
+        result = process_text_input(request.text, request.session_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Processing error: {str(e)}")
+
+
+@router.get("/orchestrator/health")
+async def orchestrator_health():
+    """Health check for SmartOrchestrator modules."""
+    return {
+        "status": "healthy",
+        "modules": {
+            "cutter": orchestrator is not None,
+            "explanation": True,
+            "tts": orchestrator.voice is not None if orchestrator else False,
+            "stt": orchestrator.ear is not None if orchestrator else False
+        }
+    }
+
