@@ -1,4 +1,5 @@
 # routers/students.py
+from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form
 from sqlmodel import Session, select, update
 from pathlib import Path
@@ -8,7 +9,7 @@ from datetime import datetime
 from db.database import engine, get_session
 from db.crud import (
     create_student, get_all_students, get_student_by_id, update_student, delete_student,
-    get_milestones, create_milestone,
+    get_milestones, create_milestone, get_courses
 )
 from models.student import Student
 from models.lesson import Lesson
@@ -18,11 +19,13 @@ from models.assignment import Assignment
 from models.submission import Submission
 from models.submission_file import SubmissionFile
 from models.feedback import Feedback
+from models.course import Course
 from schemas.student_schema import StudentCreate, StudentRead, StudentUpdate
 from schemas.lesson_schema import LessonRead, LessonUpdate
 from schemas.milestone_schema import MilestoneRead, MilestoneCreate
 from schemas.material_schema import MaterialRead
 from schemas.assignment_schema import AssignmentRead
+from schemas.course_schema import CourseRead
 
 import traceback
 
@@ -44,6 +47,10 @@ def create_student_route(student: StudentCreate):
 def get_students_route():
     return get_all_students()
 
+@router.get("/courses", response_model=list[CourseRead])
+def get_courses_route():
+    courses = get_courses()
+    return courses
 
 @router.get("/{student_id}", response_model=StudentRead)
 def get_student_route(student_id: int):
@@ -73,11 +80,11 @@ def delete_student_route(student_id: int):
 # Milestones endpoints
 # ---------------------------
 @router.get("/{student_id}/milestones", response_model=list[MilestoneRead])
-def get_milestones_route(student_id: int):
+def get_milestones_route(student_id: int, course_id: int = None):
     student = get_student_by_id(student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
-    return get_milestones(student_id)
+    return get_milestones(student_id, course_id)
 
 
 @router.post("/{student_id}/milestones", response_model=MilestoneRead)
@@ -93,12 +100,22 @@ def create_milestone_route(student_id: int, milestone: MilestoneCreate):
 # Lessons endpoints
 # ---------------------------
 @router.get("/{student_id}/lessons", response_model=list[LessonRead])
-def get_lessons_route(student_id: int, session: Session = Depends(get_session)):
+def get_lessons_route(student_id: int, course_id: int = None, session: Session = Depends(get_session)):
     student = get_student_by_id(student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    lessons = session.exec(select(Lesson).where(Lesson.student_id == student_id)).all()
+    query = select(Lesson).where(Lesson.student_id == student_id)
+    
+    # Join with Milestone for ordering and filtering
+    query = query.join(Milestone)
+    
+    if course_id:
+        query = query.where(Milestone.course_id == course_id)
+
+    query = query.order_by(Milestone.number, Lesson.lesson_number)
+
+    lessons = session.exec(query).all()
     lessons_with_materials = []
 
     for lesson in lessons:
@@ -114,6 +131,7 @@ def get_lessons_route(student_id: int, session: Session = Depends(get_session)):
                 progress=lesson.progress,
                 status=lesson.status,
                 number=f"{lesson.milestone_number}.{lesson.lesson_number}",
+                course_id=lesson.course_id,
                 materials=materials
             )
         )

@@ -35,11 +35,33 @@ export default function StudentMaterials() {
   const [milestones, setMilestones] = useState({});
   const [openMilestones, setOpenMilestones] = useState({});
   const [openLessons, setOpenLessons] = useState({});
+  const [courses, setCourses] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+
+  useEffect(() => {
+    // 1. Fetch Courses
+    const fetchCourses = async () => {
+      try {
+        const res = await api.get("/students/courses");
+        setCourses(res.data);
+        // Default to first course if available
+        if (res.data.length > 0) setSelectedCourse(res.data[0].id);
+      } catch (err) {
+        console.error("Failed to load courses:", err);
+      }
+    };
+    fetchCourses();
+  }, []);
 
   useEffect(() => {
     const loadLessonsAndMaterials = async () => {
-      const res = await api.get(`/students/${student.id}/lessons`);
+      // Fetch lessons filtered by selected course
+      const params = selectedCourse ? { course_id: selectedCourse } : {};
+      const res = await api.get(`/students/${student.id}/lessons`, { params });
+
       const grouped = {};
+      const initialOpenMilestones = {};
+      const initialOpenLessons = {};
 
       for (let lesson of res.data) {
         // fetch materials for each lesson
@@ -50,13 +72,19 @@ export default function StudentMaterials() {
 
         if (!grouped[lesson.milestone_number]) grouped[lesson.milestone_number] = [];
         grouped[lesson.milestone_number].push(lesson);
+
+        // Expand by default
+        initialOpenMilestones[lesson.milestone_number] = true;
+        initialOpenLessons[lesson.id] = true;
       }
 
       setMilestones(grouped);
+      setOpenMilestones(initialOpenMilestones);
+      setOpenLessons(initialOpenLessons);
     };
 
     if (student?.id) loadLessonsAndMaterials();
-  }, [student]);
+  }, [student, selectedCourse]);
 
   const getLessonStatus = (lesson) => {
     if (lesson.progress === 100) return "completed";
@@ -80,6 +108,22 @@ export default function StudentMaterials() {
 
   return (
     <div className="materials-page">
+      {/* Course Filter */}
+      <div className="course-filter-section" style={{ marginBottom: "1rem" }}>
+        <div className="flex items-center gap-3">
+          <p className="filter-text">Filter by Course:</p>
+          <select
+            className="p-2 border border-slate-300 rounded-lg text-sm bg-white"
+            value={selectedCourse || ""}
+            onChange={(e) => setSelectedCourse(Number(e.target.value) || null)}
+          >
+            {courses.map(course => (
+              <option key={course.id} value={course.id}>{course.title}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
 
       {Object.entries(milestones).map(([milestoneNumber, lessons]) => (
         <div key={milestoneNumber} className="milestone-card">
