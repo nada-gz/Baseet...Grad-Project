@@ -15,3 +15,5 @@ pillow
 pytesseract
 arabic-reshaper
 python-bidi
+
+python-multipart
