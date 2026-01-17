@@ -1,16 +1,16 @@
 import io
-import fitz  # PyMuPDF
 from PIL import Image
 import pytesseract
 import arabic_reshaper
 from bidi.algorithm import get_display
 import platform
 
-# Set tesseract path for Windows
+# Set tesseract path for Windows (local dev only)
 if platform.system() == "Windows":
     pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
-# Helper function to reshape Arabic text so it displays correctly (Right-to-Left)
+
+# Helper function to reshape Arabic text so it displays correctly (RTL)
 def format_arabic_text(text, lang):
     if "ara" in lang:
         try:
@@ -21,11 +21,12 @@ def format_arabic_text(text, lang):
             return text
     return text
 
-# Function to handle Images
+
+# ---------------------------
+# Image OCR
+# ---------------------------
+
 def process_image_for_ocr(image_content: bytes, lang: str):
-    """
-    Extract text from an image (JPEG, PNG, etc.)
-    """
     image = Image.open(io.BytesIO(image_content)).convert("RGB")
     try:
         text = pytesseract.image_to_string(image, lang=lang)
@@ -34,13 +35,21 @@ def process_image_for_ocr(image_content: bytes, lang: str):
         text = ""
     return format_arabic_text(text, lang)
 
-# Function to handle PDFs (production-ready)
+
+# ---------------------------
+# PDF OCR (LAZY IMPORT)
+# ---------------------------
+
 def process_pdf_for_ocr(pdf_content: bytes, lang: str, debug=False):
     """
     Extract text from a PDF.
-    1. Use embedded text if available (fast)
-    2. Run OCR only on pages without embedded text (scanned/handwritten pages)
+    Uses embedded text if available, otherwise OCR.
     """
+    try:
+        import fitz  # PyMuPDF (lazy import)
+    except ImportError:
+        raise RuntimeError("PDF OCR service not available (PyMuPDF not installed)")
+
     all_text = []
 
     try:
@@ -52,30 +61,23 @@ def process_pdf_for_ocr(pdf_content: bytes, lang: str, debug=False):
 
     for i, page in enumerate(doc):
         if debug:
-            print(f"[PDF] Processing page {i+1}/{len(doc)}...")
+            print(f"[PDF] Processing page {i+1}/{len(doc)}")
 
-        # 1️⃣ Try embedded text first
         text = page.get_text("text")
-        if text.strip():
-            if debug:
-                print(f"[PDF] Embedded text found, skipping OCR")
-        else:
-            if debug:
-                print(f"[PDF] No embedded text, running OCR...")
 
-            # 2️⃣ OCR on scanned page / handwriting
+        if not text.strip():
             try:
-                # Low-res grayscale image for speed
-                pix = page.get_pixmap(matrix=fitz.Matrix(1,1), colorspace=fitz.csGRAY)
+                pix = page.get_pixmap(
+                    matrix=fitz.Matrix(1, 1),
+                    colorspace=fitz.csGRAY
+                )
                 image = Image.open(io.BytesIO(pix.tobytes("png")))
                 text = pytesseract.image_to_string(image, lang=lang)
             except Exception as e:
                 if debug:
-                    print(f"[PDF] OCR failed on page {i+1}: {e}")
+                    print(f"[PDF OCR] Failed on page {i+1}: {e}")
                 text = ""
 
-        # 3️⃣ Format Arabic text if needed
-        formatted = format_arabic_text(text, lang)
-        all_text.append(formatted)
+        all_text.append(format_arabic_text(text, lang))
 
     return "\n--- Page Break ---\n".join(all_text)
