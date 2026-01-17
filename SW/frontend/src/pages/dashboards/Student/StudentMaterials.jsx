@@ -185,37 +185,49 @@ export default function StudentMaterials() {
                             <div className="materials-list">
                               {lesson.materials.map((material) => (
                                 <div key={material.id} className="material-item">
-                                  <div className="material-info">
-                                    <div className="material-icon">
-                                      {materialIcons[material.material_type] || (
-                                        <File size={18} />
-                                      )}
-                                    </div>
-                                    <div className="material-text">
-                                      <p className="material-title">{material.title}</p>
-                                      {material.description && (
-                                        <p className="material-description">
-                                          {material.description}
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-
                                   {status === "locked" ? (
-                                    <span className="material-locked">
-                                      <Lock size={24} />
-                                    </span>
+                                    <>
+                                      <div className="material-info">
+                                        <div className="material-icon">
+                                          {materialIcons[material.material_type] || (
+                                            <File size={18} />
+                                          )}
+                                        </div>
+                                        <div className="material-text">
+                                          <p className="material-title">{material.title}</p>
+                                          {material.description && (
+                                            <p className="material-description">
+                                              {material.description}
+                                            </p>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <span className="material-locked">
+                                        <Lock size={24} />
+                                      </span>
+                                    </>
                                   ) : (
-                                    <div className="material-actions">
-                                      <a
-                                        href={`http://127.0.0.1:8000${material.file_url}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="material-btn material-btn-outline"
-                                      >
-                                        <Eye size={16} /> View
-                                      </a>
-                                    </div>
+                                    <a
+                                      href={`http://127.0.0.1:8000${material.file_url}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="material-info clickable-material"
+                                      style={{ textDecoration: "none", color: "inherit" }}
+                                    >
+                                      <div className="material-icon">
+                                        {materialIcons[material.material_type] || (
+                                          <File size={18} />
+                                        )}
+                                      </div>
+                                      <div className="material-text">
+                                        <p className="material-title">{material.title}</p>
+                                        {material.description && (
+                                          <p className="material-description">
+                                            {material.description}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </a>
                                   )}
                                 </div>
                               ))}

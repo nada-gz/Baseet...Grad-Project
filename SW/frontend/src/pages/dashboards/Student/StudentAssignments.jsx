@@ -248,66 +248,100 @@ export default function StudentAssignments() {
                               <div className="materials-list">
                                 {lesson.assignments.map((assignment) => (
                                   <div key={assignment.id} className="material-item">
-                                    <div className="material-info">
-                                      <div className="material-icon">
-                                        {assignmentIcons[assignment.assignment_type] || (
-                                          <File size={18} />
-                                        )}
-                                      </div>
-                                      <div className="material-text">
-                                        <p className="material-title">{assignment.title}</p>
-                                        {assignment.description && (
-                                          <p className="material-description">
-                                            {assignment.description}
-                                          </p>
-                                        )}
-                                        {assignment.deadline && (
-                                          <p className="material-deadline">
-                                            Deadline:{" "}
-                                            {new Date(assignment.deadline).toLocaleString()} (
-                                            {formatRemaining(assignment.deadline)})
-                                          </p>
-                                        )}
-                                      </div>
-                                    </div>
-
-                                    <input
-                                      type="file"
-                                      multiple
-                                      style={{ display: "none" }}
-                                      ref={(el) => (fileInputsRef.current[assignment.id] = el)}
-                                      onChange={(e) => handleFileChange(assignment.id, e)}
-                                    />
-
                                     {status === "locked" ? (
-                                      <span className="material-locked">
-                                        <Lock size={24} />
-                                      </span>
-                                    ) : (
-                                      <div className="material-actions-wrapper">
-                                        <a
-                                          href={`http://127.0.0.1:8000${assignment.file_url}`}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="material-btn material-btn-outline material-btn-equal"
-                                        >
-                                          <Eye size={16} /> View
-                                        </a>
-
-                                        <button
-                                          className="material-btn material-btn-outline material-btn-equal"
-                                          onClick={() => handleUploadClick(assignment.id)}
-                                        >
-                                          {assignment.submission ? (
-                                            <>
-                                              <RefreshCcw size={16} /> Resubmit
-                                            </>
-                                          ) : (
-                                            <>
-                                              <Upload size={16} /> Upload
-                                            </>
+                                      <div className="material-info">
+                                        <div className="material-icon">
+                                          {assignmentIcons[assignment.assignment_type] || (
+                                            <File size={18} />
                                           )}
-                                        </button>
+                                        </div>
+                                        <div className="material-text">
+                                          <p className="material-title">{assignment.title}</p>
+                                          {assignment.description && (
+                                            <p className="material-description">
+                                              {assignment.description}
+                                            </p>
+                                          )}
+                                        </div>
+                                        <span className="material-locked">
+                                          <Lock size={24} />
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <div className="assignment-item-content w-full">
+                                        <div className="material-info mb-2">
+                                          <div className="material-icon">
+                                            {assignmentIcons[assignment.assignment_type] || (
+                                              <File size={18} />
+                                            )}
+                                          </div>
+                                          <div className="material-text">
+                                            <p className="material-title">{assignment.title}</p>
+                                            {assignment.description && (
+                                              <p className="material-description">
+                                                {assignment.description}
+                                              </p>
+                                            )}
+                                          </div>
+                                        </div>
+
+                                        {/* List Assignment Files if any */}
+                                        {assignment.files && assignment.files.length > 0 && (
+                                          <div className="assignment-files-list flex flex-col gap-2 ml-8 mb-3">
+                                            {assignment.files.map((f) => (
+                                              <a
+                                                key={f.id}
+                                                href={`http://127.0.0.1:8000${f.file_url}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 text-primary hover:underline"
+                                                style={{ fontSize: "0.85rem" }}
+                                              >
+                                                <File size={14} /> {f.file_name}
+                                              </a>
+                                            ))}
+                                          </div>
+                                        )}
+
+                                        {/* If no files array, fallback to legacy file_url */}
+                                        {!assignment.files?.length && assignment.file_url && (
+                                          <div className="assignment-files-list ml-8 mb-3">
+                                            <a
+                                              href={`http://127.0.0.1:8000${assignment.file_url}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="flex items-center gap-2 text-primary hover:underline"
+                                              style={{ fontSize: "0.85rem" }}
+                                            >
+                                              <File size={14} /> View Attachment
+                                            </a>
+                                          </div>
+                                        )}
+
+                                        <input
+                                          type="file"
+                                          multiple
+                                          style={{ display: "none" }}
+                                          ref={(el) => (fileInputsRef.current[assignment.id] = el)}
+                                          onChange={(e) => handleFileChange(assignment.id, e)}
+                                        />
+
+                                        <div className="material-actions-wrapper ml-8">
+                                          <button
+                                            className="material-btn material-btn-outline material-btn-equal"
+                                            onClick={() => handleUploadClick(assignment.id)}
+                                          >
+                                            {assignment.submission ? (
+                                              <>
+                                                <RefreshCcw size={16} /> Resubmit
+                                              </>
+                                            ) : (
+                                              <>
+                                                <Upload size={16} /> Upload
+                                              </>
+                                            )}
+                                          </button>
+                                        </div>
                                       </div>
                                     )}
                                   </div>
