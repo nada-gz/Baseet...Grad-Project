@@ -24,9 +24,21 @@ from models.classroom import Classroom, ClassroomCourseLink
 from utils.auth import hash_password
 from datetime import datetime
 
+from fastapi import HTTPException
+
+def require_engine():
+    if engine is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Database not available"
+        )
 def create_tables():
+    if engine is None:
+        print("⚠️ Database engine not ready, skipping table creation")
+        return
     SQLModel.metadata.create_all(engine)
     print("✅ PostgreSQL tables ready!")
+
 
 
 # ---------------------------
@@ -34,6 +46,7 @@ def create_tables():
 # ---------------------------
 
 def add_user(username: str, email: str, password: str, role: RoleEnum = RoleEnum.student):
+    require_engine()
     with Session(engine) as session:
         hashed = hash_password(password)
         user = User(
@@ -49,23 +62,27 @@ def add_user(username: str, email: str, password: str, role: RoleEnum = RoleEnum
 
 
 def get_all_users():
+    require_engine()
     with Session(engine) as session:
         statement = select(User)
         return session.exec(statement).all()
 
 
 def get_user_by_username(username: str):
+    require_engine()
     with Session(engine) as session:
         statement = select(User).where(User.username == username)
         return session.exec(statement).first()
 
 
 def get_user_by_id(user_id: int):
+    require_engine()
     with Session(engine) as session:
         return session.get(User, user_id)
 
 
 def update_user(user_id: int, username: str, email: str):
+    require_engine()
     with Session(engine) as session:
         user = session.get(User, user_id)
         if not user:
@@ -79,6 +96,7 @@ def update_user(user_id: int, username: str, email: str):
 
 
 def delete_user(user_id: int):
+    require_engine()
     with Session(engine) as session:
         user = session.get(User, user_id)
         if not user:
@@ -93,6 +111,7 @@ def delete_user(user_id: int):
 # ---------------------------
 
 def create_student(student_data: Student):
+    require_engine()
     with Session(engine) as session:
         session.add(student_data)
         session.commit()
@@ -101,17 +120,20 @@ def create_student(student_data: Student):
 
 
 def get_student_by_id(student_id: int):
+    require_engine()
     with Session(engine) as session:
         return session.get(Student, student_id)
 
 
 def get_all_students():
+    require_engine()
     with Session(engine) as session:
         statement = select(Student)
         return session.exec(statement).all()
 
 
 def update_student(student_id: int, **kwargs):
+    require_engine()
     with Session(engine) as session:
         student = session.get(Student, student_id)
         if not student:
@@ -126,6 +148,7 @@ def update_student(student_id: int, **kwargs):
 
 
 def delete_student(student_id: int):
+    require_engine()
     with Session(engine) as session:
         student = session.get(Student, student_id)
         if not student:
@@ -154,7 +177,8 @@ def create_course(course: Course):
 # Milestones CRUD
 # ---------------------------
 
-def get_milestones(student_id: int, course_id: int = None):
+def get_milestones(student_id: int):
+    require_engine()
     with Session(engine) as session:
         query = select(Milestone).where(Milestone.student_id == student_id)
         if course_id:
@@ -164,11 +188,13 @@ def get_milestones(student_id: int, course_id: int = None):
 
 
 def get_milestone_by_id(milestone_id: int):
+    require_engine()
     with Session(engine) as session:
         return session.get(Milestone, milestone_id)
 
 
 def create_milestone(milestone_data: Milestone):
+    require_engine()
     with Session(engine) as session:
         session.add(milestone_data)
         session.commit()
@@ -177,6 +203,7 @@ def create_milestone(milestone_data: Milestone):
 
 
 def update_milestone(milestone_id: int, **kwargs):
+    require_engine()
     with Session(engine) as session:
         milestone = session.get(Milestone, milestone_id)
         if not milestone:
@@ -191,6 +218,7 @@ def update_milestone(milestone_id: int, **kwargs):
 
 
 def delete_milestone(milestone_id: int):
+    require_engine()
     with Session(engine) as session:
         milestone = session.get(Milestone, milestone_id)
         if not milestone:
@@ -205,23 +233,27 @@ def delete_milestone(milestone_id: int):
 # ---------------------------
 
 def get_lessons(student_id: int):
+    require_engine()
     with Session(engine) as session:
         statement = select(Lesson).join(Milestone).where(Lesson.student_id == student_id).order_by(Milestone.number, Lesson.lesson_number)
         return session.exec(statement).all()
 
 
 def get_lesson_by_id(lesson_id: int):
+    require_engine()
     with Session(engine) as session:
         return session.get(Lesson, lesson_id)
 
 
 def get_lessons_by_milestone(milestone_number: int):
+    require_engine()
     with Session(engine) as session:
         statement = select(Lesson).join(Milestone).where(Milestone.number == milestone_number).order_by(Lesson.lesson_number)
         return session.exec(statement).all()
 
 
 def get_lessons_grouped_by_milestones(student_id: int):
+    require_engine()
     milestones = get_milestones(student_id)
     lessons = get_lessons(student_id)
     result = []
@@ -232,6 +264,7 @@ def get_lessons_grouped_by_milestones(student_id: int):
 
 
 def create_lesson(lesson_data: Lesson):
+    require_engine()
     with Session(engine) as session:
         session.add(lesson_data)
         session.commit()
@@ -240,6 +273,7 @@ def create_lesson(lesson_data: Lesson):
 
 
 def update_lesson(lesson: Lesson):
+    require_engine()
     with Session(engine) as session:
         session.add(lesson)
         session.commit()
@@ -252,17 +286,20 @@ def update_lesson(lesson: Lesson):
 # ---------------------------
 
 def get_materials(student_id: int):
+    require_engine()
     with Session(engine) as session:
         statement = select(Material).where(Material.student_id == student_id)
         return session.exec(statement).all()
 
 
 def get_material_by_id(material_id: int):
+    require_engine()
     with Session(engine) as session:
         return session.get(Material, material_id)
 
 
 def create_material(material_data: Material):
+    require_engine()
     with Session(engine) as session:
         session.add(material_data)
         session.commit()
@@ -271,6 +308,7 @@ def create_material(material_data: Material):
 
 
 def update_material(material_id: int, **kwargs):
+    require_engine()
     with Session(engine) as session:
         material = session.get(Material, material_id)
         if not material:
@@ -285,6 +323,7 @@ def update_material(material_id: int, **kwargs):
 
 
 def delete_material(material_id: int):
+    require_engine()
     with Session(engine) as session:
         material = session.get(Material, material_id)
         if not material:
@@ -299,6 +338,7 @@ def delete_material(material_id: int):
 # ---------------------------
     
 def get_assignments_by_lesson(lesson_id: int):
+    require_engine()
     with Session(engine) as session:
         return session.exec(
             select(Assignment).where(Assignment.lesson_id == lesson_id)
@@ -306,11 +346,13 @@ def get_assignments_by_lesson(lesson_id: int):
 
 
 def get_assignment_by_id(assignment_id: int):
+    require_engine()
     with Session(engine) as session:
         return session.get(Assignment, assignment_id)
 
 
 def create_assignment(assignment: Assignment):
+    require_engine()
     with Session(engine) as session:
         session.add(assignment)
         session.commit()
@@ -319,6 +361,7 @@ def create_assignment(assignment: Assignment):
 
 
 def delete_assignment(assignment_id: int):
+    require_engine()
     with Session(engine) as session:
         assignment = session.get(Assignment, assignment_id)
         if not assignment:
@@ -329,6 +372,7 @@ def delete_assignment(assignment_id: int):
     
 
 def get_submission(student_id: int, assignment_id: int):
+    require_engine()
     with Session(engine) as session:
         return session.exec(
             select(Submission)
@@ -340,6 +384,7 @@ def get_submission(student_id: int, assignment_id: int):
 
 
 def create_submission(student_id: int, assignment_id: int, description: str | None):
+    require_engine()
     with Session(engine) as session:
         submission = Submission(
             student_id=student_id,
@@ -353,6 +398,7 @@ def create_submission(student_id: int, assignment_id: int, description: str | No
 
 
 def update_submission(submission: Submission, description: str | None):
+    require_engine()
     with Session(engine) as session:
         submission.description = description
         submission.updated_at = datetime.utcnow()
@@ -363,6 +409,7 @@ def update_submission(submission: Submission, description: str | None):
 
 
 def replace_submission_files(submission_id: int, files: list[dict]):
+    require_engine()
     """
     files = [{file_name, file_url}]
     """
@@ -385,6 +432,7 @@ def replace_submission_files(submission_id: int, files: list[dict]):
 
 
 def get_feedback(submission_id: int):
+    require_engine()
     with Session(engine) as session:
         return session.exec(
             select(Feedback)
@@ -393,6 +441,7 @@ def get_feedback(submission_id: int):
 
 
 def create_or_update_feedback(submission_id: int, comment: str, rating: int | None):
+    require_engine()
     with Session(engine) as session:
         feedback = session.exec(
             select(Feedback)
@@ -415,6 +464,7 @@ def create_or_update_feedback(submission_id: int, comment: str, rating: int | No
         return feedback
     
 def get_assignments_with_submission(student_id: int, lesson_id: int):
+    require_engine()
     """
     Returns assignments + submission + files + feedback
     """

@@ -7,7 +7,10 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from db.crud import create_tables
+
+from sqlmodel import SQLModel
+from db.database import engine
+
 from routers.user_router import router as user_router
 from routers.student_router import router as student_router
 from routers.teacher_router import router as teacher_router
@@ -45,7 +48,7 @@ app.add_middleware(
 # Ensure uploads folder exists
 os.makedirs("uploads/materials", exist_ok=True)
 
-# Mount uploads folder to serve static files
+# Mount uploads folder
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Include routers
@@ -57,12 +60,10 @@ app.include_router(dashboard_router)
 app.include_router(ai_router)
 app.include_router(iot_router)
 
-# Root route
 @app.get("/")
 def read_root():
     return {"message": "Hello from backend"}
 
-#Health Check Endpoint
 @app.get("/health")
 def health():
     return {"status": "ok"}
