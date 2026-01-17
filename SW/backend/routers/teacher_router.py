@@ -211,42 +211,75 @@ async def upload_content_material(
 
 
 # -----------------------
-# Upload content assignment
+# Create/Update content assignment
 # -----------------------
-@router.post("/lessons/{lesson_id}/assignments")
-async def upload_content_assignment(
+@router.post("/lessons/{lesson_id}/assignments", response_model=ContentAssignmentRead)
+async def create_or_update_content_assignment(
     lesson_id: int,
     title: str = Form(...),
     description: str = Form(""),
     assignment_type: str = Form("unknown"),
-    file: UploadFile = File(None),
     session: Session = Depends(get_session)
 ):
     lesson = session.get(ContentLesson, lesson_id)
     if not lesson:
         raise HTTPException(404, "Lesson not found")
 
-    file_url = ""
-    if file:
-        safe_name = f"assign_{lesson_id}_{file.filename.replace(' ', '_')}"
-        file_path = UPLOAD_DIR / safe_name
-        with open(file_path, "wb") as f:
-            f.write(await file.read())
-        file_url = f"/uploads/content/{safe_name}"
-
-    assignment = ContentAssignment(
-        lesson_id=lesson_id,
-        title=title,
-        description=description,
-        assignment_type=assignment_type,
-        file_url=file_url
+    # Check if assignment with same title exists in this lesson
+    statement = select(ContentAssignment).where(
+        ContentAssignment.lesson_id == lesson_id,
+        ContentAssignment.title == title
     )
+    assignment = session.exec(statement).first()
 
+    if assignment:
+        assignment.description = description
+        assignment.assignment_type = assignment_type
+    else:
+        assignment = ContentAssignment(
+            lesson_id=lesson_id,
+            title=title,
+            description=description,
+            assignment_type=assignment_type
+        )
+    
     session.add(assignment)
     session.commit()
     session.refresh(assignment)
-
     return assignment
+
+
+# -----------------------
+# Upload content assignment file
+# -----------------------
+@router.post("/assignments/{assignment_id}/files")
+async def upload_content_assignment_file(
+    assignment_id: int,
+    file: UploadFile = File(...),
+    session: Session = Depends(get_session)
+):
+    assignment = session.get(ContentAssignment, assignment_id)
+    if not assignment:
+        raise HTTPException(404, "Assignment not found")
+
+    safe_name = f"assign_{assignment_id}_{file.filename.replace(' ', '_')}"
+    file_path = UPLOAD_DIR / safe_name
+
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+
+    # Create new assignment file record
+    assignment_file = ContentAssignmentFile(
+        assignment_id=assignment_id,
+        file_name=file.filename,
+        file_url=f"/uploads/content/{safe_name}"
+    )
+
+    session.add(assignment_file)
+    session.commit()
+    session.refresh(assignment_file)
+
+    return assignment_file
 
 
 # -----------------------
@@ -271,6 +304,48 @@ def delete_content_material(
     session.delete(material)
     session.commit()
     return {"ok": True}
+
+
+# -----------------------
+# Delete Content Assignment
+# -----------------------
+@router.delete("/assignments/{assignment_id}")
+def delete_content_assignment(
+    assignment_id: int,
+    session: Session = Depends(get_session)
+):
+    assignment = session.get(ContentAssignment, assignment_id)
+    if not assignment:
+        raise HTTPException(404, "Assignment not found")
+    
+    # Cascading delete usually handles files if using SQLAlchemy/SQLModel relationship with cascade
+    # For now manual cleanup of files records
+    statement = select(ContentAssignmentFile).where(ContentAssignmentFile.assignment_id == assignment_id)
+    files = session.exec(statement).all()
+    for f in files:
+        session.delete(f)
+
+    session.delete(assignment)
+    session.commit()
+    return {"status": "deleted"}
+
+
+# -----------------------
+# Delete Content Assignment File
+# -----------------------
+@router.delete("/assignments/{assignment_id}/files/{file_id}")
+def delete_content_assignment_file(
+    assignment_id: int,
+    file_id: int,
+    session: Session = Depends(get_session)
+):
+    file_record = session.get(ContentAssignmentFile, file_id)
+    if not file_record:
+        raise HTTPException(404, "File not found")
+    
+    session.delete(file_record)
+    session.commit()
+    return {"status": "deleted"}
 
 
 # -----------------------

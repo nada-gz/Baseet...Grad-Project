@@ -74,6 +74,16 @@ class StudentProgressResponse(BaseModel):
     milestones: List[StudentProgressMilestone] = []
 
 
+class ContentAssignmentFileRead(BaseModel):
+    id: int
+    assignment_id: int
+    file_url: str
+    file_name: str
+
+    class Config:
+        from_attributes = True
+
+
 class ContentAssignmentRead(BaseModel):
     id: int
     lesson_id: int
@@ -81,6 +91,7 @@ class ContentAssignmentRead(BaseModel):
     description: Optional[str] = None
     assignment_type: str
     file_url: str
+    files: List[ContentAssignmentFileRead] = []
 
     class Config:
         from_attributes = True

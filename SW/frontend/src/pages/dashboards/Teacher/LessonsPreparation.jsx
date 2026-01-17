@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../../services/api";
-import { Trash2, FileText } from "lucide-react";
+import { Trash2, FileText, Plus, File } from "lucide-react";
 
 export default function LessonPreparation() {
   const [courses, setCourses] = useState([]);
@@ -10,8 +10,8 @@ export default function LessonPreparation() {
   const [selectedCourse, setSelectedCourse] = useState(null);
 
   // ---------------- FETCH CONTENT ----------------
-  const fetchLessons = async () => {
-    setLoading(true);
+  const fetchLessons = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [lessonsRes, coursesRes] = await Promise.all([
         api.get("/teacher/lessons"),
@@ -85,9 +85,20 @@ export default function LessonPreparation() {
         files: lesson.materials ? lesson.materials.map(m => ({
           id: m.id,
           name: m.title,
-          url: m.file_url, // assuming backend provides this
-          file: null // It's a remote file, not a local File object
+          url: m.file_url,
+          file: null
         })) : [],
+        assignments: lesson.assignments ? lesson.assignments.map(a => ({
+          id: a.id,
+          title: a.title,
+          description: a.description || "",
+          files: a.files ? a.files.map(f => ({
+            id: f.id,
+            name: f.file_name,
+            url: f.file_url,
+            file: null
+          })) : []
+        })) : []
       });
     });
 
@@ -108,17 +119,16 @@ export default function LessonPreparation() {
   const deleteCourse = async (num, e) => {
     e.stopPropagation(); // prevent card click
     if (window.confirm("Are you sure you want to delete this course and all its contents? This cannot be undone.")) {
+      setCourses(courses.filter((c) => c.course_number !== num));
       try {
         await api.delete(`/teacher/courses/${num}`);
-        setCourses(courses.filter((c) => c.course_number !== num));
         // Remove description local
         const newDescs = { ...courseDescriptions };
         delete newDescs[num];
         setCourseDescriptions(newDescs);
       } catch (err) {
         console.error("Delete Course Error:", err);
-        // Fallback for unsaved courses (local only)
-        setCourses(courses.filter((c) => c.course_number !== num));
+        fetchLessons(true);
       }
     }
   };
@@ -148,12 +158,12 @@ export default function LessonPreparation() {
 
   const deleteMilestone = async (courseNumber, milestoneNumber) => {
     if (window.confirm("Delete this milestone and its lessons?")) {
+      updateMilestoneState();
       try {
         await api.delete(`/teacher/courses/${courseNumber}/milestones/${milestoneNumber}`);
-        updateMilestoneState();
       } catch (err) {
         console.error("Delete Milestone Error:", err);
-        updateMilestoneState();
+        fetchLessons(true);
       }
     }
 
@@ -192,6 +202,7 @@ export default function LessonPreparation() {
                       title: "",
                       description: "",
                       files: [],
+                      assignments: [],
                     },
                   ],
                 }
@@ -203,16 +214,157 @@ export default function LessonPreparation() {
     );
   };
 
+  const addAssignment = (courseNumber, milestoneNumber, lessonNumber, event) => {
+    const files = Array.from(event.target.files);
+    if (files.length === 0) return;
+
+    setCourses((prev) =>
+      prev.map((c) =>
+        c.course_number === courseNumber
+          ? {
+            ...c,
+            milestones: c.milestones.map((m) =>
+              m.milestone_number === milestoneNumber
+                ? {
+                  ...m,
+                  lessons: m.lessons.map((lsn) =>
+                    lsn.lesson_number === lessonNumber
+                      ? {
+                        ...lsn,
+                        assignments: [
+                          ...lsn.assignments,
+                          ...files.map((f) => ({
+                            title: f.name, // Use filename as title
+                            description: "",
+                            files: [{
+                              file: f,
+                              url: URL.createObjectURL(f),
+                              name: f.name
+                            }],
+                          }))
+                        ],
+                      }
+                      : lsn
+                  ),
+                }
+                : m
+            ),
+          }
+          : c
+      )
+    );
+  };
+
+  const deleteAssignment = async (courseNumber, milestoneNumber, lessonNumber, assignmentIndex, assignmentId) => {
+    if (window.confirm("Delete this assignment?")) {
+      try {
+        if (assignmentId) {
+          await api.delete(`/teacher/assignments/${assignmentId}`);
+        }
+        updateAssignmentState();
+      } catch (err) {
+        console.error("Delete Assignment Error:", err);
+        updateAssignmentState();
+      }
+    }
+
+    function updateAssignmentState() {
+      setCourses((prev) =>
+        prev.map((c) =>
+          c.course_number === courseNumber
+            ? {
+              ...c,
+              milestones: c.milestones.map((m) =>
+                m.milestone_number === milestoneNumber
+                  ? {
+                    ...m,
+                    lessons: m.lessons.map((lsn) =>
+                      lsn.lesson_number === lessonNumber
+                        ? {
+                          ...lsn,
+                          assignments: lsn.assignments.filter((_, idx) => idx !== assignmentIndex),
+                        }
+                        : lsn
+                    ),
+                  }
+                  : m
+              ),
+            }
+            : c
+        )
+      );
+    }
+  };
+
+  const handleAssignmentTitleChange = (courseNumber, milestoneNumber, lessonNumber, assignmentIndex, value) => {
+    setCourses((prev) =>
+      prev.map((c) =>
+        c.course_number === courseNumber
+          ? {
+            ...c,
+            milestones: c.milestones.map((m) =>
+              m.milestone_number === milestoneNumber
+                ? {
+                  ...m,
+                  lessons: m.lessons.map((lsn) =>
+                    lsn.lesson_number === lessonNumber
+                      ? {
+                        ...lsn,
+                        assignments: lsn.assignments.map((asg, idx) =>
+                          idx === assignmentIndex ? { ...asg, title: value } : asg
+                        ),
+                      }
+                      : lsn
+                  ),
+                }
+                : m
+            ),
+          }
+          : c
+      )
+    );
+  };
+
+  const handleAssignmentDescriptionChange = (courseNumber, milestoneNumber, lessonNumber, assignmentIndex, value) => {
+    setCourses((prev) =>
+      prev.map((c) =>
+        c.course_number === courseNumber
+          ? {
+            ...c,
+            milestones: c.milestones.map((m) =>
+              m.milestone_number === milestoneNumber
+                ? {
+                  ...m,
+                  lessons: m.lessons.map((lsn) =>
+                    lsn.lesson_number === lessonNumber
+                      ? {
+                        ...lsn,
+                        assignments: lsn.assignments.map((asg, idx) =>
+                          idx === assignmentIndex ? { ...asg, description: value } : asg
+                        ),
+                      }
+                      : lsn
+                  ),
+                }
+                : m
+            ),
+          }
+          : c
+      )
+    );
+  };
+
   const deleteLesson = async (courseNumber, milestoneNumber, lessonNumber, lessonId) => {
     if (window.confirm("Delete this lesson?")) {
+      updateLessonState();
       try {
         if (lessonId) {
           await api.delete(`/teacher/lessons/${lessonId}`);
         }
-        updateLessonState();
       } catch (err) {
         console.error("Delete Lesson Error:", err);
-        updateLessonState();
+        // Silently re-fetch to restore state if delete failed
+        fetchLessons(true);
       }
     }
 
@@ -226,7 +378,10 @@ export default function LessonPreparation() {
                 m.milestone_number === milestoneNumber
                   ? {
                     ...m,
-                    lessons: m.lessons.filter((lsn) => lsn.lesson_number !== lessonNumber),
+                    lessons: m.lessons.filter((lsn) => {
+                      if (lessonId && lsn.id) return lsn.id !== lessonId;
+                      return lsn.lesson_number !== lessonNumber;
+                    }),
                   }
                   : m
               ),
@@ -264,11 +419,12 @@ export default function LessonPreparation() {
   const deleteFile = async (courseNumber, milestoneNumber, lessonNumber, fileIndex, fileId, lessonId) => {
     if (fileId && lessonId) {
       if (!window.confirm("Delete this file permanently?")) return;
+      updateFileState();
       try {
         await api.delete(`/teacher/lessons/${lessonId}/materials/${fileId}`);
-        updateFileState();
       } catch (err) {
         console.error("Delete File Error:", err);
+        fetchLessons(true);
       }
     } else {
       updateFileState();
@@ -337,6 +493,93 @@ export default function LessonPreparation() {
       )
     );
   };
+  const deleteAssignmentFile = async (courseNumber, milestoneNumber, lessonNumber, assignmentIndex, fileIndex, fileId, assignmentId) => {
+    if (fileId && assignmentId) {
+      if (!window.confirm("Delete this assignment file?")) return;
+      updateFileState();
+      try {
+        await api.delete(`/teacher/assignments/${assignmentId}/files/${fileId}`);
+      } catch (err) {
+        console.error("Delete Assignment File Error:", err);
+        fetchLessons(true);
+      }
+    } else {
+      updateFileState();
+    }
+
+    function updateFileState() {
+      setCourses((prev) =>
+        prev.map((c) =>
+          c.course_number === courseNumber
+            ? {
+              ...c,
+              milestones: c.milestones.map((m) =>
+                m.milestone_number === milestoneNumber
+                  ? {
+                    ...m,
+                    lessons: m.lessons.map((lsn) =>
+                      lsn.lesson_number === lessonNumber
+                        ? {
+                          ...lsn,
+                          assignments: lsn.assignments.map((asg, aIdx) =>
+                            aIdx === assignmentIndex
+                              ? { ...asg, files: asg.files.filter((_, fIdx) => fIdx !== fileIndex) }
+                              : asg
+                          ),
+                        }
+                        : lsn
+                    ),
+                  }
+                  : m
+              ),
+            }
+            : c
+        )
+      );
+    }
+  };
+
+  const handleAssignmentFileUpload = (courseNumber, milestoneNumber, lessonNumber, assignmentIndex, event) => {
+    const files = Array.from(event.target.files);
+    setCourses((prev) =>
+      prev.map((c) =>
+        c.course_number === courseNumber
+          ? {
+            ...c,
+            milestones: c.milestones.map((m) =>
+              m.milestone_number === milestoneNumber
+                ? {
+                  ...m,
+                  lessons: m.lessons.map((lsn) =>
+                    lsn.lesson_number === lessonNumber
+                      ? {
+                        ...lsn,
+                        assignments: lsn.assignments.map((asg, aIdx) =>
+                          aIdx === assignmentIndex
+                            ? {
+                              ...asg,
+                              files: [
+                                ...asg.files,
+                                ...files.map((f) => ({
+                                  file: f,
+                                  url: URL.createObjectURL(f),
+                                  name: f.name,
+                                })),
+                              ],
+                            }
+                            : asg
+                        ),
+                      }
+                      : lsn
+                  ),
+                }
+                : m
+            ),
+          }
+          : c
+      )
+    );
+  };
 
   // ---------------- SAVE ----------------
   const saveCourses = async () => {
@@ -384,18 +627,36 @@ export default function LessonPreparation() {
               const fileData = new FormData();
               fileData.append("file", f.file);
 
-              await api.post(`/teacher/lessons/${createdLesson.id}/materials`, fileData, {
-                headers: {
-                  "Content-Type": undefined,
-                },
-              });
+              await api.post(`/teacher/lessons/${createdLesson.id}/materials`, fileData);
+            }
+
+            // 3. Save Assignments
+            if (lesson.assignments) {
+              for (const asg of lesson.assignments) {
+                if (!asg.title.trim()) continue;
+
+                const asgFormData = new FormData();
+                asgFormData.append("title", asg.title);
+                asgFormData.append("description", asg.description || "");
+
+                const asgRes = await api.post(`/teacher/lessons/${createdLesson.id}/assignments`, asgFormData);
+                const createdAsg = asgRes.data;
+
+                // upload assignment files
+                for (const af of asg.files) {
+                  if (!af.file) continue;
+                  const afData = new FormData();
+                  afData.append("file", af.file);
+                  await api.post(`/teacher/assignments/${createdAsg.id}/files`, afData);
+                }
+              }
             }
           }
         }
       }
 
+      await fetchLessons(true);
       alert("Content saved successfully!");
-      fetchLessons();
     } catch (err) {
       console.error("Save Content Error:", err);
       alert("Error saving content. Check console.");
@@ -425,11 +686,15 @@ export default function LessonPreparation() {
               <div className="level-card-header">
                 <h2 className="level-card-title">Course {course.course_number}</h2>
                 <button
-                  className="level-delete-btn"
+                  className="delete-btn-well-styled"
                   title="Delete Course"
-                  onClick={(e) => deleteCourse(course.course_number, e)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    deleteCourse(course.course_number, e);
+                  }}
                 >
-                  <Trash2 size={20} />
+                  <Trash2 size={24} />
                 </button>
               </div>
 
@@ -484,8 +749,8 @@ export default function LessonPreparation() {
             &larr; Back to Courses
           </button>
         </div>
-        <h1 className="text-2xl level-card-title">Course {course.course_number}: {courseDescriptions[course.course_number]}</h1>
       </div>
+      <h1 className="text-2xl level-card-title">Course {course.course_number}: {courseDescriptions[course.course_number]}</h1>
 
       <div className="level-detail-view">
         <button
@@ -500,8 +765,13 @@ export default function LessonPreparation() {
             <div className="milestone-header">
               <h3>Milestone {m.milestone_number}</h3>
               <button
-                className="delete-btn"
-                onClick={() => deleteMilestone(course.course_number, m.milestone_number)}
+                className="delete-btn-well-styled"
+                title="Delete Milestone"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  deleteMilestone(course.course_number, m.milestone_number);
+                }}
               >
                 <Trash2 size={18} />
               </button>
@@ -535,45 +805,114 @@ export default function LessonPreparation() {
                     }
                   />
                   <button
-                    className="delete-btn"
-                    onClick={() =>
-                      deleteLesson(course.course_number, m.milestone_number, l.lesson_number, l.id)
-                    }
+                    className="delete-btn-well-styled"
+                    title="Delete Lesson"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      deleteLesson(course.course_number, m.milestone_number, l.lesson_number, l.id);
+                    }}
                   >
                     <Trash2 size={18} />
                   </button>
                 </div>
 
+                {/* --- LESSON MATERIALS --- */}
                 <div className="lesson-files">
-                  {l.files.map((f, idx) => (
-                    <div key={idx} className="file-item">
-                      <span><FileText size={16} /> {f.name}</span>
-                      <button
-                        className="delete-btn-sm"
-                        style={{ marginLeft: "10px", background: "none", border: "none", cursor: "pointer", color: "red" }}
-                        onClick={() =>
-                          deleteFile(
-                            course.course_number,
-                            m.milestone_number,
-                            l.lesson_number,
-                            idx,
-                            f.id,
-                            l.id
-                          )
+                  <div className="items-center justify-between mb-2">
+                    <p className="section-subtitle">Lesson Materials</p>
+                    <label className="btn btn-primary btn-xs cursor-pointer gap-1">
+                      <Plus size={14} /> Upload Material
+                      <input
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={(e) =>
+                          handleFileUpload(course.course_number, m.milestone_number, l.lesson_number, e)
                         }
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
+                      />
+                    </label>
+                  </div>
+                  <div className="materials-list">
+                    {l.files.map((f, idx) => (
+                      <div key={idx} className="file-item flex items-center p-2 border rounded mb-1 w-full">
+                        <div className="flex items-center gap-2 flex-grow min-w-0">
+                          <FileText size={18} className="text-secondary shrink-0" />
+                          <a
+                            href={f.file ? f.url : `http://127.0.0.1:8000${f.url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="clickable-file-link text-sm truncate"
+                          >
+                            {f.name}
+                          </a>
+                        </div>
+                        <button
+                          className="delete-btn-well-styled shrink-0"
+                          title="Delete Material"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            deleteFile(
+                              course.course_number,
+                              m.milestone_number,
+                              l.lesson_number,
+                              idx,
+                              f.id,
+                              l.id
+                            );
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-                  <input
-                    type="file"
-                    multiple
-                    onChange={(e) =>
-                      handleFileUpload(course.course_number, m.milestone_number, l.lesson_number, e)
-                    }
-                  />
+                {/* --- ASSIGNMENTS --- */}
+                <div className="lesson-assignments-section">
+                  <div className="items-center justify-between mb-2">
+                    <p className="section-subtitle">Assignments</p>
+                    <label className="btn btn-primary btn-xs cursor-pointer gap-1">
+                      <Plus size={14} /> Add Assignment
+                      <input
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => addAssignment(course.course_number, m.milestone_number, l.lesson_number, e)}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="assignments-list mt-2">
+                    {l.assignments && l.assignments.map((asg, aIdx) => (
+                      <div key={aIdx} className="assignment-file-row flex items-center justify-between mb-2 p-2 border rounded w-full">
+                        <div className="flex items-center gap-2 flex-grow min-w-0">
+                          <File size={18} className="text-primary shrink-0" />
+                          <a
+                            href={asg.files[0]?.file ? asg.files[0]?.url : `http://127.0.0.1:8000${asg.files[0]?.url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="clickable-file-link text-sm truncate"
+                          >
+                            {asg.title}
+                          </a>
+                        </div>
+                        <button
+                          className="delete-btn-well-styled shrink-0"
+                          title="Delete Assignment"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            deleteAssignment(course.course_number, m.milestone_number, l.lesson_number, aIdx, asg.id);
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             ))}
