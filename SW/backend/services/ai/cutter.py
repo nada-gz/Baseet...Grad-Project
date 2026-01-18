@@ -8,7 +8,6 @@ from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, pipeline
 # ==========================================
 # 1. SETUP & LOADING
 # ==========================================
-import os
 PATH_SPLITTER = os.path.join(os.path.dirname(__file__), "splitter_model")
 PATH_LABELER  = os.path.join(os.path.dirname(__file__), "arat5_model")
 
@@ -16,6 +15,8 @@ print("⏳ Loading Models...")
 
 # Load Splitter
 if not os.path.exists(PATH_SPLITTER):
+    # Check if we should use a default or raise error
+    # For this full code, we keep the user's logic:
     raise ValueError(f"❌ Error: {PATH_SPLITTER} not found.")
 embedder = SentenceTransformer(PATH_SPLITTER)
 
@@ -112,7 +113,11 @@ def process_dataset(input_file="input.json", output_file="output.json"):
             "extracted_topics": topics
         })
 
-    # 3. Write Output
+    # 3. Write Output (MODIFIED SECTION)
+    # Ensure the directory exists if the output_file is inside a folder
+    if os.path.dirname(output_file):
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(final_output, f, ensure_ascii=False, indent=4)
         
