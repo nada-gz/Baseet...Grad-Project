@@ -92,6 +92,7 @@ export default function LessonPreparation() {
           id: a.id,
           title: a.title,
           description: a.description || "",
+          deadline: a.deadline ? a.deadline.split('.')[0] : "", // format for datetime-local
           files: a.files ? a.files.map(f => ({
             id: f.id,
             name: f.file_name,
@@ -236,6 +237,7 @@ export default function LessonPreparation() {
                           ...files.map((f) => ({
                             title: f.name, // Use filename as title
                             description: "",
+                            deadline: "",
                             files: [{
                               file: f,
                               url: URL.createObjectURL(f),
@@ -341,6 +343,35 @@ export default function LessonPreparation() {
                         ...lsn,
                         assignments: lsn.assignments.map((asg, idx) =>
                           idx === assignmentIndex ? { ...asg, description: value } : asg
+                        ),
+                      }
+                      : lsn
+                  ),
+                }
+                : m
+            ),
+          }
+          : c
+      )
+    );
+  };
+
+  const handleAssignmentDeadlineChange = (courseNumber, milestoneNumber, lessonNumber, assignmentIndex, value) => {
+    setCourses((prev) =>
+      prev.map((c) =>
+        c.course_number === courseNumber
+          ? {
+            ...c,
+            milestones: c.milestones.map((m) =>
+              m.milestone_number === milestoneNumber
+                ? {
+                  ...m,
+                  lessons: m.lessons.map((lsn) =>
+                    lsn.lesson_number === lessonNumber
+                      ? {
+                        ...lsn,
+                        assignments: lsn.assignments.map((asg, idx) =>
+                          idx === assignmentIndex ? { ...asg, deadline: value } : asg
                         ),
                       }
                       : lsn
@@ -627,7 +658,9 @@ export default function LessonPreparation() {
               const fileData = new FormData();
               fileData.append("file", f.file);
 
-              await api.post(`/teacher/lessons/${createdLesson.id}/materials`, fileData);
+              await api.post(`/teacher/lessons/${createdLesson.id}/materials`, fileData, {
+                headers: { "Content-Type": undefined }
+              });
             }
 
             // 3. Save Assignments
@@ -638,8 +671,13 @@ export default function LessonPreparation() {
                 const asgFormData = new FormData();
                 asgFormData.append("title", asg.title);
                 asgFormData.append("description", asg.description || "");
+                if (asg.deadline) {
+                  asgFormData.append("deadline", asg.deadline);
+                }
 
-                const asgRes = await api.post(`/teacher/lessons/${createdLesson.id}/assignments`, asgFormData);
+                const asgRes = await api.post(`/teacher/lessons/${createdLesson.id}/assignments`, asgFormData, {
+                  headers: { "Content-Type": undefined }
+                });
                 const createdAsg = asgRes.data;
 
                 // upload assignment files
@@ -647,7 +685,9 @@ export default function LessonPreparation() {
                   if (!af.file) continue;
                   const afData = new FormData();
                   afData.append("file", af.file);
-                  await api.post(`/teacher/assignments/${createdAsg.id}/files`, afData);
+                  await api.post(`/teacher/assignments/${createdAsg.id}/files`, afData, {
+                    headers: { "Content-Type": undefined }
+                  });
                 }
               }
             }
@@ -659,7 +699,10 @@ export default function LessonPreparation() {
       alert("Content saved successfully!");
     } catch (err) {
       console.error("Save Content Error:", err);
-      alert("Error saving content. Check console.");
+      if (err.response && err.response.data) {
+        console.error("Server Error Details:", err.response.data);
+      }
+      alert("Error saving content. Check console for details.");
     }
   };
 
@@ -738,7 +781,7 @@ export default function LessonPreparation() {
   return (
     <div className="lesson-prep-container">
       <div className="flex items-center mb-6">
-        <div class="back-box">
+        <div className="back-box">
           <button
             className="mr-4 back"
             onClick={() => {
@@ -899,17 +942,25 @@ export default function LessonPreparation() {
                             {asg.title}
                           </a>
                         </div>
-                        <button
-                          className="delete-btn-well-styled shrink-0"
-                          title="Delete Assignment"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            deleteAssignment(course.course_number, m.milestone_number, l.lesson_number, aIdx, asg.id);
-                          }}
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <div className="dead flex items-center gap-2">
+                          <input
+                            type="datetime-local"
+                            className="p-1 border rounded text-xs text-red-500"
+                            value={asg.deadline || ""}
+                            onChange={(e) => handleAssignmentDeadlineChange(course.course_number, m.milestone_number, l.lesson_number, aIdx, e.target.value)}
+                          />
+                          <button
+                            className="delete-btn-well-styled shrink-0"
+                            title="Delete Assignment"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              deleteAssignment(course.course_number, m.milestone_number, l.lesson_number, aIdx, asg.id);
+                            }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

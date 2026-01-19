@@ -1,5 +1,8 @@
+from datetime import datetime
+from typing import Optional, List
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlmodel import Session, select
+from sqlalchemy.orm import selectinload
 from pathlib import Path
 
 from db.database import get_session
@@ -17,6 +20,7 @@ from models.submission import Submission
 from models.feedback import Feedback
 from models.submission_file import SubmissionFile
 from models.content_assignment import ContentAssignment
+from models.content_assignment_file import ContentAssignmentFile
 
 from schemas.content_schema import (
     ContentLessonRead, ContentCourseRead, ContentCourseCreate, StudentReadWithUser,
@@ -155,7 +159,14 @@ def create_content_lesson(
 # -----------------------
 @router.get("/lessons", response_model=list[ContentLessonRead])
 def get_content_lessons(session: Session = Depends(get_session)):
-    return session.exec(select(ContentLesson)).all()
+    stmt = (
+        select(ContentLesson)
+        .options(
+            selectinload(ContentLesson.materials),
+            selectinload(ContentLesson.assignments).selectinload(ContentAssignment.files)
+        )
+    )
+    return session.exec(stmt).all()
 
 
 # -----------------------
@@ -219,6 +230,7 @@ async def create_or_update_content_assignment(
     title: str = Form(...),
     description: str = Form(""),
     assignment_type: str = Form("unknown"),
+    deadline: Optional[datetime] = Form(None),
     session: Session = Depends(get_session)
 ):
     lesson = session.get(ContentLesson, lesson_id)
@@ -235,12 +247,14 @@ async def create_or_update_content_assignment(
     if assignment:
         assignment.description = description
         assignment.assignment_type = assignment_type
+        assignment.deadline = deadline
     else:
         assignment = ContentAssignment(
             lesson_id=lesson_id,
             title=title,
             description=description,
-            assignment_type=assignment_type
+            assignment_type=assignment_type,
+            deadline=deadline
         )
     
     session.add(assignment)
@@ -678,49 +692,59 @@ def get_student_educational_progress(student_id: int, session: Session = Depends
             assign_progress_list = []
             for ca in content_assigns:
                 # Check for student's instance
-                sa_stmt = select(Assignment).where(
-                    Assignment.student_id == student_id,
+                sa_stmt = select(Assignment).join(Lesson).where(
+                    Lesson.student_id == student_id,
                     Assignment.content_assignment_id == ca.id
                 )
                 student_assign = session.exec(sa_stmt).first()
                 
                 sub_status = "not submitted yet"
                 sub_date = None
+                timing_val = None
                 feedback_text = None
                 rating_val = None
                 file_url_val = None
+                submission = None
                 
                 if student_assign:
                     # Fetch submission
                     sub_stmt = select(Submission).where(
                         Submission.assignment_id == student_assign.id,
                         Submission.student_id == student_id
-                    ).order_by(Submission.submitted_at.desc())
+                    ).order_by(Submission.submitted_at.desc()).options(selectinload(Submission.files), selectinload(Submission.feedback))
                     submission = session.exec(sub_stmt).first()
                     
                     if submission:
                         sub_status = "submitted"
                         sub_date = submission.submitted_at
+                        timing_val = submission.submitted_at
                         
-                        feed_stmt = select(Feedback).where(Feedback.submission_id == submission.id)
-                        feedback = session.exec(feed_stmt).first()
-                        if feedback:
+                        # Check for resubmission
+                        if submission.updated_at:
+                            sub_status = "resubmitted"
+                            timing_val = submission.updated_at
+                        
+                        # Check for evaluation
+                        if submission.feedback:
                             sub_status = "evaluated"
-                            feedback_text = feedback.comment
-                            rating_val = feedback.rating
+                            feedback_text = submission.feedback.comment
+                            rating_val = submission.feedback.rating
+                            # timing_val remains submission.updated_at or submission.submitted_at
+                            # as per user request: "even if the state is evaluated, show state then submitted at date"
                         
-                        file_stmt = select(SubmissionFile).where(SubmissionFile.submission_id == submission.id)
-                        file_obj = session.exec(file_stmt).first()
-                        if file_obj:
-                            file_url_val = file_obj.file_url
+                        if submission.files:
+                            file_url_val = submission.files[0].file_url
 
                 assign_progress_list.append(StudentProgressAssignment(
                     id=student_assign.id if student_assign else ca.id,
                     title=ca.title,
                     status=sub_status,
+                    submission_id=submission.id if (student_assign and submission) else None,
                     submission_date=sub_date,
+                    timing=timing_val,
                     feedback=feedback_text,
                     rating=rating_val,
+                    deadline=ca.deadline,
                     file_url=file_url_val,
                     assignment_file_url=ca.file_url
                 ))
@@ -751,25 +775,38 @@ def evaluate_submission(
     rating: int = Form(...),
     session: Session = Depends(get_session)
 ):
-    submission = session.get(Submission, submission_id)
-    if not submission:
-        raise HTTPException(404, "Submission not found")
-    
-    # Check if feedback already exists
-    stmt = select(Feedback).where(Feedback.submission_id == submission_id)
-    existing_feedback = session.exec(stmt).first()
-    
-    if existing_feedback:
-        existing_feedback.comment = comment
-        existing_feedback.rating = rating
-        session.add(existing_feedback)
-    else:
-        new_feedback = Feedback(
-            submission_id=submission_id,
-            comment=comment,
-            rating=rating
-        )
-        session.add(new_feedback)
-    
-    session.commit()
-    return {"ok": True}
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+
+    logger.info(f"Evaluating submission {submission_id} with rating {rating} and comment {comment}")
+
+    try:
+        submission = session.get(Submission, submission_id)
+        if not submission:
+            logger.error(f"Submission {submission_id} not found")
+            raise HTTPException(404, "Submission not found")
+        
+        # Check if feedback already exists
+        stmt = select(Feedback).where(Feedback.submission_id == submission_id)
+        existing_feedback = session.exec(stmt).first()
+        
+        if existing_feedback:
+            logger.info("Updating existing feedback")
+            existing_feedback.comment = comment
+            existing_feedback.rating = rating
+            session.add(existing_feedback)
+        else:
+            logger.info("Creating new feedback")
+            new_feedback = Feedback(
+                submission_id=submission_id,
+                comment=comment,
+                rating=rating
+            )
+            session.add(new_feedback)
+        
+        session.commit()
+        return {"ok": True}
+    except Exception as e:
+        logger.error(f"Error evaluating submission: {e}")
+        raise e

@@ -1155,7 +1155,7 @@ a:hover {
   background: var(--secondary-bg);
   border: 1px solid var(--neutral);
   border-radius: 14px;
-  padding: 30px;
+  padding: 50px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1322,9 +1322,9 @@ a:hover {
 .materials-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding-left: 2rem;
-  padding-bottom: 16px;
+  gap: 2px;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 
 .material-item {
@@ -1333,9 +1333,11 @@ a:hover {
   align-items: flex-start;
   background: var(--primary-bg);
   border-radius: 12px;
-  padding: 16px 18px;
+  padding: 20px 25px;
   margin-top: 15px;
-  margin-right: 30px;
+  margin-right: 50px;
+  margin-left: 50px;
+  margin-bottom: 15px;
   gap: 20px;
 }
 
@@ -1502,7 +1504,12 @@ a:hover {
 
 /* Deadline */
 .material-deadline {
-  color: rgb(238, 53, 53);
+  color: rgb(205, 33, 33);
+  font-size: 14px;
+}
+.deadline {
+  margin-left: 7px;
+  margin-right: 7px;
 }
 
 /* New wrapper under the assignment list */
@@ -2189,6 +2196,7 @@ a:hover {
   border-radius: 99px;
   font-size: 0.875rem;
   font-weight: 600;
+  margin-bottom: 7px;
 }
 
 .status-badge .dot {
@@ -3253,6 +3261,36 @@ a:hover {
   color: #64748b;
 }
 
+.badge-submitted,
+.badge-resubmitted,
+.badge-evaluated,
+.badge-not-submitted {
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-submitted {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.badge-resubmitted {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge-evaluated {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-not-submitted {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
 .status-dot {
   width: 7px;
   height: 7px;
@@ -3526,6 +3564,10 @@ a:hover {
   font-weight: 700;
   color: #1e293b;
   margin: 0;
+}
+
+.lesson-assignments-section {
+  margin-left: -2rem;
 }
 
 .assignments-section {
@@ -3985,33 +4027,137 @@ a:hover {
 .delete-btn-well-styled:active {
   transform: scale(0.95);
 }
+
 /* --- UTILITY CLASSES --- */
-.flex { display: flex !important; }
-.flex-col { flex-direction: column !important; }
-.items-center { align-items: center !important; }
-.justify-between { justify-content: space-between !important; }
-.gap-1 { gap: 4px !important; }
-.gap-2 { gap: 8px !important; }
-.gap-4 { gap: 16px !important; }
-.mt-2 { margin-top: 8px !important; }
-.mt-4 { margin-top: 16px !important; }
-.mb-2 { margin-bottom: 8px !important; }
-.mb-4 { margin-bottom: 16px !important; }
-.mb-6 { margin-bottom: 24px !important; }
-.mr-2 { margin-right: 8px !important; }
-.mr-4 { margin-right: 16px !important; }
-.w-full { width: 100% !important; }
-.cursor-pointer { cursor: pointer !important; }
-.hidden { display: none !important; }
+.flex {
+  display: flex !important;
+}
+
+.flex-col {
+  flex-direction: column !important;
+}
+
+.items-center {
+  align-items: center !important;
+}
+
+.justify-between {
+  justify-content: space-between !important;
+}
+
+.gap-1 {
+  gap: 4px !important;
+}
+
+.gap-2 {
+  gap: 8px !important;
+}
+
+.gap-4 {
+  gap: 16px !important;
+}
+
+.mt-2 {
+  margin-top: 8px !important;
+}
+
+.mt-4 {
+  margin-top: 16px !important;
+}
+
+.mb-2 {
+  margin-bottom: 8px !important;
+}
+
+.mb-4 {
+  margin-bottom: 16px !important;
+}
+
+.mb-6 {
+  margin-bottom: 24px !important;
+}
+
+.mr-2 {
+  margin-right: 8px !important;
+}
+
+.mr-4 {
+  margin-right: 16px !important;
+}
+
+.w-full {
+  width: 100% !important;
+}
+
+.cursor-pointer {
+  cursor: pointer !important;
+}
+
+.hidden {
+  display: none !important;
+}
 
 /* --- MORE UTILITIES --- */
-.shrink-0 { flex-shrink: 0 !important; }
-.flex-grow { flex-grow: 1 !important; }
-.min-w-0 { min-width: 0 !important; }
+.shrink-0 {
+  flex-shrink: 0 !important;
+}
+
+.flex-grow {
+  flex-grow: 1 !important;
+}
+
+.min-w-0 {
+  min-width: 0 !important;
+}
+
 .truncate {
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
 }
-.gap-4 { gap: 16px !important; }
-.text-sm { font-size: 0.875rem !important; }
+
+.gap-4 {
+  gap: 16px !important;
+}
+
+.text-sm {
+  font-size: 0.875rem !important;
+}
+
+.icon-st {
+  margin: 10px;
+}
+
+.btn-sm {
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 12px;
+  padding-right: 12px;
+  border-radius: 7px;
+  margin-right: 10px;
+}
+
+.justify-end {
+  justify-content: flex-end !important;
+}
+
+.vieww {
+  margin-top: 5px;
+}
+
+.dead {
+  width: 130px;
+}
+
+.dead input {
+  margin-top: 12px;
+  margin-left: 3px;
+  margin-right: -10px;
+  font-size: 11px !important;
+  padding: 2px 4px !important;
+  height: 24px;
+}
+
+.uppload {
+  margin-top: -1px;
+}

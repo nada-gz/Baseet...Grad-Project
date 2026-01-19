@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 from sqlmodel import SQLModel
 
@@ -7,6 +8,7 @@ class AssignmentBase(SQLModel):
     description: Optional[str] = None
     assignment_type: str
     file_url: str
+    deadline: Optional[datetime] = None
 
 
 class AssignmentCreate(AssignmentBase):

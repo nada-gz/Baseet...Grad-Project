@@ -50,12 +50,15 @@ class StudentReadWithUser(BaseModel):
 class StudentProgressAssignment(BaseModel):
     id: int
     title: str
-    status: str # "not submitted yet", "submitted", "evaluated"
+    status: str # "not submitted yet", "submitted", "evaluated", "resubmitted"
+    submission_id: Optional[int] = None # Added for evaluation
     submission_date: Optional[datetime] = None
+    timing: Optional[datetime] = None # Relevant timestamp for the current status
     feedback: Optional[str] = None
     rating: Optional[int] = None
     file_url: Optional[str] = None
     assignment_file_url: Optional[str] = None
+    deadline: Optional[datetime] = None
 
 class StudentProgressLesson(BaseModel):
     id: int
@@ -91,6 +94,7 @@ class ContentAssignmentRead(BaseModel):
     description: Optional[str] = None
     assignment_type: str
     file_url: str
+    deadline: Optional[datetime] = None
     files: List[ContentAssignmentFileRead] = []
 
     class Config:

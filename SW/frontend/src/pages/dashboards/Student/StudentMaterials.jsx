@@ -207,27 +207,37 @@ export default function StudentMaterials() {
                                       </span>
                                     </>
                                   ) : (
-                                    <a
-                                      href={`http://127.0.0.1:8000${material.file_url}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="material-info clickable-material"
-                                      style={{ textDecoration: "none", color: "inherit" }}
-                                    >
-                                      <div className="material-icon">
-                                        {materialIcons[material.material_type] || (
-                                          <File size={18} />
-                                        )}
-                                      </div>
-                                      <div className="material-text">
-                                        <p className="material-title">{material.title}</p>
-                                        {material.description && (
-                                          <p className="material-description">
-                                            {material.description}
-                                          </p>
-                                        )}
-                                      </div>
-                                    </a>
+                                    <div className="material-item-content flex items-center justify-between w-full">
+                                      <a
+                                        href={material.file_url ? `http://127.0.0.1:8000${material.file_url}` : "#"}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="material-info clickable-material flex-grow"
+                                        style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center" }}
+                                      >
+                                        <div className="material-icon">
+                                          {materialIcons[material.material_type] || (
+                                            <File size={18} />
+                                          )}
+                                        </div>
+                                        <div className="material-text">
+                                          <p className="material-title">{material.title}</p>
+                                          {material.description && (
+                                            <p className="material-description">
+                                              {material.description}
+                                            </p>
+                                          )}
+                                        </div>
+                                      </a>
+                                      <a
+                                        href={material.file_url ? `http://127.0.0.1:8000${material.file_url}` : "#"}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="material-btn material-btn-outline material-btn-equal ml-4"
+                                      >
+                                        <Eye size={16} /> View
+                                      </a>
+                                    </div>
                                   )}
                                 </div>
                               ))}
