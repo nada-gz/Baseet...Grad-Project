@@ -184,6 +184,7 @@ class SmartOrchestrator:
         """
         Route to Text Processing Agent (Cutter)
         Returns formatted chunks with titles.
+        Also saves output to JSON file for persistence.
         """
         if not CUTTER_AVAILABLE:
             return {
@@ -215,7 +216,8 @@ class SmartOrchestrator:
             
             print(f"✅ Generated {len(formatted_chunks)} chunks")
             
-            return {
+            # Step 3: Prepare response
+            response_data = {
                 "success": True,
                 "agent": "cutter",
                 "word_count": self._count_words(text),
@@ -223,6 +225,29 @@ class SmartOrchestrator:
                 "chunks": formatted_chunks,
                 "response": formatted_chunks
             }
+            
+            # Step 4: Save to JSON file
+            try:
+                # Create outputs directory if it doesn't exist
+                outputs_dir = os.path.join(os.path.dirname(__file__), "outputs")
+                os.makedirs(outputs_dir, exist_ok=True)
+                
+                # Generate filename with timestamp
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                output_file = os.path.join(outputs_dir, f"cutter_output_{timestamp}.json")
+                
+                # Save to file
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    json.dump(response_data, f, ensure_ascii=False, indent=2)
+                
+                print(f"💾 Output saved to: {output_file}")
+                response_data["saved_to"] = output_file
+                
+            except Exception as save_error:
+                print(f"⚠️ Failed to save output to JSON: {save_error}")
+                # Don't fail the entire operation if saving fails
+            
+            return response_data
             
         except Exception as e:
             print(f"❌ Cutter Error: {e}")
