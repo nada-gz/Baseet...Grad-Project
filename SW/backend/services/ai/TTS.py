@@ -13,7 +13,7 @@ init(autoreset=True)
 
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 VOICE_ID = os.getenv("VOICE_ID")
-SHARED_FILE = r"Z:\content_grad\Grad-Project\SW\backend\services\ai\shared_data.json"
+# SHARED_FILE = r"Z:\content_grad\Grad-Project\SW\backend\services\ai\shared_data.json"
 
 class TextPostProcessor:
     """
