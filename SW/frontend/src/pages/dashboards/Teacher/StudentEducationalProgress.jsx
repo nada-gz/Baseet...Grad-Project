@@ -27,6 +27,8 @@ export default function StudentEducationalProgress() {
     const [rating, setRating] = useState(5);
     const [hoverRating, setHoverRating] = useState(0);
 
+    const [errorMessage, setErrorMessage] = useState(null);
+
     useEffect(() => {
         fetchProgress();
     }, [studentId]);
@@ -46,18 +48,21 @@ export default function StudentEducationalProgress() {
     };
 
     const handleEvaluate = async (submissionId) => {
+        setErrorMessage(null);
         try {
             const formData = new FormData();
             formData.append("comment", feedback);
             formData.append("rating", rating);
 
-            await api.post(`/teacher/submissions/${submissionId}/feedback`, formData);
+            await api.postForm(`/teacher/submissions/${submissionId}/feedback`, formData);
 
             setEvaluatingId(null);
             setFeedback("");
             fetchProgress(); // Refresh data
         } catch (err) {
-            alert("Error saving feed");
+            console.error("Evaluation error:", err);
+            const msg = err.response?.data?.detail || "Error saving feedback";
+            setErrorMessage(typeof msg === 'string' ? msg : JSON.stringify(msg));
         }
     };
 
@@ -89,6 +94,14 @@ export default function StudentEducationalProgress() {
                             </p>
                         </div>
                     </header>
+
+                    {errorMessage && (
+                        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded relative text-sm">
+                            <strong className="font-bold block">Error: </strong>
+                            <span className="block">{errorMessage}</span>
+                            <button className="absolute top-0 right-0 p-2 font-bold" onClick={() => setErrorMessage(null)}>×</button>
+                        </div>
+                    )}
 
                     <div className="student-monitoring-card">
                         <div className="card-student-header">
@@ -198,10 +211,22 @@ export default function StudentEducationalProgress() {
                                                             {/* 1. File & View Part */}
                                                             <div className="assignment-file-row">
                                                                 <div className="flex items-center gap-3">
-                                                                    <FileText size={20} className="text-slate-400" />
+                                                                    <FileText size={20} className="icon-st text-slate-400" />
                                                                     <div>
                                                                         <p className="font-bold text-slate-700 text-sm">{assign.title}</p>
-                                                                        <p className="text-[10px] uppercase font-bold text-slate-400">{assign.status}</p>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className={`status-badge-mini ${assign.status === 'evaluated' ? 'badge-evaluated' :
+                                                                                assign.status === 'resubmitted' ? 'badge-resubmitted' :
+                                                                                    assign.status === 'submitted' ? 'badge-submitted' : 'badge-not-submitted'
+                                                                                }`}>
+                                                                                {assign.status}
+                                                                            </span>
+                                                                            {assign.timing && (
+                                                                                <span className="text-[10px] text-slate-400">
+                                                                                    {assign.status === 'resubmitted' ? 'Resubmitted' : 'Submitted'} at: {new Date(assign.timing).toLocaleString()}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
 
@@ -217,7 +242,7 @@ export default function StudentEducationalProgress() {
                                                                             <span>View Assignment</span>
                                                                         </a>
                                                                     )}
-                                                                    {(assign.status === 'submitted' || assign.status === 'evaluated') && assign.file_url && (
+                                                                    {(assign.status === 'submitted' || assign.status === 'resubmitted' || assign.status === 'evaluated') && assign.file_url && (
                                                                         <a
                                                                             href={`${api.defaults.baseURL}${assign.file_url}`}
                                                                             target="_blank"
@@ -267,11 +292,15 @@ export default function StudentEducationalProgress() {
                                                                     </div>
 
                                                                     <div className="eval-right-actions">
-                                                                        {assign.status === 'submitted' && (
+                                                                        {(assign.status === 'submitted' || assign.status === 'resubmitted') && (
                                                                             <button
                                                                                 className="btn btn-primary btn-small"
                                                                                 onClick={() => {
-                                                                                    setEvaluatingId(assign.id);
+                                                                                    if (!assign.submission_id) {
+                                                                                        alert("Error: Missing submission ID");
+                                                                                        return;
+                                                                                    }
+                                                                                    setEvaluatingId(assign.id); // View state based on assignment ID
                                                                                     setFeedback(assign.feedback || "");
                                                                                     setRating(assign.rating || 5);
                                                                                 }}
@@ -322,7 +351,7 @@ export default function StudentEducationalProgress() {
                                                                             </div>
                                                                             <div className="eval-footer-btns">
                                                                                 <button className="btn btn-outline btn-small" onClick={() => setEvaluatingId(null)}>Cancel</button>
-                                                                                <button className="btn btn-primary btn-small" onClick={() => handleEvaluate(assign.id)}>Save Evaluation</button>
+                                                                                <button className="btn btn-primary btn-small" onClick={() => handleEvaluate(assign.submission_id)}>Save Evaluation</button>
                                                                             </div>
                                                                         </div>
                                                                     </div>

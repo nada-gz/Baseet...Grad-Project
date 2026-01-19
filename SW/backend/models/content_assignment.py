@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
 
@@ -15,6 +16,7 @@ class ContentAssignment(SQLModel, table=True):
     description: Optional[str] = None
     assignment_type: str = "unknown"
     file_url: str = "" # Keeping for legacy, though new code will use files relationship
+    deadline: Optional[datetime] = Field(default=None)
 
     lesson: Optional["ContentLesson"] = Relationship(back_populates="assignments")
     files: List["ContentAssignmentFile"] = Relationship(back_populates="assignment")

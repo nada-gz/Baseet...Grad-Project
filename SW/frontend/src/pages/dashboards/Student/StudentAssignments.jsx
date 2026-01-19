@@ -26,13 +26,22 @@ function formatRemaining(deadline) {
   const now = new Date();
   const end = new Date(deadline);
   const diff = end - now;
-  if (diff <= 0) return "Due!";
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-  const minutes = Math.floor((diff / (1000 * 60)) % 60);
-  if (days > 0) return `${days} day(s) left`;
-  if (hours > 0) return `${hours} hour(s) left`;
-  return `${minutes} minute(s) left`;
+
+  const absDiff = Math.abs(diff);
+  const days = Math.floor(absDiff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((absDiff / (1000 * 60 * 60)) % 24);
+  const minutes = Math.floor((absDiff / (1000 * 60)) % 60);
+
+  if (diff <= 0) {
+    if (days > 0) return `Overdue by ${days} day(s)`;
+    if (hours > 0) return `Overdue by ${hours} hour(s)`;
+    if (minutes > 0) return `Overdue by ${minutes} minute(s)`;
+    return "Due!";
+  } else {
+    if (days > 0) return `${days} day(s) left`;
+    if (hours > 0) return `${hours} hour(s) left`;
+    return `${minutes} minute(s) left`;
+  }
 }
 
 function renderStars(rating) {
@@ -93,17 +102,9 @@ export default function StudentAssignments() {
         const assRes = await api.get(
           `/students/${student.id}/lessons/${lesson.id}/assignments`
         );
-        for (let assignment of assRes.data) {
-          try {
-            const subRes = await api.get(
-              `/students/${student.id}/assignments/${assignment.id}/submission`
-            );
-            assignment.submission = subRes.data;
-          } catch {
-            assignment.submission = null;
-          }
-        }
+        // Submissions are now included in the assignments response from the backend
         lesson.assignments = assRes.data;
+
         if (!grouped[lesson.milestone_number]) grouped[lesson.milestone_number] = [];
         grouped[lesson.milestone_number].push(lesson);
 
@@ -124,33 +125,44 @@ export default function StudentAssignments() {
     return "locked";
   };
 
+  const [errorMessage, setErrorMessage] = useState(null);
+
   const submitAssignment = async (assignmentId, selectedFiles) => {
-    const formData = new FormData();
-    formData.append("description", description);
-    selectedFiles.forEach((file) => formData.append("files", file));
+    setErrorMessage(null); // Clear previous errors
+    try {
+      const formData = new FormData();
+      formData.append("description", description);
+      selectedFiles.forEach((file) => formData.append("files", file));
 
-    const res = await api.post(
-      `/students/${student.id}/assignments/${assignmentId}/submit`,
-      formData,
-      { headers: { "Content-Type": "multipart/form-data" } }
-    );
+      // Correct endpoint: /students/{student_id}/assignments/{assignment_id}/submit
+      const res = await api.postForm(
+        `/students/${student.id}/assignments/${assignmentId}/submit`,
+        formData
+      );
 
-    setMilestones((prev) => {
-      const updated = { ...prev };
-      for (const milestoneLessons of Object.values(updated)) {
-        for (const lesson of milestoneLessons) {
-          const assignment = lesson.assignments.find((a) => a.id === assignmentId);
-          if (assignment) assignment.submission = res.data;
+      // Update state to reflect submission without reload
+      setMilestones((prev) => {
+        const updated = { ...prev };
+        for (const milestoneLessons of Object.values(updated)) {
+          for (const lesson of milestoneLessons) {
+            const assignment = lesson.assignments.find((a) => a.id === assignmentId);
+            if (assignment) assignment.submission = res.data;
+          }
         }
-      }
-      return updated;
-    });
+        return updated;
+      });
 
-    setUploadingFor(null);
-    setFiles([]);
-    setDescription("");
+      setUploadingFor(null);
+      setFiles([]);
+      setDescription("");
+      alert("Submitted successfully");
+    } catch (err) {
+      console.error("Submission error:", err);
+      const msg = err.response?.data?.detail || "Submission failed";
+      setErrorMessage(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      setUploadingFor(null); // Stop spinner
+    }
   };
-
   const toggleMilestone = (milestoneNumber) => {
     setOpenMilestones((prev) => ({
       ...prev,
@@ -173,6 +185,8 @@ export default function StudentAssignments() {
 
   const handleFileChange = (assignmentId, e) => {
     const selectedFiles = [...e.target.files];
+    if (selectedFiles.length === 0) return; // Do not proceed if no files selected
+
     setUploadingFor(assignmentId);
     setFiles(selectedFiles);
     submitAssignment(assignmentId, selectedFiles);
@@ -180,6 +194,24 @@ export default function StudentAssignments() {
 
   return (
     <div className="materials-page">
+      {errorMessage && (
+        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Error: </strong>
+          <span className="block sm:inline">{errorMessage}</span>
+          <span className="absolute top-0 bottom-0 right-0 px-4 py-3" onClick={() => setErrorMessage(null)}>
+            <svg
+              className="fill-current text-red-500"
+              role="button"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              style={{ width: '24px', height: '24px' }}
+            >
+              <title>Close</title>
+              <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
+            </svg>
+          </span>
+        </div>
+      )}
       {courses.length === 0 ? (
         <div className="text-center p-10 bg-white rounded-lg border border-dashed border-slate-300">
           <p className="text-slate-500">No courses assigned yet.</p>
@@ -256,7 +288,16 @@ export default function StudentAssignments() {
                                           )}
                                         </div>
                                         <div className="material-text">
-                                          <p className="material-title">{assignment.title}</p>
+                                          <div className="flex items-center gap-2">
+                                            <p className="material-title">{assignment.title}</p>
+                                            {assignment.deadline && (
+                                              <div className="material-deadline text-red-500 text-[10px] font-bold bg-red-50 px-1 py-0.5 rounded border border-red-200 shrink-0">
+                                                <span className="ml-1 bg-red-500 text-white px-1 rounded">
+                                                  {formatRemaining(assignment.deadline)}
+                                                </span>
+                                              </div>
+                                            )}
+                                          </div>
                                           {assignment.description && (
                                             <p className="material-description">
                                               {assignment.description}
@@ -268,55 +309,82 @@ export default function StudentAssignments() {
                                         </span>
                                       </div>
                                     ) : (
-                                      <div className="assignment-item-content w-full">
-                                        <div className="material-info mb-2">
-                                          <div className="material-icon">
-                                            {assignmentIcons[assignment.assignment_type] || (
-                                              <File size={18} />
-                                            )}
+                                      <>
+                                        <div className="assignment-item-content w-full flex justify-between items-start">
+                                          <div className="material-info mb-2 flex-grow">
+                                            <div className="material-icon">
+                                              {assignmentIcons[assignment.assignment_type] || (
+                                                <File size={18} />
+                                              )}
+                                            </div>
+                                            <div className="material-text">
+                                              <div className="flex items-center gap-2">
+                                                <p className="material-title">{assignment.title}</p>
+                                                {assignment.deadline && (
+                                                  <div className="material-deadline text-red-500 text-[10px] font-bold bg-red-50 px-1 py-0.5 rounded border border-red-200 shrink-0">
+                                                    {!assignment.submission && (
+                                                      <span className="ml-1 bg-red-500 text-white px-1 rounded">
+                                                        {formatRemaining(assignment.deadline)}
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                )}
+                                              </div>
+                                              {assignment.description && (
+                                                <p className="material-description">
+                                                  {assignment.description}
+                                                </p>
+                                              )}
+                                            </div>
                                           </div>
-                                          <div className="material-text">
-                                            <p className="material-title">{assignment.title}</p>
-                                            {assignment.description && (
-                                              <p className="material-description">
-                                                {assignment.description}
-                                              </p>
-                                            )}
-                                          </div>
-                                        </div>
 
-                                        {/* List Assignment Files if any */}
-                                        {assignment.files && assignment.files.length > 0 && (
-                                          <div className="assignment-files-list flex flex-col gap-2 ml-8 mb-3">
-                                            {assignment.files.map((f) => (
+                                          <div className="assignment-actions flex items-center gap-4 ml-4">
+
+
+                                            {/* View Buttons for Files */}
+                                            {assignment.files && assignment.files.map((f) => (
                                               <a
                                                 key={f.id}
                                                 href={`http://127.0.0.1:8000${f.file_url}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="flex items-center gap-2 text-primary hover:underline"
-                                                style={{ fontSize: "0.85rem" }}
+                                                className="material-btn material-btn-outline material-btn-equal"
                                               >
-                                                <File size={14} /> {f.file_name}
+                                                <Eye size={16} /> View
                                               </a>
                                             ))}
-                                          </div>
-                                        )}
 
-                                        {/* If no files array, fallback to legacy file_url */}
-                                        {!assignment.files?.length && assignment.file_url && (
-                                          <div className="assignment-files-list ml-8 mb-3">
-                                            <a
-                                              href={`http://127.0.0.1:8000${assignment.file_url}`}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="flex items-center gap-2 text-primary hover:underline"
-                                              style={{ fontSize: "0.85rem" }}
-                                            >
-                                              <File size={14} /> View Attachment
-                                            </a>
+                                            {/* Legacy File URL View Button */}
+                                            {!assignment.files?.length && assignment.file_url && (
+                                              <a
+                                                href={`http://127.0.0.1:8000${assignment.file_url}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="vieww material-btn material-btn-outline material-btn-equal"
+                                              >
+                                                <Eye size={16} /> View
+                                              </a>
+                                            )}
+
+                                            {/* Upload Button */}
+                                            <div className="uppload material-actions-wrapper">
+                                              <button
+                                                className="material-btn material-btn-outline material-btn-equal"
+                                                onClick={() => handleUploadClick(assignment.id)}
+                                              >
+                                                {assignment.submission ? (
+                                                  <>
+                                                    <RefreshCcw size={16} /> Resubmit
+                                                  </>
+                                                ) : (
+                                                  <>
+                                                    <Upload size={16} /> Upload
+                                                  </>
+                                                )}
+                                              </button>
+                                            </div>
                                           </div>
-                                        )}
+                                        </div>
 
                                         <input
                                           type="file"
@@ -325,87 +393,86 @@ export default function StudentAssignments() {
                                           ref={(el) => (fileInputsRef.current[assignment.id] = el)}
                                           onChange={(e) => handleFileChange(assignment.id, e)}
                                         />
-
-                                        <div className="material-actions-wrapper ml-8">
-                                          <button
-                                            className="material-btn material-btn-outline material-btn-equal"
-                                            onClick={() => handleUploadClick(assignment.id)}
-                                          >
-                                            {assignment.submission ? (
-                                              <>
-                                                <RefreshCcw size={16} /> Resubmit
-                                              </>
-                                            ) : (
-                                              <>
-                                                <Upload size={16} /> Upload
-                                              </>
-                                            )}
-                                          </button>
-                                        </div>
-                                      </div>
+                                      </>
                                     )}
                                   </div>
                                 ))}
                               </div>
 
                               {/* Submitted & Feedback Section */}
-                              {lesson.assignments.some((a) => a.submission) && (
-                                <div className="submission-feedback-wrapper">
-                                  {lesson.assignments.map(
-                                    (assignment) =>
-                                      assignment.submission && (
-                                        <div
-                                          key={assignment.id}
-                                          className="submission-feedback-card"
-                                        >
-                                          <div className="submitted-section">
-                                            <span className="submitted-label">
-                                              Submitted •{" "}
-                                              {assignment.submission.updated_at ||
-                                                assignment.submission.submitted_at
-                                                ? new Date(
-                                                  assignment.submission.updated_at ||
-                                                  assignment.submission.submitted_at
-                                                ).toLocaleString()
-                                                : "Unknown date"}
-                                            </span>
-                                            <div className="submitted-files">
-                                              {assignment.submission.submission_files?.map(
-                                                (file, i) => (
+                              <div className="submission-feedback-wrapper">
+                                {lesson.assignments.map((assignment) => (
+                                  <div
+                                    key={assignment.id}
+                                    className="submission-feedback-card"
+                                  >
+                                    <div className="card-assignment-item-bottom">
+                                      <div className="item-assignment-status">
+                                        <div className="flex items-center">
+                                          <span className={`status-badge ${assignment.submission?.status === 'evaluated' ? 'badge-evaluated' :
+                                            assignment.submission?.status === 'resubmitted' ? 'badge-resubmitted' :
+                                              assignment.submission?.status === 'submitted' ? 'badge-submitted' : 'badge-not-submitted'
+                                            }`}>
+                                            {assignment.submission?.status || "not submitted yet"}
+                                          </span>
+                                        </div>
+                                        {assignment.deadline && (
+                                          <span className="material-deadline deadline text-red-500 text-[10px] font-bold bg-red-50 px-2 py-0.5 rounded border border-red-200 ml-2">
+                                            Deadline: {new Date(assignment.deadline).toLocaleString()}
+                                          </span>
+                                        )}
+                                        {(assignment.submission?.status === 'submitted' || assignment.submission?.status === 'resubmitted' || assignment.submission?.status === 'evaluated') && assignment.submission?.timing && (
+                                          <span className="text-secondary-text text-sm ml-2 italic">
+                                            ({assignment.submission.updated_at ? 'Resubmitted at' : 'Submitted at'}: {new Date(assignment.submission.timing).toLocaleString()})
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="item-assignment-actions"></div>
+                                      {assignment.submission && (
+                                        <div className="submission-details">
+                                          {assignment.submission.description && (
+                                            <p className="submission-desc">
+                                              {assignment.submission.description}
+                                            </p>
+                                          )}
+                                          {assignment.submission.files && assignment.submission.files.length > 0 && (
+                                            <div className="submission-files-list mt-2">
+                                              {assignment.submission.files.map((file, idx) => (
+                                                <div key={idx} className="flex items-center gap-2 mb-1">
                                                   <a
-                                                    key={i}
                                                     href={`http://127.0.0.1:8000${file.file_url}`}
                                                     target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="submitted-file-small link"
+                                                    rel="noreferrer"
+                                                    className="text-sm text-secondary-text hover:text-highlight transition-colors flex items-center gap-1"
                                                   >
-                                                    {file.file_name}
+                                                    📄 <span className="underline decoration-slate-300 underline-offset-4">{file.file_name}</span>
                                                   </a>
-                                                )
-                                              )}
-                                            </div>
-                                          </div>
-
-                                          {assignment.submission.feedback && (
-                                            <div className="feedback-box">
-                                              <div className="feedback-title">Feedback</div>
-                                              <div className="feedback-comment">
-                                                {assignment.submission.feedback.comment}
-                                              </div>
-                                              {assignment.submission.feedback.rating && (
-                                                <div className="feedback-rating">
-                                                  {renderStars(
-                                                    assignment.submission.feedback.rating
-                                                  )}
                                                 </div>
-                                              )}
+                                              ))}
                                             </div>
                                           )}
                                         </div>
-                                      )
-                                  )}
-                                </div>
-                              )}
+                                      )}
+                                    </div>
+
+                                    {assignment.submission?.feedback && (
+                                      <div className="feedback-box">
+                                        <div className="feedback-title">Feedback</div>
+                                        <div className="feedback-comment">
+                                          {assignment.submission.feedback.comment}
+                                        </div>
+                                        {assignment.submission.feedback.rating && (
+                                          <div className="feedback-rating">
+                                            {renderStars(
+                                              assignment.submission.feedback.rating
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
                             </>
                           ) : (
                             <div className="materials-empty-icon">
@@ -417,11 +484,11 @@ export default function StudentAssignments() {
                       </div>
                     );
                   })}
-              </div>
+              </div >
             ))
           )}
         </>
       )}
-    </div>
+    </div >
   );
 }

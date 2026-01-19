@@ -24,6 +24,7 @@ from models.content_course import ContentCourse
 from models.content_lesson import ContentLesson
 from models.content_material import ContentMaterial
 from models.content_assignment import ContentAssignment
+from models.content_assignment_file import ContentAssignmentFile
 from models.classroom import Classroom, ClassroomCourseLink
 from schemas.student_schema import StudentCreate, StudentRead, StudentUpdate
 from schemas.lesson_schema import LessonRead, LessonUpdate
@@ -38,7 +39,11 @@ import traceback
 # ---------------------------
 # Students Router
 # ---------------------------
+
 router = APIRouter(prefix="/students", tags=["Students"])
+
+SUBMISSION_UPLOAD_DIR = Path("uploads/submissions")
+SUBMISSION_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # ---------------------------
 # Student CRUD
@@ -508,6 +513,43 @@ def get_lesson_assignments(
     else:
         # Check if lesson_id refers to Content ID instead
         content_lesson = session.get(ContentLesson, lesson_id)
+        if content_lesson:
+            # We found a content lesson, but we have no student progress record (Lesson)
+            # We must create it to avoid ForeignKeyViolation in Assignment creation
+            
+            # 1. Ensure Milestone exists
+            m_stmt = select(Milestone).where(
+                Milestone.student_id == student_id,
+                Milestone.number == content_lesson.milestone_number
+            )
+            # For simplicity, we just find by number and student_id
+            ms = session.exec(m_stmt).first()
+            if not ms:
+                ms = Milestone(
+                    student_id=student_id,
+                    number=content_lesson.milestone_number,
+                    title=f"Milestone {content_lesson.milestone_number}"
+                )
+                session.add(ms)
+                session.commit()
+                session.refresh(ms)
+            
+            # 2. Create Lesson record
+            lesson = Lesson(
+                student_id=student_id,
+                content_lesson_id=content_lesson.id,
+                milestone_id=ms.id,
+                lesson_number=content_lesson.lesson_number,
+                title=content_lesson.title,
+                description=content_lesson.description,
+                status="in-progress"
+            )
+            session.add(lesson)
+            session.commit()
+            session.refresh(lesson)
+            
+            # CRITICAL: Update lesson_id to the newly created student-specific ID
+            lesson_id = lesson.id
 
     if not content_lesson and not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
@@ -522,6 +564,7 @@ def get_lesson_assignments(
             # Try to find it by numbers (fallback)
             milestone = lesson.milestone
             if milestone:
+                from models.content_course import ContentCourse
                 course = session.get(ContentCourse, milestone.course_id)
                 if course:
                     cl_stmt = select(ContentLesson).where(
@@ -550,20 +593,75 @@ def get_lesson_assignments(
             Assignment.lesson_id == lesson_id,
             Assignment.content_assignment_id == ca.id
         )
-        # Handle student_id check in sa_stmt if lesson exists
-        if lesson:
-            sa_stmt = sa_stmt.where(Assignment.student_id == student_id)
             
         student_assign = session.exec(sa_stmt).first()
         
-        # Merge data
-        assign_id = student_assign.id if student_assign else ca.id # Use CA ID as fallback
-        title = ca.title
-        description = ca.description
-        assignment_type = ca.assignment_type
-        file_url = ca.file_url
-        deadline = student_assign.deadline if student_assign else None
+        # Auto-create if missing (Eager initialization)
+        if not student_assign:
+            # We need to create a new Assignment record for this student/lesson/content
+            student_assign = Assignment(
+                lesson_id=lesson_id, # This is the student's Lesson instance ID
+                content_assignment_id=ca.id,
+                title=ca.title,
+                description=ca.description,
+                assignment_type=ca.assignment_type,
+                file_url=ca.file_url,
+                deadline=None # or derive from somewhere
+            )
+            session.add(student_assign)
+            session.commit()
+            session.refresh(student_assign)
         
+        # Merge data
+        assign_id = student_assign.id
+        title = student_assign.title
+        description = student_assign.description
+        assignment_type = student_assign.assignment_type
+        file_url = student_assign.file_url
+        deadline = student_assign.deadline
+        
+        # Prepare files list
+        files_list = []
+        if ca.files:
+            files_list = [
+                {"id": f.id, "file_name": f.file_name, "file_url": f.file_url}
+                for f in ca.files
+            ]
+
+        # Fetch submission
+        sub_stmt = select(Submission).where(
+            Submission.assignment_id == student_assign.id,
+            Submission.student_id == student_id
+        ).options(selectinload(Submission.files), selectinload(Submission.feedback))
+        submission = session.exec(sub_stmt).first()
+        
+        submission_data = None
+        if submission:
+            status = "submitted"
+            timing = submission.submitted_at
+            if submission.updated_at:
+                status = "resubmitted"
+                timing = submission.updated_at
+            if submission.feedback:
+                status = "evaluated"
+                # timing remains submission/resubmission date as per user request
+
+            submission_data = {
+                "id": submission.id,
+                "status": status,
+                "description": submission.description,
+                "timing": timing.isoformat() if timing else None,
+                "updated_at": submission.updated_at.isoformat() if submission.updated_at else None,
+                "feedback": {
+                    "comment": submission.feedback.comment,
+                    "rating": submission.feedback.rating
+                } if submission.feedback else None,
+                "files": [
+                    {"file_name": f.file_name, "file_url": f.file_url}
+                    for f in submission.files
+                ]
+            }
+
         result.append({
             "id": assign_id,
             "content_assignment_id": ca.id,
@@ -572,7 +670,9 @@ def get_lesson_assignments(
             "description": description,
             "assignment_type": assignment_type or "unknown",
             "file_url": file_url or "",
-            "deadline": deadline.isoformat() if deadline else None
+            "files": files_list,
+            "deadline": ca.deadline.isoformat() if (ca.deadline) else (deadline.isoformat() if deadline else None),
+            "submission": submission_data
         })
 
     # Also include legacy assignments if any (for backward compatibility during migration)
@@ -583,18 +683,221 @@ def get_lesson_assignments(
         )
         legacy_assigns = session.exec(legacy_stmt).all()
         for la in legacy_assigns:
+            # Fetch submission for legacy
+            sub_stmt = select(Submission).where(
+                Submission.assignment_id == la.id,
+                Submission.student_id == student_id
+            ).options(selectinload(Submission.files), selectinload(Submission.feedback))
+            submission = session.exec(sub_stmt).first()
+            
+            submission_data = None
+            if submission:
+                status = "submitted"
+                timing = submission.submitted_at
+                if submission.updated_at:
+                    status = "resubmitted"
+                    timing = submission.updated_at
+                if submission.feedback:
+                    status = "evaluated"
+                    # timing remains submission/resubmission date
+
+                submission_data = {
+                    "id": submission.id,
+                    "status": status,
+                    "description": submission.description,
+                    "timing": timing.isoformat() if timing else None,
+                    "feedback": {
+                        "comment": submission.feedback.comment,
+                        "rating": submission.feedback.rating
+                    } if submission.feedback else None,
+                    "files": [
+                        {"file_name": f.file_name, "file_url": f.file_url}
+                        for f in submission.files
+                    ]
+                }
+
             result.append({
                 "id": la.id,
                 "content_assignment_id": None,
                 "lesson_id": la.lesson_id,
                 "title": la.title,
                 "description": la.description,
-                "assignment_type": la.assignment_type or "unknown",
-                "file_url": la.file_url or "",
-                "deadline": la.deadline.isoformat() if la.deadline else None
+                "assignment_type": "legacy",
+                "file_url": "",
+                "files": [],
+                "deadline": la.deadline.isoformat() if la.deadline else None,
+                "submission": submission_data
             })
 
     return result
+
+
+from schemas.submission_schema import SubmissionRead
+from sqlalchemy.orm import selectinload
+
+# ... (other imports are fine, I will invoke replacement on the specific blocks)
+
+@router.get("/{student_id}/assignments/{assignment_id}/submission", response_model=SubmissionRead)
+def get_submission(
+    student_id: int,
+    assignment_id: int,
+    session: Session = Depends(get_session)
+):
+    # Verify ownership
+    assignment = session.get(Assignment, assignment_id)
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+        
+    submission = session.exec(
+        select(Submission)
+        .where(
+            Submission.assignment_id == assignment_id,
+            Submission.student_id == student_id
+        )
+        .options(selectinload(Submission.files), selectinload(Submission.feedback))
+    ).first()
+    
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+        
+    # Calculate status and timing
+    status = "submitted"
+    timing = submission.submitted_at
+    if submission.updated_at:
+        status = "resubmitted"
+        timing = submission.updated_at
+    if submission.feedback:
+        status = "evaluated"
+        # timing remains submission.updated_at or submission.submitted_at
+        
+    return {
+        "id": submission.id,
+        "description": submission.description,
+        "submitted_at": submission.submitted_at,
+        "updated_at": submission.updated_at,
+        "status": status,
+        "timing": timing,
+        "files": [
+            {"file_name": f.file_name, "file_url": f.file_url}
+            for f in submission.files
+        ],
+        "feedback": {
+            "comment": submission.feedback.comment,
+            "rating": submission.feedback.rating
+        } if submission.feedback else None
+    }
+
+
+@router.post("/{student_id}/assignments/{assignment_id}/submit", response_model=SubmissionRead)
+async def submit_assignment(
+    student_id: int,
+    assignment_id: int,
+    description: str = Form(""),
+    files: list[UploadFile] = File(...),
+    session: Session = Depends(get_session)
+):
+    try:
+        # Verify ownership
+        assignment = session.get(Assignment, assignment_id)
+        if not assignment:
+            raise HTTPException(status_code=404, detail="Assignment not found")
+            
+        submission = session.exec(
+            select(Submission)
+            .where(
+                Submission.assignment_id == assignment_id,
+                Submission.student_id == student_id
+            )
+        ).first()
+
+        if not submission:
+            submission = Submission(
+                assignment_id=assignment_id,
+                student_id=student_id,
+                description=description,
+                submitted_at=datetime.utcnow()
+            )
+            session.add(submission)
+            session.commit()
+            session.refresh(submission)
+        else:
+            # Resubmission logic: Clear old evaluation and files
+            # 1. Delete Feedback
+            existing_feedback = session.exec(
+                select(Feedback).where(Feedback.submission_id == submission.id)
+            ).first()
+            if existing_feedback:
+                session.delete(existing_feedback)
+            
+            # 2. Delete old SubmissionFile records from DB
+            # Actual files on disk could be cleaned up too, but for now we replace in DB
+            for old_file in submission.files:
+                session.delete(old_file)
+            
+            submission.description = description
+            submission.updated_at = datetime.utcnow()
+            session.add(submission)
+            session.commit()
+            session.refresh(submission)
+
+        # Process Files
+        for file in files:
+            safe_filename = f"{submission.id}_{file.filename.replace(' ', '_')}"
+            file_path = SUBMISSION_UPLOAD_DIR / safe_filename
+            
+            content = await file.read()
+            with open(file_path, "wb") as f:
+                f.write(content)
+                
+            sub_file = SubmissionFile(
+                submission_id=submission.id,
+                file_name=file.filename,
+                file_url=f"/uploads/submissions/{safe_filename}",
+                file_type=file.filename.split('.')[-1]
+            )
+            session.add(sub_file)
+        
+        session.commit()
+        
+        submission_refreshed = session.exec(
+            select(Submission)
+            .where(Submission.id == submission.id)
+            .options(selectinload(Submission.files), selectinload(Submission.feedback))
+        ).first()
+        
+        # Calculate status and timing
+        status = "submitted"
+        timing = submission_refreshed.submitted_at
+        if submission_refreshed.updated_at:
+            status = "resubmitted"
+            timing = submission_refreshed.updated_at
+        if submission_refreshed.feedback:
+            status = "evaluated"
+            # timing remains submission_refreshed.updated_at or submission_refreshed.submitted_at
+            
+        return {
+            "id": submission_refreshed.id,
+            "description": submission_refreshed.description,
+            "submitted_at": submission_refreshed.submitted_at,
+            "updated_at": submission_refreshed.updated_at,
+            "status": status,
+            "timing": timing,
+            "files": [
+                {"file_name": f.file_name, "file_url": f.file_url}
+                for f in submission_refreshed.files
+            ],
+            "feedback": {
+                "comment": submission_refreshed.feedback.comment,
+                "rating": submission_refreshed.feedback.rating
+            } if submission_refreshed.feedback else None
+        }
+
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 
 @router.post("/{lesson_id}/assignments")
@@ -629,115 +932,6 @@ async def upload_assignment(
     return assignment
 
 
-@router.get("/{student_id}/assignments/{assignment_id}/submission")
-def get_submission(
-    student_id: int,
-    assignment_id: int,
-    session: Session = Depends(get_session)
-):
-    submission = session.exec(
-        select(Submission).where(
-            Submission.assignment_id == assignment_id,
-            Submission.student_id == student_id
-        )
-        .order_by(Submission.submitted_at.desc())
-    ).first()
-
-    if not submission:
-        raise HTTPException(status_code=404, detail="Submission not found")
-
-    feedback = session.exec(
-        select(Feedback).where(Feedback.submission_id == submission.id)
-    ).first()
-
-    files = session.exec(
-        select(SubmissionFile).where(SubmissionFile.submission_id == submission.id)
-    ).all()
-
-    return {
-        "id": submission.id,
-        "submitted_at": submission.submitted_at,
-        "updated_at": submission.updated_at,
-        "description": submission.description,
-        "submission_files": [
-            {"file_name": f.file_name, "file_url": f.file_url}
-            for f in files
-        ],
-        "feedback": (
-            {
-                "comment": feedback.comment,
-                "rating": feedback.rating
-            }
-            if feedback else None
-        )
-    }
 
 
-@router.post("/{student_id}/assignments/{assignment_id}/submit")
-async def submit_assignment(
-    student_id: int,
-    assignment_id: int,
-    description: str = Form(None),
-    files: list[UploadFile] = File(...),
-    session: Session = Depends(get_session)
-):
-    assignment = session.get(Assignment, assignment_id)
-    if not assignment:
-        raise HTTPException(status_code=404, detail="Assignment not found")
 
-    lesson = session.get(Lesson, assignment.lesson_id)
-    if lesson.status == "locked":
-        raise HTTPException(status_code=403, detail="Lesson is locked")
-
-    submission = Submission(
-        assignment_id=assignment_id,
-        student_id=student_id,
-        description=description
-    )
-
-    session.add(submission)
-    session.commit()
-    session.refresh(submission)
-
-    for file in files:
-        safe_name = f"{submission.id}_{file.filename.replace(' ', '_')}"
-        file_path = ASSIGNMENT_UPLOAD_DIR / safe_name
-
-        with open(file_path, "wb") as f:
-            f.write(await file.read())
-
-        session.add(
-            SubmissionFile(
-                submission_id=submission.id,
-                file_name=file.filename,
-                file_url=f"/uploads/assignments/{safe_name}"
-            )
-        )
-
-    session.commit()
-
-    feedback = session.exec(
-        select(Feedback).where(Feedback.submission_id == submission.id)
-    ).first()
-
-    submission_files = session.exec(
-        select(SubmissionFile).where(SubmissionFile.submission_id == submission.id)
-    ).all()
-
-    return {
-        "id": submission.id,
-        "submitted_at": submission.submitted_at,
-        "updated_at": submission.updated_at,
-        "description": submission.description,
-        "submission_files": [
-            {"file_name": f.file_name, "file_url": f.file_url}
-            for f in submission_files
-        ],
-        "feedback": (
-            {
-                "comment": feedback.comment,
-                "rating": feedback.rating
-            }
-            if feedback else None
-        )
-    }
