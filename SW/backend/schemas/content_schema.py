@@ -7,6 +7,7 @@ from pydantic import BaseModel
 class ContentCourseRead(BaseModel):
     id: int
     course_number: int
+    title: Optional[str] = None
     description: Optional[str] = None
 
     class Config:
@@ -14,6 +15,7 @@ class ContentCourseRead(BaseModel):
 
 class ContentCourseCreate(BaseModel):
     course_number: int
+    title: Optional[str] = None
     description: Optional[str] = None
 
 
@@ -48,12 +50,15 @@ class StudentReadWithUser(BaseModel):
 class StudentProgressAssignment(BaseModel):
     id: int
     title: str
-    status: str # "not submitted yet", "submitted", "evaluated"
+    status: str # "not submitted yet", "submitted", "evaluated", "resubmitted"
+    submission_id: Optional[int] = None # Added for evaluation
     submission_date: Optional[datetime] = None
+    timing: Optional[datetime] = None # Relevant timestamp for the current status
     feedback: Optional[str] = None
     rating: Optional[int] = None
     file_url: Optional[str] = None
     assignment_file_url: Optional[str] = None
+    deadline: Optional[datetime] = None
 
 class StudentProgressLesson(BaseModel):
     id: int
@@ -64,11 +69,36 @@ class StudentProgressLesson(BaseModel):
 
 class StudentProgressMilestone(BaseModel):
     milestone_number: int
+    course_id: Optional[int] = None
     lessons: List[StudentProgressLesson] = []
 
 class StudentProgressResponse(BaseModel):
     student: StudentReadWithUser
     milestones: List[StudentProgressMilestone] = []
+
+
+class ContentAssignmentFileRead(BaseModel):
+    id: int
+    assignment_id: int
+    file_url: str
+    file_name: str
+
+    class Config:
+        from_attributes = True
+
+
+class ContentAssignmentRead(BaseModel):
+    id: int
+    lesson_id: int
+    title: str
+    description: Optional[str] = None
+    assignment_type: str
+    file_url: str
+    deadline: Optional[datetime] = None
+    files: List[ContentAssignmentFileRead] = []
+
+    class Config:
+        from_attributes = True
 
 
 class ContentLessonRead(BaseModel):
@@ -79,6 +109,7 @@ class ContentLessonRead(BaseModel):
     title: str
     description: Optional[str] = None
     materials: List[ContentMaterialRead] = []
+    assignments: List[ContentAssignmentRead] = []
 
     class Config:
         from_attributes = True

@@ -1,0 +1,16 @@
+--- Debugging Teacher Progress ---
+Testing for Student ID: 1
+FAILED teacher_router:
+Traceback (most recent call last):
+  File "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/debug_errors_3.py", line 24, in <module>
+    res = get_student_educational_progress(student_id=student.id, session=session)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/routers/teacher_router.py", line 683, in get_student_educational_progress
+    Assignment.student_id == student_id,
+    ^^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/pydantic/_internal/_model_construction.py", line 289, in __getattr__
+    raise AttributeError(item)
+AttributeError: student_id
+
+--- Debugging Student Assignments ---
+No assignments found.

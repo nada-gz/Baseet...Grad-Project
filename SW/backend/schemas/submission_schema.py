@@ -18,6 +18,8 @@ class SubmissionRead(SQLModel):
     description: Optional[str]
     submitted_at: datetime
     updated_at: Optional[datetime]
+    status: Optional[str] = None
+    timing: Optional[datetime] = None
 
     files: List[SubmissionFileRead]
     feedback: Optional[FeedbackRead]
