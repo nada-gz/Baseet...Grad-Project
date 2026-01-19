@@ -13,6 +13,38 @@ export default function TeacherDashboard() {
 
       <div className="teacher-cards-row">
 
+        {/* Lesson Preparation Card */}
+        <div className="teacher-card">
+          <div className="card-icon">
+            <BookOpen className="h-12 w-12 text-primary" />
+          </div>
+          <div className="card-title text-primary">Prepare Lessons</div>
+          <div className="card-description">
+            Design courses, build structured milestones, and create detailed lessons with learning materials and exercises.
+          </div>
+          <div className="card-buttons">
+            <Link to="/dashboard/teacher/lessons-prep" className="btn btn-primary">
+              Go to Lesson Preparation
+            </Link>
+          </div>
+        </div>
+
+        {/* Class Management Card */}
+        <div className="teacher-card">
+          <div className="card-icon">
+            <Users className="h-12 w-12 text-primary" />
+          </div>
+          <div className="card-title text-primary">Manage Your Class</div>
+          <div className="card-description">
+            Organize learning levels, create classes, assign students, and link relevant courses to each class.
+          </div>
+          <div className="card-buttons">
+            <Link to="/dashboard/teacher/classrooms" className="btn btn-primary">
+              Go to Class Management
+            </Link>
+          </div>
+        </div>
+
         {/* Student Monitoring Card */}
         <div className="teacher-card">
           <div className="card-icon">
@@ -20,7 +52,7 @@ export default function TeacherDashboard() {
           </div>
           <div className="card-title text-primary">Monitor Students</div>
           <div className="card-description">
-            Track student progress, review performance, and provide feedback to help them improve.
+            View all students in one place, track their academic progress, and monitor their real-time psychological state through biometric sensors.
           </div>
           <div className="card-buttons">
             <Link to="/dashboard/teacher/students" className="btn btn-primary">
@@ -30,37 +62,9 @@ export default function TeacherDashboard() {
         </div>
 
         
-        {/* Class Management Card */}
-        <div className="teacher-card">
-          <div className="card-icon">
-            <Users className="h-12 w-12 text-primary" />
-          </div>
-          <div className="card-title text-primary">Manage Your Class</div>
-          <div className="card-description">
-            Create classrooms, add students, assign lessons, and keep your class organized efficiently.
-          </div>
-          <div className="card-buttons">
-            <Link to="/dashboard/teacher/classrooms" className="btn btn-primary">
-              Go to Class Management
-            </Link>
-          </div>
-        </div>
+        
 
-        {/* Lesson Preparation Card */}
-        <div className="teacher-card">
-          <div className="card-icon">
-            <BookOpen className="h-12 w-12 text-primary" />
-          </div>
-          <div className="card-title text-primary">Prepare Lessons</div>
-          <div className="card-description">
-            Create and upload lessons, learning materials, and exercises for your students to access.
-          </div>
-          <div className="card-buttons">
-            <Link to="/dashboard/teacher/lessons-prep" className="btn btn-primary">
-              Go to Lesson Preparation
-            </Link>
-          </div>
-        </div>
+        
 
         
       </div>

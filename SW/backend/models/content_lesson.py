@@ -3,6 +3,7 @@ from sqlmodel import SQLModel, Field, Relationship
 
 if TYPE_CHECKING:
     from models.content_material import ContentMaterial
+    from models.content_assignment import ContentAssignment
 
 
 class ContentLesson(SQLModel, table=True):
@@ -18,3 +19,4 @@ class ContentLesson(SQLModel, table=True):
     description: Optional[str] = None
 
     materials: List["ContentMaterial"] = Relationship(back_populates="lesson")
+    assignments: List["ContentAssignment"] = Relationship(back_populates="lesson")
