@@ -183,7 +183,7 @@ class InteractiveLessonRequest(BaseModel):
     student_id: int
     user_input: Optional[str] = None
     enable_tts: bool = True 
-    enable_stt: bool = False
+    enable_stt: bool = True
 
 
 class InteractiveLessonResponse(BaseModel):
@@ -203,6 +203,8 @@ async def interactive_lesson_endpoint(request: InteractiveLessonRequest):
     try:
         session_id = f"student_{request.student_id}_lesson_{request.lesson_id}"
         
+        # If no text input is provided, we assume we need to LISTEN (STS Mode)
+        # The orchestrator will handle the microphone activation.
         result = orchestrator.run_interactive_lesson(
             lesson_id=request.lesson_id,
             session_id=session_id,
