@@ -14,6 +14,8 @@ init(autoreset=True)
 # --- CONFIGURATION ---
 STT_MODEL_ID = "IbrahimAmin/egyptian-arabic-wav2vec2-xlsr-53"
 SHARED_FILE = "shared_data.json"
+RECORD_SECONDS = 5  # Duration to listen automatically
+SAMPLE_RATE = 16000
 
 class EgyptianEar:
     """
@@ -31,32 +33,47 @@ class EgyptianEar:
             print(Fore.RED + f"❌ Error loading STT: {e}")
 
     def listen(self, filename="temp_in.wav"):
-        print(Fore.CYAN + "\n🎤 Press [Enter] to start recording...")
-        input()
-        print(Fore.RED + "🔴 Listening... (Press [Enter] to stop)")
-        
-        recording = []
-        def callback(indata, frames, time, status):
-            recording.append(indata.copy())
-            
-        with sd.InputStream(samplerate=16000, channels=1, callback=callback):
-            input() 
-            
-        if not recording: return ""
-        
-        full_rec = np.concatenate(recording, axis=0)
-        write(filename, 16000, full_rec)
+        """
+        Records audio automatically for RECORD_SECONDS without user interaction.
+        """
+        print(Fore.CYAN + f"\n🎤 Auto-Listening for {RECORD_SECONDS} seconds...")
         
         try:
-            speech, _ = librosa.load(filename, sr=16000)
-            inputs = self.processor(speech, sampling_rate=16000, return_tensors="pt", padding=True)
+            # Record audio automatically (Non-blocking start, but we wait for it to finish)
+            # This replaces the manual 'input()' calls
+            recording = sd.rec(int(RECORD_SECONDS * SAMPLE_RATE), samplerate=SAMPLE_RATE, channels=1)
+            
+            # Show a simple countdown or wait
+            for i in range(RECORD_SECONDS, 0, -1):
+                print(Fore.RED + f"🔴 Recording... {i}")
+                time.sleep(1)
+            
+            sd.wait()  # Ensure recording is complete
+            print(Fore.GREEN + "⏹️ Recording finished. Processing...")
+
+            # Save file
+            write(filename, SAMPLE_RATE, recording)
+            
+            # Check if there is actual audio (simple volume check)
+            volume_norm = np.linalg.norm(recording) * 10
+            if volume_norm < 1:
+                print(Fore.YELLOW + "⚠️ Audio too quiet, might be silence.")
+                return ""
+
+            # Transcribe
+            speech, _ = librosa.load(filename, sr=SAMPLE_RATE)
+            inputs = self.processor(speech, sampling_rate=SAMPLE_RATE, return_tensors="pt", padding=True)
+            
             with torch.no_grad():
                 logits = self.model(inputs.input_values.to(self.device)).logits
+            
             predicted_ids = torch.argmax(logits, dim=-1)
             transcription = self.processor.batch_decode(predicted_ids)[0]
+            
             return transcription
+
         except Exception as e:
-            print(Fore.RED + f"❌ Transcription Error: {e}")
+            print(Fore.RED + f"❌ Recorder/Transcription Error: {e}")
             return ""
 
 class JsonWriter:
@@ -68,7 +85,7 @@ class JsonWriter:
         data = {
             "raw_text": text,
             "timestamp": time.time(),
-            "status": "new"  # Flag to tell the other script there is new data
+            "status": "new"
         }
         try:
             with open(SHARED_FILE, 'w', encoding='utf-8') as f:
@@ -78,24 +95,25 @@ class JsonWriter:
             print(Fore.RED + f"❌ Error writing JSON: {e}")
 
 def main():
+    # Only for testing this module standalone
     print(Fore.WHITE + "="*50)
-    print(Fore.WHITE + "🚀 MODULE 1: STT LISTENER & WRITER")
+    print(Fore.WHITE + "🚀 MODULE 1: STT LISTENER (AUTO MODE)")
     print(Fore.WHITE + "="*50)
     
     ear = EgyptianEar()
     
     while True:
         try:
-            # 1. Listen
             text = ear.listen()
-            
             if text.strip():
                 print(Fore.WHITE + f"📝 Recognized: {text}")
-                # 2. Save to JSON
                 JsonWriter.save_transcription(text)
             else:
-                print(Fore.YELLOW + "⚠️ No speech detected.")
+                print(Fore.YELLOW + "⚠️ No speech recognized.")
                 
+            print(Fore.BLUE + "Waiting 2 seconds before next cycle...\n")
+            time.sleep(2)
+            
         except KeyboardInterrupt:
             print("\n👋 Exiting Listener.")
             break
