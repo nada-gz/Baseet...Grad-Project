@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-CHROMA_DB_PATH = "./autism_rag_db"
+CHROMA_DB_PATH = os.path.join(os.path.dirname(__file__), "autism_rag_db")  # Full path to local autism_rag_db
 COLLECTION_NAME = "autism_content_arabic"
 EMBEDDING_MODEL_NAME = 'intfloat/multilingual-e5-large'
 GENERATION_MODEL = 'gemini-2.5-flash'
@@ -83,8 +83,15 @@ def generate_rag_answer_with_chat(chat_session, query_text, context_string, is_c
         return f"❌ حصل خطأ أثناء محاولة توليد الإجابة من Gemini. (Error during generation): {e}"
 
 
-def generate_mcq(client, context_string):
-    """Generates one MCQ in Egyptian Arabic based on provided context."""
+def generate_mcq(client, context_string, previous_questions=None):
+    """Generates one MCQ in Egyptian Arabic based on provided context, avoiding previous questions."""
+    
+    # Format previous questions for the prompt to ensure variety
+    avoid_instruction = ""
+    if previous_questions and len(previous_questions) > 0:
+        avoid_list = "\n".join([f"- {q}" for q in previous_questions])
+        avoid_instruction = f"**هام جدًا:** لا تكرر الأسئلة التالية، وقم بصياغة سؤال جديد تمامًا:\n{avoid_list}"
+
     output_format_description = """
         The output MUST be a JSON object with the following structure:
         {
@@ -94,9 +101,43 @@ def generate_mcq(client, context_string):
             "Option 1 in Egyptian Arabic",
             "Option 2 in Egyptian Arabic",
             "Option 3 in Egyptian Arabic"
-          ]
+          ],
+          "gentle_explanation_if_wrong": "A very short, gentle sentence explaining why the correct answer is right (simple Arabic)."
         }
     """
+
+    prompt = textwrap.dedent(f"""
+        بناءً على المعلومات الموجودة في "البيانات المرجعية"، قم بتوليد سؤال اختيار من متعدد (MCQ) واحد فقط.
+        **قواعد توليد السؤال:**
+        1. يجب أن يكون السؤال بسيطًا جدًا ومناسبًا لطفل على طيف التوحد.
+        2. الإجابة الصحيحة يجب أن تكون مباشرة من "البيانات المرجعية".
+        3. يجب أن تحتوي قائمة الخيارات على 3 خيارات (إجابة صحيحة واثنان خاطئان).
+        4. يجب أن تكون الخيارات والسؤال بلهجة مصرية عامية بسيطة.
+        
+        {avoid_instruction}
+
+        **البيانات المرجعية (Context):**
+        ```
+        {context_string}
+        ```
+        
+        {output_format_description}
+    """)
+
+    try:
+        response = client.models.generate_content(
+            model=GENERATION_MODEL,
+            contents=[prompt]
+        )
+        text = response.text.strip()
+        if text.startswith("```json"):
+            text = text[len("```json"):]
+            if text.endswith("```"):
+                text = text[:-len("```")]
+        return json.loads(text.strip())
+    except Exception as e:
+        print(f"❌ خطأ في توليد السؤال أو تحليل JSON: {e}")
+        return None
 
     prompt = textwrap.dedent(f"""
         بناءً على المعلومات الموجودة في "البيانات المرجعية"، قم بتوليد سؤال اختيار من متعدد (MCQ) واحد فقط.
@@ -129,6 +170,64 @@ def generate_mcq(client, context_string):
         print(f"❌ خطأ في توليد السؤال أو تحليل JSON: {e}")
         return None
 
+def generate_batch_mcqs(client, context_string, count=2, previous_questions=None):
+    """Generates a list of unique MCQs for review purposes."""
+    
+    avoid_instruction = ""
+    if previous_questions and len(previous_questions) > 0:
+        avoid_list = "\n".join([f"- {q}" for q in previous_questions])
+        avoid_instruction = f"**هام:** لا تكرر الأسئلة التالية أبدًا:\n{avoid_list}"
+
+    output_format_description = """
+        The output MUST be a JSON object containing a list called "questions".
+        Structure:
+        {
+          "questions": [
+            {
+              "question_ar": "Question 1...",
+              "correct_answer_ar": "1",
+              "options_ar": ["Opt1", "Opt2", "Opt3"]
+            },
+            {
+              "question_ar": "Question 2...",
+              ...
+            }
+          ]
+        }
+    """
+
+    prompt = textwrap.dedent(f"""
+        بناءً على "البيانات المرجعية"، قم بتوليد **{count} أسئلة** اختيار من متعدد (MCQ) مختلفة تماماً عن بعضها.
+        
+        **القواعد:**
+        1. الأسئلة يجب أن تكون مختلفة عن بعضها.
+        2. {avoid_instruction}
+        3. مناسبة للطفل وبلهجة مصرية.
+        4. الإجابة صحيحة وموجودة في النص.
+
+        **البيانات المرجعية:**
+        ```
+        {context_string}
+        ```
+        
+        {output_format_description}
+    """)
+
+    try:
+        response = client.models.generate_content(
+            model=GENERATION_MODEL,
+            contents=[prompt]
+        )
+        text = response.text.strip()
+        if text.startswith("```json"):
+            text = text[len("```json"):]
+            if text.endswith("```"):
+                text = text[:-len("```")]
+        data = json.loads(text.strip())
+        return data.get("questions", [])
+    except Exception as e:
+        print(f"❌ خطأ في توليد قائمة الأسئلة: {e}")
+        return []
 
 # --- Backend-ready Utilities (No CLI / No local JSONL logging) ---
 def prepare_system_instruction():
@@ -145,3 +244,152 @@ def prepare_system_instruction():
             - **لا تكرر الإجابة السابقة أبداً.**
         3. **اللغة:** صيغ الإجابة لتكون بلهجة مصرية عامية (ECA).
     """)
+
+# ==========================================
+# 5. GEMINI AGENT TOOLS (for agentic architecture)
+# ==========================================
+
+# Define Gemini function calling tools for Explanation Agent
+EXPLANATION_TOOLS = [
+    {
+        "function_declarations": [
+            {
+                "name": "retrieve_context",
+                "description": "Retrieves relevant context from the ChromaDB knowledge base for a given query",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "The query text to search for in the knowledge base"
+                        },
+                        "k": {
+                            "type": "integer",
+                            "description": "Number of top results to retrieve (default: 3)",
+                            "default": 3
+                        }
+                    },
+                    "required": ["query"]
+                }
+            },
+            {
+                "name": "generate_mcq_question",
+                "description": "Generates a multiple choice question (MCQ) in Egyptian Arabic based on provided context",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "context": {
+                            "type": "string",
+                            "description": "The context/content to base the MCQ on"
+                        }
+                    },
+                    "required": ["context"]
+                }
+            },
+            {
+                "name": "create_chat_session",
+                "description": "Initializes a new Gemini chat session with system instructions for autism-friendly explanations",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "system_instruction": {
+                            "type": "string",
+                            "description": "Optional custom system instruction (uses default if not provided)"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "generate_explanation",
+                "description": "Generates an autism-friendly explanation using RAG context",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "The query or topic to explain"
+                        },
+                        "context": {
+                            "type": "string",
+                            "description": "Retrieved context to use for explanation"
+                        },
+                        "is_clarification": {
+                            "type": "boolean",
+                            "description": "Whether this is a clarification request",
+                            "default": False
+                        }
+                    },
+                    "required": ["query", "context"]
+                }
+            }
+        ]
+    }
+]
+
+def execute_explanation_tool(tool_name, args, chroma_client=None, embed_model=None, gemini_client=None):
+    """
+    Execute an explanation tool based on Gemini function call
+    
+    Args:
+        tool_name: Name of the tool to execute
+        args: Dictionary of arguments for the tool
+        chroma_client: ChromaDB client (required for retrieve_context)
+        embed_model: Embedding model (required for retrieve_context)
+        gemini_client: Gemini client (required for other tools)
+    
+    Returns:
+        Tool execution result
+    """
+    try:
+        if tool_name == "retrieve_context":
+            if not chroma_client or not embed_model:
+                return {"error": "ChromaDB client and embed model required", "success": False}
+            
+            query = args.get("query", "")
+            k = args.get("k", 3)
+            context = get_context_from_db(chroma_client, query, embed_model, k=k)
+            return {
+                "context": context,
+                "num_results": len(context),
+                "success": True
+            }
+        
+        elif tool_name == "generate_mcq_question":
+            if not gemini_client:
+                return {"error": "Gemini client required", "success": False}
+            
+            context = args.get("context", "")
+            mcq = generate_mcq(gemini_client, context)
+            if mcq:
+                return {"mcq": mcq, "success": True}
+            else:
+                return {"error": "Failed to generate MCQ", "success": False}
+        
+        elif tool_name == "create_chat_session":
+            if not gemini_client:
+                return {"error": "Gemini client required", "success": False}
+            
+            system_instruction = args.get("system_instruction") or prepare_system_instruction()
+            chat = initialize_chat_session(gemini_client, system_instruction)
+            return {"chat_id": id(chat), "success": True, "chat_session": chat}
+        
+        elif tool_name == "generate_explanation":
+            query = args.get("query", "")
+            context = args.get("context", "")
+            is_clarification = args.get("is_clarification", False)
+            
+            # For now, return the context-based explanation structure
+            # In full implementation, this would use chat session
+            return {
+                "query": query,
+                "context_provided": bool(context),
+                "is_clarification": is_clarification,
+                "success": True
+            }
+        
+        else:
+            return {"error": f"Unknown tool: {tool_name}", "success": False}
+    
+    except Exception as e:
+        return {"error": str(e), "success": False}
+
