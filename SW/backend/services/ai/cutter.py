@@ -14,11 +14,15 @@ PATH_LABELER  = os.path.join(os.path.dirname(__file__), "arat5_model")
 print("⏳ Loading Models...")
 
 # Load Splitter
-if not os.path.exists(PATH_SPLITTER):
-    # Check if we should use a default or raise error
-    # For this full code, we keep the user's logic:
-    raise ValueError(f"❌ Error: {PATH_SPLITTER} not found.")
-embedder = SentenceTransformer(PATH_SPLITTER)
+try:
+    print(f"   -> Loading Splitter from {PATH_SPLITTER}...")
+    embedder = SentenceTransformer(PATH_SPLITTER)
+except Exception as e:
+    print(f"⚠️ Warning: Could not load local model from {PATH_SPLITTER}: {e}")
+    # Fallback to online model name from config or default
+    DEFAULT_SPLITTER = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    print(f"   -> Falling back to online model: {DEFAULT_SPLITTER}")
+    embedder = SentenceTransformer(DEFAULT_SPLITTER)
 
 # Load Labeler
 if not os.path.exists(PATH_LABELER):
