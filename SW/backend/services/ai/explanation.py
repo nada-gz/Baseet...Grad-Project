@@ -83,8 +83,15 @@ def generate_rag_answer_with_chat(chat_session, query_text, context_string, is_c
         return f"❌ حصل خطأ أثناء محاولة توليد الإجابة من Gemini. (Error during generation): {e}"
 
 
-def generate_mcq(client, context_string):
-    """Generates one MCQ in Egyptian Arabic based on provided context."""
+def generate_mcq(client, context_string, previous_questions=None):
+    """Generates one MCQ in Egyptian Arabic based on provided context, avoiding previous questions."""
+    
+    # Format previous questions for the prompt to ensure variety
+    avoid_instruction = ""
+    if previous_questions and len(previous_questions) > 0:
+        avoid_list = "\n".join([f"- {q}" for q in previous_questions])
+        avoid_instruction = f"**هام جدًا:** لا تكرر الأسئلة التالية، وقم بصياغة سؤال جديد تمامًا:\n{avoid_list}"
+
     output_format_description = """
         The output MUST be a JSON object with the following structure:
         {
@@ -94,9 +101,43 @@ def generate_mcq(client, context_string):
             "Option 1 in Egyptian Arabic",
             "Option 2 in Egyptian Arabic",
             "Option 3 in Egyptian Arabic"
-          ]
+          ],
+          "gentle_explanation_if_wrong": "A very short, gentle sentence explaining why the correct answer is right (simple Arabic)."
         }
     """
+
+    prompt = textwrap.dedent(f"""
+        بناءً على المعلومات الموجودة في "البيانات المرجعية"، قم بتوليد سؤال اختيار من متعدد (MCQ) واحد فقط.
+        **قواعد توليد السؤال:**
+        1. يجب أن يكون السؤال بسيطًا جدًا ومناسبًا لطفل على طيف التوحد.
+        2. الإجابة الصحيحة يجب أن تكون مباشرة من "البيانات المرجعية".
+        3. يجب أن تحتوي قائمة الخيارات على 3 خيارات (إجابة صحيحة واثنان خاطئان).
+        4. يجب أن تكون الخيارات والسؤال بلهجة مصرية عامية بسيطة.
+        
+        {avoid_instruction}
+
+        **البيانات المرجعية (Context):**
+        ```
+        {context_string}
+        ```
+        
+        {output_format_description}
+    """)
+
+    try:
+        response = client.models.generate_content(
+            model=GENERATION_MODEL,
+            contents=[prompt]
+        )
+        text = response.text.strip()
+        if text.startswith("```json"):
+            text = text[len("```json"):]
+            if text.endswith("```"):
+                text = text[:-len("```")]
+        return json.loads(text.strip())
+    except Exception as e:
+        print(f"❌ خطأ في توليد السؤال أو تحليل JSON: {e}")
+        return None
 
     prompt = textwrap.dedent(f"""
         بناءً على المعلومات الموجودة في "البيانات المرجعية"، قم بتوليد سؤال اختيار من متعدد (MCQ) واحد فقط.
@@ -129,6 +170,64 @@ def generate_mcq(client, context_string):
         print(f"❌ خطأ في توليد السؤال أو تحليل JSON: {e}")
         return None
 
+def generate_batch_mcqs(client, context_string, count=2, previous_questions=None):
+    """Generates a list of unique MCQs for review purposes."""
+    
+    avoid_instruction = ""
+    if previous_questions and len(previous_questions) > 0:
+        avoid_list = "\n".join([f"- {q}" for q in previous_questions])
+        avoid_instruction = f"**هام:** لا تكرر الأسئلة التالية أبدًا:\n{avoid_list}"
+
+    output_format_description = """
+        The output MUST be a JSON object containing a list called "questions".
+        Structure:
+        {
+          "questions": [
+            {
+              "question_ar": "Question 1...",
+              "correct_answer_ar": "1",
+              "options_ar": ["Opt1", "Opt2", "Opt3"]
+            },
+            {
+              "question_ar": "Question 2...",
+              ...
+            }
+          ]
+        }
+    """
+
+    prompt = textwrap.dedent(f"""
+        بناءً على "البيانات المرجعية"، قم بتوليد **{count} أسئلة** اختيار من متعدد (MCQ) مختلفة تماماً عن بعضها.
+        
+        **القواعد:**
+        1. الأسئلة يجب أن تكون مختلفة عن بعضها.
+        2. {avoid_instruction}
+        3. مناسبة للطفل وبلهجة مصرية.
+        4. الإجابة صحيحة وموجودة في النص.
+
+        **البيانات المرجعية:**
+        ```
+        {context_string}
+        ```
+        
+        {output_format_description}
+    """)
+
+    try:
+        response = client.models.generate_content(
+            model=GENERATION_MODEL,
+            contents=[prompt]
+        )
+        text = response.text.strip()
+        if text.startswith("```json"):
+            text = text[len("```json"):]
+            if text.endswith("```"):
+                text = text[:-len("```")]
+        data = json.loads(text.strip())
+        return data.get("questions", [])
+    except Exception as e:
+        print(f"❌ خطأ في توليد قائمة الأسئلة: {e}")
+        return []
 
 # --- Backend-ready Utilities (No CLI / No local JSONL logging) ---
 def prepare_system_instruction():

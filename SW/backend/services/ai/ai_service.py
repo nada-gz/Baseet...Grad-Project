@@ -29,7 +29,8 @@ try:
         initialize_chat_session,
         generate_rag_answer_with_chat,
         prepare_system_instruction,
-        generate_mcq
+        generate_mcq,
+        generate_batch_mcqs  # <--- NEW IMPORT for Phase 2
     )
     EXPLANATION_AVAILABLE = True
 except Exception as e:
@@ -46,6 +47,8 @@ except Exception as e:
         return ""
     def generate_mcq(*args, **kwargs):
         return None
+    def generate_batch_mcqs(*args, **kwargs):
+        return []
 
 # Import audio modules
 try:
@@ -80,6 +83,46 @@ embed_model = SentenceTransformer(EMBEDDING_MODEL_NAME, device=device)
 
 # --- Session Storage ---
 sessions: Dict[str, Dict[str, Any]] = {}
+
+# ==========================================
+# HELPER FUNCTIONS (PHASE 2)
+# ==========================================
+
+def save_questions_to_file(filename, new_questions, lesson_id, topic_title):
+    """Appends new questions to a JSON file."""
+    # Ensure outputs directory exists
+    filepath = os.path.join(os.path.dirname(__file__), "outputs", filename)
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    
+    current_data = []
+    
+    # 1. Load existing data if file exists
+    if os.path.exists(filepath):
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                content = f.read().strip()
+                if content:
+                    current_data = json.loads(content)
+        except Exception as e:
+            print(f"⚠️ Error reading {filename}: {e}")
+            current_data = []
+
+    # 2. Append new entry
+    entry = {
+        "timestamp": datetime.datetime.now().isoformat(),
+        "lesson_id": lesson_id,
+        "topic": topic_title,
+        "questions": new_questions
+    }
+    current_data.append(entry)
+    
+    # 3. Save back
+    try:
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(current_data, f, ensure_ascii=False, indent=2)
+        print(f"💾 Saved {len(new_questions)} questions to {filename}")
+    except Exception as e:
+        print(f"❌ Error saving to {filename}: {e}")
 
 # ==========================================
 # SMART ORCHESTRATOR (RULE-BASED)
@@ -429,6 +472,405 @@ class SmartOrchestrator:
                 "success": False,
                 "error": str(e)
             }
+    
+    # ==========================================
+    # INTERACTIVE LESSON LOOP
+    # ==========================================
+    
+    def run_interactive_lesson(
+        self, 
+        lesson_id: int, 
+        session_id: str,
+        user_input: Optional[str] = None,
+        use_tts: bool = True,
+        use_stt: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Run interactive lesson loop with explanation, TTS, STT, and quiz.
+        
+        Args:
+            lesson_id: ID of the lesson to teach
+            session_id: Unique session identifier
+            user_input: Optional text input (if not using STT)
+            use_tts: Whether to automatically speak responses
+            use_stt: Whether to use voice input
+            
+        Returns:
+            Dictionary with current state, message, and next action
+        """
+        # Initialize session if needed
+        session_key = f"interactive_{session_id}"
+        if session_key not in self.chat_sessions:
+            self.chat_sessions[session_key] = {
+                "state": "LOADING",
+                "lesson_id": lesson_id,
+                "lesson_content": None,
+                "context_str": None,
+                "current_mcq": None,
+                "explanation_attempts": 0,
+                "quiz_attempts": 0,          # Track number of questions asked
+                "asked_questions": [],       # Track questions to avoid repetition
+                "previous_feedback": ""      # Store feedback to say before next question
+            }
+        
+        session = self.chat_sessions[session_key]
+        
+        try:
+            # ==========================================
+            # STATE: LOADING - Fetch lesson from database
+            # ==========================================
+            if session["state"] == "LOADING":
+                print(f"📚 Loading lesson {lesson_id}...")
+                
+                lesson_data = fetch_lesson_by_id(lesson_id)
+                if not lesson_data:
+                    return {
+                        "success": False,
+                        "state": "ERROR",
+                        "message": "❌ الدرس غير موجود",
+                        "needs_input": False
+                    }
+                
+                # Retrieve RAG context
+                print("🔍 Retrieving context from database...")
+                context_items = _get_context_impl(
+                    self.chroma_client,
+                    lesson_data["content"],
+                    self.embed_model,
+                    k=3
+                )
+                
+                context_str = "\n".join([
+                    item.get('original_content', {}).get('autism_friendly_ar', '')
+                    for item in context_items
+                ])
+                
+                # Update session
+                session["lesson_content"] = lesson_data["content"]
+                session["context_str"] = context_str
+                session["state"] = "EXPLAINING"
+                
+                print(f"✅ Lesson loaded: {lesson_data['content'][:50]}...")
+            
+            # ==========================================
+            # STATE: EXPLAINING - Generate and speak explanation
+            # ==========================================
+            if session["state"] == "EXPLAINING":
+                print("💬 Generating explanation...")
+                
+                # Get or create chat session for this lesson
+                if session_key not in sessions:
+                    system_instruction = prepare_system_instruction()
+                    chat_session = initialize_chat_session(
+                        self.gemini_client,
+                        system_instruction
+                    )
+                    sessions[session_key] = chat_session
+                else:
+                    chat_session = sessions[session_key]
+                
+                # Generate explanation
+                is_clarification = session["explanation_attempts"] > 0
+                explanation = generate_rag_answer_with_chat(
+                    chat_session=chat_session,
+                    query_text=session["lesson_content"],
+                    context_string=session["context_str"],
+                    is_clarification=is_clarification
+                )
+                
+                session["explanation_attempts"] += 1
+                
+                # Speak explanation if TTS enabled
+                audio_played = False
+                if use_tts and self.voice:
+                    print("🔊 Speaking explanation...")
+                    tts_result = self.speak_latest_response(explanation)
+                    audio_played = tts_result.get("success", False)
+                
+                # Move to waiting for confirmation
+                session["state"] = "AWAITING_CONFIRMATION"
+                
+                return {
+                    "success": True,
+                    "state": "AWAITING_CONFIRMATION",
+                    "message": explanation,
+                    "audio_played": audio_played,
+                    "needs_input": True,
+                    "prompt": "😊 فهمت يا بطل؟ (قول 'فهمت' أو 'مش فاهم')"
+                }
+            
+            # ==========================================
+            # STATE: AWAITING_CONFIRMATION - Check if student understands
+            # ==========================================
+            elif session["state"] == "AWAITING_CONFIRMATION":
+                # Get input (either from parameter or STT)
+                if use_stt and not user_input:
+                    print("🎤 Listening for voice input...")
+                    voice_result = self.process_voice_input(session_id)
+                    if voice_result.get("success"):
+                        user_input = voice_result.get("transcription", "")
+                    else:
+                        return {
+                            "success": False,
+                            "state": session["state"],
+                            "message": "❌ لم أستطع سماع ردك. حاول مرة أخرى.",
+                            "needs_input": True
+                        }
+                
+                if not user_input:
+                    return {
+                        "success": False,
+                        "state": session["state"],
+                        "message": "⚠️ من فضلك أدخل ردك",
+                        "needs_input": True
+                    }
+                
+                user_input_lower = user_input.lower().strip()
+                
+                # Check for clarification request
+                clarification_phrases = ['مش فاهم', 'مش فاهمة', 'تاني', 'اشرحلي تاني', 'ممكن توضيح', 'مفهمتش']
+                confirmation_phrases = ['فهمت', 'تمام', 'خلاص', 'شكرا', 'كويس', 'اه', 'نعم']
+                
+                is_clarification = any(phrase in user_input_lower for phrase in clarification_phrases)
+                is_confirmation = any(phrase in user_input_lower for phrase in confirmation_phrases)
+                
+                if is_clarification:
+                    # Go back to explaining (will be simpler this time)
+                    session["state"] = "EXPLAINING"
+                    return self.run_interactive_lesson(
+                        lesson_id=lesson_id,
+                        session_id=session_id,
+                        user_input=None,
+                        use_tts=use_tts,
+                        use_stt=False  # Already got input
+                    )
+                
+                elif is_confirmation:
+                    # Move to quiz
+                    session["state"] = "QUIZ_GENERATING"
+                else:
+                    return {
+                        "success": True,
+                        "state": session["state"],
+                        "message": "قولّي 'فهمت' لو تمام 👌\nأو 'مش فاهم' لو تحب أشرح تاني 😊",
+                        "needs_input": True
+                    }
+            
+            # ==========================================
+            # STATE: QUIZ_GENERATING - Create quiz question
+            # ==========================================
+            if session["state"] == "QUIZ_GENERATING":
+                print(f"❓ Generating quiz question (Attempt {session['quiz_attempts'] + 1}/3)...")
+                
+                # PASS PREVIOUS QUESTIONS TO AVOID REPETITION
+                mcq = generate_mcq(
+                    self.gemini_client, 
+                    session["context_str"],
+                    previous_questions=session["asked_questions"]
+                )
+                
+                if not mcq:
+                    return {
+                        "success": False,
+                        "state": "ERROR",
+                        "message": "❌ حصل خطأ في توليد السؤال. حاول مرة أخرى.",
+                        "needs_input": False
+                    }
+                
+                session["current_mcq"] = mcq
+                session["asked_questions"].append(mcq["question_ar"]) # Log this question
+                session["state"] = "QUIZ_ANSWERING"
+                
+                # Format quiz message
+                options = "\n".join([
+                    f"{i+1}. {opt}" 
+                    for i, opt in enumerate(mcq["options_ar"])
+                ])
+                
+                # Check if there is feedback from a previous wrong answer
+                intro_text = "✅ شاطر! خد السؤال ده:"
+                if session.get("previous_feedback"):
+                    intro_text = f"{session['previous_feedback']}\n\nيلا نجرب سؤال تاني يا بطل:"
+                    session["previous_feedback"] = "" # Clear it after using
+
+                quiz_message = (
+                    f"{intro_text}\n\n"
+                    f"❓ {mcq['question_ar']}\n\n"
+                    f"{options}\n\n"
+                    "اكتب رقم الإجابة (1 أو 2 أو 3)."
+                )
+                
+                # Speak quiz if TTS enabled
+                audio_played = False
+                if use_tts and self.voice:
+                    print("🔊 Speaking quiz...")
+                    tts_result = self.speak_latest_response(quiz_message)
+                    audio_played = tts_result.get("success", False)
+                
+                return {
+                    "success": True,
+                    "state": "QUIZ_ANSWERING",
+                    "message": quiz_message,
+                    "audio_played": audio_played,
+                    "quiz": mcq,
+                    "needs_input": True
+                }
+            
+            # ==========================================
+            # STATE: QUIZ_ANSWERING - Check answer and provide feedback
+            # ==========================================
+            elif session["state"] == "QUIZ_ANSWERING":
+                # Get input (either from parameter or STT)
+                if use_stt and not user_input:
+                    print("🎤 Listening for quiz answer...")
+                    voice_result = self.process_voice_input(session_id)
+                    if voice_result.get("success"):
+                        user_input = voice_result.get("transcription", "")
+                    else:
+                        return {
+                            "success": False,
+                            "state": session["state"],
+                            "message": "❌ لم أستطع سماع ردك. حاول مرة أخرى.",
+                            "needs_input": True
+                        }
+                
+                if not user_input:
+                    return {
+                        "success": False,
+                        "state": session["state"],
+                        "message": "⚠️ من فضلك أدخل رقم الإجابة",
+                        "needs_input": True
+                    }
+                
+                mcq = session["current_mcq"]
+                
+                # Parse answer
+                try:
+                    choice_idx = int(user_input.strip()) - 1
+                    if choice_idx < 0 or choice_idx >= len(mcq["options_ar"]):
+                        raise ValueError("Invalid choice")
+                    
+                    correct_idx = int(mcq["correct_answer_ar"]) - 1
+                    is_correct = choice_idx == correct_idx
+                    user_choice_text = mcq["options_ar"][choice_idx]
+                    correct_answer_text = mcq["options_ar"][correct_idx]
+                    
+                    # Extract gentle explanation (fallback if missing)
+                    gentle_explanation = mcq.get("gentle_explanation_if_wrong", f"الإجابة الصح هي: {correct_answer_text}")
+
+                except Exception:
+                    return {
+                        "success": False,
+                        "state": session["state"],
+                        "message": "⚠️ من فضلك اكتب رقم صحيح (1 أو 2 أو 3)",
+                        "needs_input": True
+                    }
+                
+                # Log to database
+                log_interaction_db({
+                    "timestamp": datetime.datetime.now(),
+                    "user_input": user_input,
+                    "intent": "Interactive_Lesson_MCQ",
+                    "topic": session["lesson_content"],
+                    "question": mcq["question_ar"],
+                    "correct": is_correct,
+                    "correct_answer": correct_answer_text,
+                    "user_choice": user_choice_text,
+                    "topic_id": lesson_id
+                })
+                
+                # === ADAPTIVE LOOP & PERSISTENT STORAGE LOGIC ===
+                
+                if is_correct:
+                    # Case 1: Answer is Correct -> Finish & Generate Review
+                    session["state"] = "COMPLETED"
+                    completion_message = "🎉 برافو عليك! إجابة ممتازة! 👏\nانتهى الدرس وتم حفظ أسئلة المراجعة."
+
+                    # --- PHASE 2: GENERATE & SAVE REVIEW QUESTIONS ---
+                    print("⚙️ Generating review questions for JSON files...")
+                    try:
+                        # 1. Generate 4 new questions (avoiding the one just asked)
+                        all_review_questions = generate_batch_mcqs(
+                            self.gemini_client,
+                            session["context_str"],
+                            count=4,
+                            previous_questions=session["asked_questions"]
+                        )
+                        
+                        if all_review_questions and len(all_review_questions) >= 2:
+                            # 2. Split them: 2 for Lesson Review, 2 for Milestone
+                            lesson_qs = all_review_questions[:2]
+                            milestone_qs = all_review_questions[2:] if len(all_review_questions) > 2 else []
+                            
+                            # 3. Save to files
+                            lesson_title = session.get("lesson_content", "Unknown Lesson")
+                            
+                            save_questions_to_file("lesson_review.json", lesson_qs, lesson_id, lesson_title)
+                            if milestone_qs:
+                                save_questions_to_file("milestone_review.json", milestone_qs, lesson_id, lesson_title)
+                                
+                    except Exception as e:
+                        print(f"⚠️ Failed to generate review questions: {e}")
+                        # We don't stop the lesson completion if saving fails
+                    # ------------------------------------------------
+                    
+                else:
+                    # Case 2: Answer is Wrong -> Check attempts
+                    session["quiz_attempts"] += 1
+                    
+                    if session["quiz_attempts"] < 3:
+                        # Retry allowed: Prepare gentle feedback and loop back to GENERATING
+                        session["state"] = "QUIZ_GENERATING"
+                        session["previous_feedback"] = f"معلش، حاول تاني! {gentle_explanation}"
+                        
+                        # Recursive call to immediately generate the next question
+                        return self.run_interactive_lesson(
+                            lesson_id, session_id, user_input=None, use_tts=use_tts, use_stt=False
+                        )
+                    else:
+                        # Max attempts reached -> Finish
+                        session["state"] = "COMPLETED"
+                        completion_message = f"مش مشكلة! {gentle_explanation}\nلقد بذلت مجهود رائع اليوم! 🌟"
+                
+                # Speak feedback if TTS enabled
+                audio_played = False
+                if use_tts and self.voice:
+                    print("🔊 Speaking feedback...")
+                    tts_result = self.speak_latest_response(completion_message)
+                    audio_played = tts_result.get("success", False)
+                
+                # Clean up session
+                if session["state"] == "COMPLETED":
+                    del self.chat_sessions[session_key]
+                    if session_key in sessions:
+                        del sessions[session_key]
+                
+                return {
+                    "success": True,
+                    "state": "COMPLETED",
+                    "message": completion_message,
+                    "audio_played": audio_played,
+                    "is_correct": is_correct,
+                    "needs_input": False
+                }
+            
+            # Fallback
+            return {
+                "success": False,
+                "state": "ERROR",
+                "message": f"❌ حالة غير معروفة: {session['state']}",
+                "needs_input": False
+            }
+            
+        except Exception as e:
+            print(f"❌ Interactive Lesson Error: {e}")
+            return {
+                "success": False,
+                "state": "ERROR",
+                "message": f"❌ حصل خطأ: {str(e)}",
+                "needs_input": False
+            }
+
 
 # ==========================================
 # INITIALIZE ORCHESTRATOR
@@ -636,5 +1078,5 @@ def generate_feedback(question: str, correct_opt: str, user_choice: str, is_corr
 
 
 # Constants for backward compatibility
-CLARIFICATION_PHRASES = ['مش فاهم', 'مش فاهمة', 'تاني', 'اشرحلي تاني', 'ممكن توضيح']
+CLARIFICATION_PHRASES = ['مش فاهم', 'مش فاهمة', 'تاني', 'اشرحلي تاني', 'ممكن توضيح','يعني ايه']
 CONFIRMATION_PHRASES = ['فهمت', 'تمام', 'خلاص', 'شكرا', 'كويس']
