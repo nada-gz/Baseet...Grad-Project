@@ -5,20 +5,71 @@ import chromadb
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 from google import genai
+from google.genai import types
 import psycopg2
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 import datetime
+
+# Import cutter tools
+try:
+    from services.ai.cutter import (
+        split_text_semantically,
+        generate_title,
+        normalize_arabic
+    )
+    CUTTER_AVAILABLE = True
+except Exception as e:
+    print(f"⚠️ Warning: cutter.py not available: {e}")
+    CUTTER_AVAILABLE = False
+
+# Import explanation tools
+try:
+    from services.ai.explanation import (
+        get_context_from_db as _get_context_impl,
+        initialize_chat_session,
+        generate_rag_answer_with_chat,
+        prepare_system_instruction,
+        generate_mcq,
+        generate_batch_mcqs
+    )
+    EXPLANATION_AVAILABLE = True
+except Exception as e:
+    print(f"⚠️ Warning: explanation.py not available: {e}")
+    EXPLANATION_AVAILABLE = False
+    # Define fallback functions
+    def _get_context_impl(*args, **kwargs): return []
+    def initialize_chat_session(*args, **kwargs): return None
+    def generate_rag_answer_with_chat(*args, **kwargs): return "Error: Explanation module not available"
+    def prepare_system_instruction(): return ""
+    def generate_mcq(*args, **kwargs): return None
+    def generate_batch_mcqs(*args, **kwargs): return []
+
+# Import audio modules
+try:
+    from services.ai.TTS import TextPostProcessor, voice
+    TTS_AVAILABLE = True
+except Exception as e:
+    print(f"⚠️ Warning: TTS.py not available: {e}")
+    TTS_AVAILABLE = False
+
+try:
+    from services.ai.STT import EgyptianEar, JsonWriter
+    STT_AVAILABLE = True
+except Exception as e:
+    print(f"⚠️ Warning: STT.py not available: {e}")
+    STT_AVAILABLE = False
 
 load_dotenv()
 
 # --- Configuration ---
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-CHROMA_DB_PATH = "../../ai_rag_db"
+CHROMA_DB_PATH = os.path.join(os.path.dirname(__file__), "autism_rag_db")
 COLLECTION_NAME = "autism_content_arabic"
 EMBEDDING_MODEL_NAME = 'intfloat/multilingual-e5-large'
-GENERATION_MODEL = 'gemini-2.5-flash'
+GENERATION_MODEL = 'gemini-2.0-flash-exp'
+SHARED_FILE = os.getenv("SHARED_FILE", "shared_data.json")
 
-# --- AI / RAG ---
+# --- AI / RAG Initialization ---
 gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 chroma_client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -27,113 +78,468 @@ embed_model = SentenceTransformer(EMBEDDING_MODEL_NAME, device=device)
 # --- Session Storage ---
 sessions: Dict[str, Dict[str, Any]] = {}
 
-# --- Constants ---
-CLARIFICATION_PHRASES = ['مش فاهم', 'مش فاهمة', 'تاني', 'اشرحلي تاني', 'ممكن توضيح']
-CONFIRMATION_PHRASES = ['فهمت', 'تمام', 'خلاص', 'شكرا', 'كويس']
+# ==========================================
+# HELPER FUNCTIONS
+# ==========================================
 
-# --- DB helpers ---
+def save_questions_to_file(filename, new_questions, lesson_id, topic_title):
+    """Appends new questions to a JSON file."""
+    filepath = os.path.join(os.path.dirname(__file__), "outputs", filename)
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    
+    current_data = []
+    if os.path.exists(filepath):
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                content = f.read().strip()
+                if content:
+                    current_data = json.loads(content)
+        except Exception as e:
+            print(f"⚠️ Error reading {filename}: {e}")
+            current_data = []
+
+    entry = {
+        "timestamp": datetime.datetime.now().isoformat(),
+        "lesson_id": lesson_id,
+        "topic": topic_title,
+        "questions": new_questions
+    }
+    current_data.append(entry)
+    
+    try:
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(current_data, f, ensure_ascii=False, indent=2)
+        print(f"💾 Saved {len(new_questions)} questions to {filename}")
+    except Exception as e:
+        print(f"❌ Error saving to {filename}: {e}")
+
+# ==========================================
+# SMART ORCHESTRATOR
+# ==========================================
+
+class SmartOrchestrator:
+    def __init__(self):
+        print("🚀 Initializing SmartOrchestrator...")
+        self.gemini_client = gemini_client
+        self.chroma_client = chroma_client
+        self.embed_model = embed_model
+        
+        if TTS_AVAILABLE:
+            self.text_processor = TextPostProcessor()
+            self.voice = voice()
+        else:
+            self.text_processor = None
+            self.voice = None
+        
+        if STT_AVAILABLE:
+            self.ear = EgyptianEar()
+        else:
+            self.ear = None
+        
+        self.chat_sessions: Dict[str, Any] = {}
+        print("✅ SmartOrchestrator Ready!\n")
+    
+    def _count_words(self, text: str) -> int:
+        if not text: return 0
+        return len(text.strip().split())
+    
+    def handle_user_input(self, text: str, session_id: str = "default") -> Dict[str, Any]:
+        if not text or not text.strip():
+            return {"success": False, "error": "Empty input text", "response": None}
+        
+        word_count = self._count_words(text)
+        try:
+            if word_count > 10:
+                return self._route_to_cutter(text)
+            else:
+                return self._route_to_explanation(text, session_id)
+        except Exception as e:
+            return {"success": False, "error": str(e), "response": None}
+    
+    def _route_to_cutter(self, text: str) -> Dict[str, Any]:
+        if not CUTTER_AVAILABLE:
+            return {"success": False, "error": "Cutter module not available", "response": None}
+        try:
+            chunks = split_text_semantically(text)
+            formatted_chunks = []
+            for i, chunk in enumerate(chunks, 1):
+                formatted_chunks.append({
+                    "chunk_id": i,
+                    "title": generate_title(chunk),
+                    "content": chunk
+                })
+            
+            response_data = {
+                "success": True,
+                "agent": "cutter",
+                "chunks": formatted_chunks,
+                "response": formatted_chunks
+            }
+            
+            # Save output
+            outputs_dir = os.path.join(os.path.dirname(__file__), "outputs")
+            os.makedirs(outputs_dir, exist_ok=True)
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_file = os.path.join(outputs_dir, f"cutter_output_{timestamp}.json")
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(response_data, f, ensure_ascii=False, indent=2)
+            
+            return response_data
+        except Exception as e:
+            return {"success": False, "error": str(e), "response": None}
+    
+    def _route_to_explanation(self, text: str, session_id: str = "default") -> Dict[str, Any]:
+        try:
+            context_items = _get_context_impl(self.chroma_client, text, self.embed_model, k=3)
+            context_str = "\n".join([f"- {item.get('original_content', {}).get('autism_friendly_ar', '')}" for item in context_items])
+            
+            if session_id not in self.chat_sessions:
+                self.chat_sessions[session_id] = initialize_chat_session(self.gemini_client, prepare_system_instruction())
+            
+            explanation = generate_rag_answer_with_chat(
+                chat_session=self.chat_sessions[session_id],
+                query_text=text,
+                context_string=context_str,
+                is_clarification=False
+            )
+            return {"success": True, "message": explanation}
+        except Exception as e:
+            return {"success": False, "message": f"Error: {str(e)}"}
+    
+    def process_voice_input(self, session_id: str = "default") -> Dict[str, Any]:
+        if not STT_AVAILABLE or not self.ear:
+            return {"success": False, "error": "STT not available", "transcription": None}
+        try:
+            transcribed_text = self.ear.listen()
+            if not transcribed_text or not transcribed_text.strip():
+                return {"success": False, "error": "No speech detected", "transcription": None}
+            
+            JsonWriter.save_transcription(transcribed_text)
+            ai_response = self.handle_user_input(transcribed_text, session_id)
+            return {"success": True, "transcription": transcribed_text, "ai_response": ai_response, "response": ai_response.get("response")}
+        except Exception as e:
+            return {"success": False, "error": str(e), "transcription": None}
+    
+    def speak_latest_response(self, text_to_speak: str) -> Dict[str, Any]:
+        if not TTS_AVAILABLE or not self.voice:
+            return {"success": False, "error": "TTS not available"}
+        try:
+            normalized_text = self.text_processor.normalize_for_tts(text_to_speak)
+            self.voice.speak(normalized_text)
+            return {"success": True, "original_text": text_to_speak}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    # ==========================================
+    # INTERACTIVE LESSON LOOP (UPDATED)
+    # ==========================================
+    
+    def run_interactive_lesson(
+        self, 
+        lesson_id: int, 
+        session_id: str,
+        user_input: Optional[str] = None,
+        use_tts: bool = True,
+        use_stt: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Runs the interactive lesson.
+        Flow: GREETING -> AWAITING_GREETING_RESPONSE -> LOADING -> EXPLAINING -> CONFIRMATION -> QUIZ
+        """
+        session_key = f"interactive_{session_id}"
+        if session_key not in self.chat_sessions:
+            self.chat_sessions[session_key] = {
+                "state": "GREETING",  # <--- Start with Greeting
+                "lesson_id": lesson_id,
+                "lesson_content": None,
+                "context_str": None,
+                "current_mcq": None,
+                "explanation_attempts": 0,
+                "quiz_attempts": 0,
+                "asked_questions": [],
+                "previous_feedback": ""
+            }
+        
+        session = self.chat_sessions[session_key]
+        
+        try:
+            # ==========================================
+            # STATE: GREETING (Step 1)
+            # ==========================================
+            if session["state"] == "GREETING":
+                greeting_msg = "إزيك يا حبيبي عامل إيه النهاردة؟"
+                
+                audio_played = False
+                if use_tts and self.voice:
+                    print("🔊 Speaking greeting...")
+                    self.speak_latest_response(greeting_msg)
+                    audio_played = True
+                
+                session["state"] = "AWAITING_GREETING_RESPONSE"
+                
+                return {
+                    "success": True,
+                    "state": "AWAITING_GREETING_RESPONSE",
+                    "message": greeting_msg,
+                    "audio_played": audio_played,
+                    "needs_input": True
+                }
+
+            # ==========================================
+            # STATE: AWAITING_GREETING_RESPONSE (Step 2)
+            # ==========================================
+            elif session["state"] == "AWAITING_GREETING_RESPONSE":
+                # STS Logic: If no input, listen automatically
+                if not user_input or user_input.strip() == "":
+                    if use_stt and STT_AVAILABLE and self.ear:
+                        print("🎤 STT ACTIVATED: Listening for greeting response...")
+                        voice_result = self.process_voice_input(session_id)
+                        if voice_result.get("success"):
+                            user_input = voice_result.get("transcription", "")
+                            print(f"✅ Transcribed: {user_input}")
+                        else:
+                            error_msg = voice_result.get("error", "Unknown error")
+                            print(f"❌ STT Error: {error_msg}")
+                            return {
+                                "success": False, 
+                                "state": session["state"], 
+                                "message": f"🎤 مسمعتش صوتك يا بطل، ممكن تقول تاني؟ (Error: {error_msg})", 
+                                "needs_input": True,
+                                "audio_played": False
+                            }
+                    else:
+                        stt_status = "enabled" if use_stt else "disabled"
+                        stt_available = "available" if STT_AVAILABLE else "unavailable"
+                        ear_status = "initialized" if self.ear else "not initialized"
+                        return {
+                            "success": False, 
+                            "state": session["state"], 
+                            "message": f"⚠️ STT Status: {stt_status}, Available: {stt_available}, Ear: {ear_status}. منتظر الرد...", 
+                            "needs_input": True,
+                            "audio_played": False
+                        }
+                
+                # Received response (e.g., "Alhamdulillah" or "Fine")
+                # Transition smoothly to LOADING
+                session["state"] = "LOADING"
+                # We do NOT return here. We let it fall through to LOADING/EXPLAINING immediately.
+                # This ensures the child says "Fine" and immediately hears "Great, today we learn..."
+
+            # ==========================================
+            # STATE: LOADING
+            # ==========================================
+            if session["state"] == "LOADING":
+                print(f"📚 Loading lesson {lesson_id}...")
+                lesson_data = fetch_lesson_by_id(lesson_id)
+                if not lesson_data:
+                    return {"success": False, "state": "ERROR", "message": "❌ الدرس غير موجود", "needs_input": False}
+                
+                context_items = _get_context_impl(self.chroma_client, lesson_data["content"], self.embed_model, k=3)
+                context_str = "\n".join([item.get('original_content', {}).get('autism_friendly_ar', '') for item in context_items])
+                
+                session["lesson_content"] = lesson_data["content"]
+                session["context_str"] = context_str
+                session["state"] = "EXPLAINING"
+            
+            # ==========================================
+            # STATE: EXPLAINING
+            # ==========================================
+            if session["state"] == "EXPLAINING":
+                print("💬 Generating explanation...")
+                if session_key not in sessions:
+                    sessions[session_key] = initialize_chat_session(self.gemini_client, prepare_system_instruction())
+                
+                chat_session = sessions[session_key]
+                is_clarification = session["explanation_attempts"] > 0
+                
+                explanation = generate_rag_answer_with_chat(
+                    chat_session=chat_session,
+                    query_text=session["lesson_content"],
+                    context_string=session["context_str"],
+                    is_clarification=is_clarification
+                )
+                
+                # Prepend a friendly bridge if this is the first explanation after greeting
+                if session["explanation_attempts"] == 0:
+                    explanation = f"يارب دايما بخير! 🌟\n{explanation}"
+
+                session["explanation_attempts"] += 1
+                
+                audio_played = False
+                if use_tts and self.voice:
+                    print("🔊 Speaking explanation...")
+                    self.speak_latest_response(explanation)
+                    audio_played = True
+                
+                session["state"] = "AWAITING_CONFIRMATION"
+                
+                return {
+                    "success": True,
+                    "state": "AWAITING_CONFIRMATION",
+                    "message": explanation,
+                    "audio_played": audio_played,
+                    "needs_input": True,
+                    "prompt": "😊 فهمت يا بطل؟"
+                }
+
+            # ==========================================
+            # STATE: AWAITING_CONFIRMATION
+            # ==========================================
+            elif session["state"] == "AWAITING_CONFIRMATION":
+                if not user_input or user_input.strip() == "":
+                    if use_stt and STT_AVAILABLE and self.ear:
+                        print("🎤 STT ACTIVATED: Listening for confirmation...")
+                        voice_result = self.process_voice_input(session_id)
+                        if voice_result.get("success"):
+                            user_input = voice_result.get("transcription", "")
+                            print(f"✅ Transcribed: {user_input}")
+                        else:
+                            error_msg = voice_result.get("error", "Unknown error")
+                            print(f"❌ STT Error: {error_msg}")
+                            return {"success": False, "state": session["state"], "message": f"🎤 مسمعتش صوتك يا بطل، ممكن تقول تاني؟ (Error: {error_msg})", "needs_input": True, "audio_played": False}
+                    else:
+                        stt_status = "enabled" if use_stt else "disabled"
+                        stt_available = "available" if STT_AVAILABLE else "unavailable"
+                        ear_status = "initialized" if self.ear else "not initialized"
+                        return {"success": False, "state": session["state"], "message": f"⚠️ STT: {stt_status}, Available: {stt_available}, Ear: {ear_status}. من فضلك أدخل ردك", "needs_input": True, "audio_played": False}
+                
+                user_input_lower = user_input.lower().strip()
+                clarification_phrases = ['مش فاهم', 'مش فاهمة', 'تاني', 'اشرحلي تاني', 'ممكن توضيح', 'يعني ايه']
+                confirmation_phrases = ['فهمت', 'تمام', 'خلاص', 'شكرا', 'كويس', 'اه', 'نعم']
+                
+                if any(p in user_input_lower for p in clarification_phrases):
+                    session["state"] = "EXPLAINING"
+                    return self.run_interactive_lesson(lesson_id, session_id, None, use_tts, use_stt)
+                elif any(p in user_input_lower for p in confirmation_phrases):
+                    session["state"] = "QUIZ_GENERATING"
+                else:
+                    return {"success": True, "state": session["state"], "message": "قولّي 'فهمت' أو 'مش فاهم'", "needs_input": True}
+
+            # ==========================================
+            # STATE: QUIZ_GENERATING
+            # ==========================================
+            if session["state"] == "QUIZ_GENERATING":
+                print(f"❓ Generating quiz (Attempt {session['quiz_attempts'] + 1}/3)...")
+                mcq = generate_mcq(self.gemini_client, session["context_str"], previous_questions=session["asked_questions"])
+                
+                if not mcq:
+                    return {"success": False, "state": "ERROR", "message": "❌ حصل خطأ في توليد السؤال.", "needs_input": False}
+                
+                session["current_mcq"] = mcq
+                session["asked_questions"].append(mcq["question_ar"])
+                session["state"] = "QUIZ_ANSWERING"
+                
+                options = "\n".join([f"{i+1}. {opt}" for i, opt in enumerate(mcq["options_ar"])])
+                intro = f"{session['previous_feedback']}\n\n" if session.get("previous_feedback") else "✅ شاطر! خد السؤال ده:\n"
+                msg = f"{intro}❓ {mcq['question_ar']}\n\n{options}"
+                session["previous_feedback"] = "" # Clear buffer
+                
+                audio_played = False
+                if use_tts and self.voice:
+                    self.speak_latest_response(msg)
+                    audio_played = True
+                
+                return {"success": True, "state": "QUIZ_ANSWERING", "message": msg, "audio_played": audio_played, "quiz": mcq, "needs_input": True}
+
+            # ==========================================
+            # STATE: QUIZ_ANSWERING
+            # ==========================================
+            elif session["state"] == "QUIZ_ANSWERING":
+                if not user_input or user_input.strip() == "":
+                    if use_stt and STT_AVAILABLE and self.ear:
+                        print("🎤 STT ACTIVATED: Listening for quiz answer...")
+                        voice_result = self.process_voice_input(session_id)
+                        if voice_result.get("success"):
+                            user_input = voice_result.get("transcription", "")
+                            print(f"✅ Transcribed: {user_input}")
+                        else:
+                            error_msg = voice_result.get("error", "Unknown error")
+                            print(f"❌ STT Error: {error_msg}")
+                            return {"success": False, "state": session["state"], "message": f"🎤 مسمعتش الإجابة، ممكن تقول الرقم تاني؟ (Error: {error_msg})", "needs_input": True, "audio_played": False}
+                    else:
+                        stt_status = "enabled" if use_stt else "disabled"
+                        stt_available = "available" if STT_AVAILABLE else "unavailable"
+                        ear_status = "initialized" if self.ear else "not initialized"
+                        return {"success": False, "state": session["state"], "message": f"⚠️ STT: {stt_status}, Available: {stt_available}, Ear: {ear_status}. أدخل رقم الإجابة", "needs_input": True, "audio_played": False}
+
+                mcq = session["current_mcq"]
+                try:
+                    choice_idx = int(user_input.strip()) - 1
+                    if choice_idx < 0 or choice_idx >= len(mcq["options_ar"]): raise ValueError()
+                    correct_idx = int(mcq["correct_answer_ar"]) - 1
+                    is_correct = choice_idx == correct_idx
+                except:
+                    return {"success": False, "state": session["state"], "message": "⚠️ اكتب رقم صحيح (1 أو 2 أو 3)", "needs_input": True}
+                
+                log_interaction_db({
+                    "timestamp": datetime.datetime.now(), "user_input": user_input, "intent": "Quiz", 
+                    "topic": session["lesson_content"], "question": mcq["question_ar"], 
+                    "correct": is_correct, "topic_id": lesson_id
+                })
+
+                if is_correct:
+                    session["state"] = "COMPLETED"
+                    msg = "🎉 برافو عليك! إجابة ممتازة! 👏\nانتهى الدرس."
+                    # Phase 2: Save Review
+                    try:
+                        qs = generate_batch_mcqs(self.gemini_client, session["context_str"], count=4, previous_questions=session["asked_questions"])
+                        if len(qs) >= 2:
+                            save_questions_to_file("lesson_review.json", qs[:2], lesson_id, session.get("lesson_content"))
+                            save_questions_to_file("milestone_review.json", qs[2:], lesson_id, session.get("lesson_content"))
+                    except: pass
+                else:
+                    session["quiz_attempts"] += 1
+                    if session["quiz_attempts"] < 3:
+                        session["state"] = "QUIZ_GENERATING"
+                        session["previous_feedback"] = f"معلش حاول تاني! {mcq.get('gentle_explanation_if_wrong', '')}"
+                        return self.run_interactive_lesson(lesson_id, session_id, None, use_tts, use_stt)
+                    else:
+                        session["state"] = "COMPLETED"
+                        msg = f"مش مشكلة! {mcq.get('gentle_explanation_if_wrong', '')}\nلقد بذلت مجهود رائع! 🌟"
+
+                audio_played = False
+                if use_tts and self.voice:
+                    self.speak_latest_response(msg)
+                    audio_played = True
+                
+                if session["state"] == "COMPLETED":
+                    del self.chat_sessions[session_key]
+
+                return {"success": True, "state": "COMPLETED", "message": msg, "audio_played": audio_played, "is_correct": is_correct, "needs_input": False}
+            
+            return {"success": False, "state": "ERROR", "message": f"Unknown State: {session['state']}"}
+        
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            return {"success": False, "state": "ERROR", "message": str(e)}
+
+# ==========================================
+# HELPERS & EXPORTS
+# ==========================================
+orchestrator = SmartOrchestrator()
 def get_db_connection():
     db_url = os.getenv("DATABASE_URL")
-    assert db_url, "DATABASE_URL is not set"
-
-    if db_url.startswith("postgresql+psycopg://"):
-        db_url = db_url.replace("postgresql+psycopg://", "postgresql://")
-
+    if db_url.startswith("postgresql+psycopg://"): db_url = db_url.replace("postgresql+psycopg://", "postgresql://")
     return psycopg2.connect(db_url)
-
-def fetch_lesson_by_id(lesson_id):
-    """Fetch lesson by lesson_id instead of fetching next lesson."""
+def fetch_lesson_by_id(lid):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT id, title || ': ' || description AS content
-            FROM lessons
-            WHERE id = %s;
-        """, (lesson_id,))
-        row = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        if row:
-            return {"id": row[0], "content": row[1]}
-        return None
-    except Exception as e:
-        print(f"❌ DB Error: {e}")
-        return None
-
-def log_interaction_db(data):
+        conn = get_db_connection(); cur = conn.cursor()
+        cur.execute("SELECT id, title || ': ' || description FROM lessons WHERE id = %s", (lid,))
+        row = cur.fetchone(); cur.close(); conn.close()
+        return {"id": row[0], "content": row[1]} if row else None
+    except: return None
+def log_interaction_db(d):
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        query = """
-            INSERT INTO log_table 
-            (timestamp, user_input, intent, topic, question, correct, correct_answer, user_choice, topic_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-        values = (
-            data.get("timestamp"), data.get("user_input"), data.get("intent"),
-            data.get("topic"), data.get("question"), data.get("correct"), 
-            data.get("correct_answer"), data.get("user_choice"), data.get("topic_id")
-        )
-        cursor.execute(query, values)
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print(f"❌ DB Log Error: {e}")
-
-# --- AI helpers ---
-def get_context_from_db(query_text, k=3):
-    try:
-        collection = chroma_client.get_collection(COLLECTION_NAME)
-        query_vector = embed_model.encode([f"query: {query_text}"], normalize_embeddings=True)[0].tolist()
-        results = collection.query(query_embeddings=[query_vector], n_results=k, include=['documents', 'metadatas'])
-        context = []
-        if results and results.get('documents') and results['documents'][0]:
-            for doc, meta in zip(results['documents'][0], results['metadatas'][0]):
-                context.append({"original_content": meta})
-        return context
-    except Exception as e:
-        print(f"❌ Retrieval Error: {e}")
-        return []
-
-def generate_explanation(topic, context_items, is_clarification=False):
-    context_str = "\n".join([f"- {item['original_content'].get('autism_friendly_ar', '')}" for item in context_items])
-    if is_clarification:
-        prompt = f"""
-        الطفل قال: "مش فاهم".
-        الموضوع: {topic}
-        اشرح له مرة أخرى بطريقة مختلفة تماماً وأبسط. استخدم مثالاً جديداً.
-        معلومات مرجعية: {context_str}
-        """
-    else:
-        prompt = f"""
-        الموضوع الجديد هو: {topic}
-        اشرح هذا الموضوع لطفل متوحد بلهجة مصرية بسيطة جداً ومباشرة.
-        استخدم المعلومات التالية: {context_str}
-        """
-    response = gemini_client.models.generate_content(model=GENERATION_MODEL, contents=[prompt])
-    return response.text
-
-def generate_mcq_ai(context_str):
-    prompt = f"""
-    بناءً على هذا النص: "{context_str}"
-    أنشئ سؤال MCQ واحد للأطفال.
-    Output JSON format: {{ "question_ar": "...", "correct_answer_ar": "1", "options_ar": ["opt1", "opt2", "opt3"] }}
-    """
-    try:
-        response = gemini_client.models.generate_content(model=GENERATION_MODEL, contents=[prompt])
-        text = response.text.strip().replace("```json", "").replace("```", "")
-        return json.loads(text)
-    except:
-        return None
-
-def generate_feedback(question, correct_opt, user_choice, is_correct):
-    prompt = f"""
-    السؤال: {question}
-    الجواب الصحيح: {correct_opt}
-    جواب الطفل: {user_choice} ({'صح' if is_correct else 'غلط'})
-    أعط رد فعل قصير ومشجع باللهجة المصرية.
-    """
-    response = gemini_client.models.generate_content(model=GENERATION_MODEL, contents=[prompt])
-    return response.text
+        conn = get_db_connection(); cur = conn.cursor()
+        cur.execute("INSERT INTO log_table (timestamp, user_input, intent, topic, question, correct, topic_id) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    (d.get("timestamp"), d.get("user_input"), d.get("intent"), d.get("topic"), d.get("question"), d.get("correct"), d.get("topic_id")))
+        conn.commit(); cur.close(); conn.close()
+    except: pass
+def process_text_input(t, s="default"): return orchestrator.handle_user_input(t, s)
+def process_voice_input(s="default"): return orchestrator.process_voice_input(s)
+def speak_text(t): return orchestrator.speak_latest_response(t)
+# Legacy Fallbacks
+def get_context_from_db(q, k=3): return _get_context_impl(chroma_client, q, embed_model, k)
+def generate_explanation(t, c, i=False): return orchestrator._route_to_explanation(t, "legacy").get("message")
+def generate_mcq_ai(c): return generate_mcq(gemini_client, c)
+def generate_feedback(q, c, u, i): return "👏 برافو!" if i else f"😊 الإجابة: {c}"
