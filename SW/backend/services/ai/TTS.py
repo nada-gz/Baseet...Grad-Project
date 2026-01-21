@@ -65,7 +65,7 @@ class voice:
             print(Fore.RED + "❌ Check API Key")
 
     def speak(self, text):
-        if not text: return
+        if not text: return None
         print(Fore.MAGENTA + f"\n🗣️  Speaking: {text}")
         try:
             audio = self.client.text_to_speech.convert(
@@ -73,15 +73,19 @@ class voice:
                 voice_id=self.voice_id,
                 model_id="eleven_multilingual_v2"
             )
-            save(audio, "output.mp3")
+            # Return audio data as base64 for frontend
+            import base64
+            # ElevenLabs convert returns a generator of bytes
+            audio_bytes = b"".join(audio)
+            audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
             
-            # Play the audio file depending on OS
-            if os.name == 'nt': 
-                os.startfile("output.mp3")
-            else: 
-                os.system("open output.mp3")
+            # Optional: keep saving locally for debug if needed
+            # save(audio_bytes, "output.mp3")
+            
+            return audio_base64
         except Exception as e:
             print(Fore.RED + f"❌ TTS Error: {e}")
+            return None
 
 def create_test_file():
     """Creates a dummy JSON file if one doesn't exist so the script runs immediately."""

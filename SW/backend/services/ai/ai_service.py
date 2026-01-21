@@ -225,8 +225,8 @@ class SmartOrchestrator:
             return {"success": False, "error": "TTS not available"}
         try:
             normalized_text = self.text_processor.normalize_for_tts(text_to_speak)
-            self.voice.speak(normalized_text)
-            return {"success": True, "original_text": text_to_speak}
+            audio_base64 = self.voice.speak(normalized_text)
+            return {"success": True, "original_text": text_to_speak, "audio_base64": audio_base64}
         except Exception as e:
             return {"success": False, "error": str(e)}
 
@@ -247,20 +247,36 @@ class SmartOrchestrator:
         Flow: GREETING -> AWAITING_GREETING_RESPONSE -> LOADING -> EXPLAINING -> CONFIRMATION -> QUIZ
         """
         session_key = f"interactive_{session_id}"
+        # Trigger Reset: ONLY if user_input is None AND we don't have a session, OR if explicitly requested (not yet implemented)
+        # We check session state to avoid resetting during clarification
+        if user_input is None:
+            if session_key not in self.chat_sessions:
+                print(f"🌟 Starting NEW session {session_key}")
+            else:
+                # If it's already in session and user_input is None, it's a re-entry/start call
+                # We only reset if the state is COMPLETED or if we want a hard reset
+                if self.chat_sessions[session_key]["state"] == "COMPLETED":
+                     print(f"🔄 Resetting COMPLETED session {session_key}")
+                     del self.chat_sessions[session_key]
+        
         if session_key not in self.chat_sessions:
             self.chat_sessions[session_key] = {
-                "state": "GREETING",  # <--- Start with Greeting
+                "state": "GREETING",
                 "lesson_id": lesson_id,
                 "lesson_content": None,
+                "chunks": [],
+                "current_chunk_idx": 0,
                 "context_str": None,
                 "current_mcq": None,
                 "explanation_attempts": 0,
                 "quiz_attempts": 0,
                 "asked_questions": [],
-                "previous_feedback": ""
+                "previous_feedback": "",
+                "progress": 0
             }
         
         session = self.chat_sessions[session_key]
+        audio_played = False # Initialize to avoid UnboundLocalError
         
         try:
             # ==========================================
@@ -289,8 +305,19 @@ class SmartOrchestrator:
             # STATE: AWAITING_GREETING_RESPONSE (Step 2)
             # ==========================================
             elif session["state"] == "AWAITING_GREETING_RESPONSE":
-                # STS Logic: If no input, listen automatically
-                if not user_input or user_input.strip() == "":
+                # If these is NO user_input (None), it's a re-entry or double-mount start signal.
+                # Do NOT return a duplicate message if we've already sent it.
+                if user_input is None:
+                    return {
+                        "success": True, 
+                        "state": session["state"], 
+                        "message": "", # Silent return to avoid duplication
+                        "needs_input": True,
+                        "audio_played": False
+                    }
+
+                # If the input is empty string, we stay here but return a friendly nudge
+                if user_input.strip() == "":
                     if use_stt and STT_AVAILABLE and self.ear:
                         print("🎤 STT ACTIVATED: Listening for greeting response...")
                         voice_result = self.process_voice_input(session_id)
@@ -299,22 +326,19 @@ class SmartOrchestrator:
                             print(f"✅ Transcribed: {user_input}")
                         else:
                             error_msg = voice_result.get("error", "Unknown error")
-                            print(f"❌ STT Error: {error_msg}")
                             return {
                                 "success": False, 
                                 "state": session["state"], 
-                                "message": f"🎤 مسمعتش صوتك يا بطل، ممكن تقول تاني؟ (Error: {error_msg})", 
+                                "message": f"🎤 مسمعتش صوتك يا بطل، ممكن تقول تاني؟", 
                                 "needs_input": True,
                                 "audio_played": False
                             }
                     else:
-                        stt_status = "enabled" if use_stt else "disabled"
-                        stt_available = "available" if STT_AVAILABLE else "unavailable"
-                        ear_status = "initialized" if self.ear else "not initialized"
+                        # For web chat without STT, just return the greeting again if they hit chat without message
                         return {
-                            "success": False, 
+                            "success": True, 
                             "state": session["state"], 
-                            "message": f"⚠️ STT Status: {stt_status}, Available: {stt_available}, Ear: {ear_status}. منتظر الرد...", 
+                            "message": "إزيك يا حبيبي عامل إيه النهاردة؟ 😊", 
                             "needs_input": True,
                             "audio_played": False
                         }
@@ -329,16 +353,21 @@ class SmartOrchestrator:
             # STATE: LOADING
             # ==========================================
             if session["state"] == "LOADING":
-                print(f"📚 Loading lesson {lesson_id}...")
+                print(f"📚 Loading and cutting lesson {lesson_id}...")
                 lesson_data = fetch_lesson_by_id(lesson_id)
                 if not lesson_data:
                     return {"success": False, "state": "ERROR", "message": "❌ الدرس غير موجود", "needs_input": False}
                 
-                context_items = _get_context_impl(self.chroma_client, lesson_data["content"], self.embed_model, k=3)
-                context_str = "\n".join([item.get('original_content', {}).get('autism_friendly_ar', '') for item in context_items])
+                content = lesson_data["content"]
+                # Cut content into parts
+                if CUTTER_AVAILABLE:
+                    session["chunks"] = split_text_semantically(content)
+                    print(f"✂️ Lesson split into {len(session['chunks'])} parts.")
+                else:
+                    session["chunks"] = [content]
                 
-                session["lesson_content"] = lesson_data["content"]
-                session["context_str"] = context_str
+                session["current_chunk_idx"] = 0
+                session["lesson_content"] = content
                 session["state"] = "EXPLAINING"
             
             # ==========================================
@@ -346,15 +375,24 @@ class SmartOrchestrator:
             # ==========================================
             if session["state"] == "EXPLAINING":
                 print("💬 Generating explanation...")
+                # We use the global 'sessions' dict for the actual Gemini chat objects
+                # because they are not JSON-serializable and shouldn't be in self.chat_sessions
                 if session_key not in sessions:
                     sessions[session_key] = initialize_chat_session(self.gemini_client, prepare_system_instruction())
                 
                 chat_session = sessions[session_key]
+                current_chunk = session["chunks"][session["current_chunk_idx"]]
+                
+                # Check if this is a clarification request (re-explaining same chunk)
                 is_clarification = session["explanation_attempts"] > 0
                 
+                # Get RAG context for this specific chunk
+                context_items = _get_context_impl(self.chroma_client, current_chunk, self.embed_model, k=3)
+                session["context_str"] = "\n".join([item.get('original_content', {}).get('autism_friendly_ar', '') for item in context_items])
+
                 explanation = generate_rag_answer_with_chat(
                     chat_session=chat_session,
-                    query_text=session["lesson_content"],
+                    query_text=current_chunk,
                     context_string=session["context_str"],
                     is_clarification=is_clarification
                 )
@@ -395,13 +433,9 @@ class SmartOrchestrator:
                             print(f"✅ Transcribed: {user_input}")
                         else:
                             error_msg = voice_result.get("error", "Unknown error")
-                            print(f"❌ STT Error: {error_msg}")
-                            return {"success": False, "state": session["state"], "message": f"🎤 مسمعتش صوتك يا بطل، ممكن تقول تاني؟ (Error: {error_msg})", "needs_input": True, "audio_played": False}
+                            return {"success": False, "state": session["state"], "message": "🎤 مسمعتش صوتك يا حبيبي، ممكن تقول تاني؟", "needs_input": True, "audio_played": False}
                     else:
-                        stt_status = "enabled" if use_stt else "disabled"
-                        stt_available = "available" if STT_AVAILABLE else "unavailable"
-                        ear_status = "initialized" if self.ear else "not initialized"
-                        return {"success": False, "state": session["state"], "message": f"⚠️ STT: {stt_status}, Available: {stt_available}, Ear: {ear_status}. من فضلك أدخل ردك", "needs_input": True, "audio_played": False}
+                        return {"success": True, "state": session["state"], "message": "😊 فهمت يا بطل؟ قولّي 'فهمت' أو 'مش فاهم'", "needs_input": True, "audio_played": False}
                 
                 user_input_lower = user_input.lower().strip()
                 clarification_phrases = ['مش فاهم', 'مش فاهمة', 'تاني', 'اشرحلي تاني', 'ممكن توضيح', 'يعني ايه']
@@ -434,12 +468,16 @@ class SmartOrchestrator:
                 msg = f"{intro}❓ {mcq['question_ar']}\n\n{options}"
                 session["previous_feedback"] = "" # Clear buffer
                 
-                audio_played = False
-                if use_tts and self.voice:
-                    self.speak_latest_response(msg)
-                    audio_played = True
-                
-                return {"success": True, "state": "QUIZ_ANSWERING", "message": msg, "audio_played": audio_played, "quiz": mcq, "needs_input": True}
+                return {
+                    "success": True, 
+                    "state": "QUIZ_ANSWERING", 
+                    "message": msg, 
+                    "audio_played": audio_played, 
+                    "quiz": mcq, 
+                    "needs_input": True,
+                    "part": session["current_chunk_idx"] + 1,
+                    "total_parts": len(session["chunks"])
+                }
 
             # ==========================================
             # STATE: QUIZ_ANSWERING
@@ -451,16 +489,10 @@ class SmartOrchestrator:
                         voice_result = self.process_voice_input(session_id)
                         if voice_result.get("success"):
                             user_input = voice_result.get("transcription", "")
-                            print(f"✅ Transcribed: {user_input}")
                         else:
-                            error_msg = voice_result.get("error", "Unknown error")
-                            print(f"❌ STT Error: {error_msg}")
-                            return {"success": False, "state": session["state"], "message": f"🎤 مسمعتش الإجابة، ممكن تقول الرقم تاني؟ (Error: {error_msg})", "needs_input": True, "audio_played": False}
+                            return {"success": False, "state": session["state"], "message": "🎤 مسمعتش الإجابة، ممكن تقول الرقم تاني؟", "needs_input": True, "audio_played": False}
                     else:
-                        stt_status = "enabled" if use_stt else "disabled"
-                        stt_available = "available" if STT_AVAILABLE else "unavailable"
-                        ear_status = "initialized" if self.ear else "not initialized"
-                        return {"success": False, "state": session["state"], "message": f"⚠️ STT: {stt_status}, Available: {stt_available}, Ear: {ear_status}. أدخل رقم الإجابة", "needs_input": True, "audio_played": False}
+                        return {"success": True, "state": session["state"], "message": "اكتب رقم الإجابة الصحيحة يا بطل (1 أو 2 أو 3) 📝", "needs_input": True, "audio_played": False}
 
                 mcq = session["current_mcq"]
                 try:
@@ -478,15 +510,46 @@ class SmartOrchestrator:
                 })
 
                 if is_correct:
-                    session["state"] = "COMPLETED"
-                    msg = "🎉 برافو عليك! إجابة ممتازة! 👏\nانتهى الدرس."
-                    # Phase 2: Save Review
-                    try:
-                        qs = generate_batch_mcqs(self.gemini_client, session["context_str"], count=4, previous_questions=session["asked_questions"])
-                        if len(qs) >= 2:
-                            save_questions_to_file("lesson_review.json", qs[:2], lesson_id, session.get("lesson_content"))
-                            save_questions_to_file("milestone_review.json", qs[2:], lesson_id, session.get("lesson_content"))
-                    except: pass
+                    # Update Progress
+                    total_chunks = len(session["chunks"])
+                    current_idx = session["current_chunk_idx"]
+                    new_progress = int(((current_idx + 1) / total_chunks) * 100)
+                    session["progress"] = new_progress
+                    
+                    print(f"📈 Updating progress for lesson {lesson_id}: {new_progress}%")
+                    update_lesson_progress_db(lesson_id, new_progress)
+
+                    if current_idx < total_chunks - 1:
+                        # Move to next chunk
+                        session["current_chunk_idx"] += 1
+                        session["explanation_attempts"] = 0
+                        session["quiz_attempts"] = 0
+                        session["state"] = "EXPLAINING"
+                        
+                        success_msg = f"🎉 ممتاز يا بطل! إجابة صحيحة. 🌟\nمستعد للجزء اللي جاي؟\n(التقدم: {new_progress}%)"
+                        
+                        if use_tts and self.voice:
+                            self.speak_latest_response(success_msg)
+                        
+                        return {
+                            "success": True, 
+                            "state": "EXPLAINING", 
+                            "message": success_msg, 
+                            "needs_input": True, 
+                            "progress": new_progress,
+                            "audio_played": True
+                        }
+                    else:
+                        # Finished all chunks
+                        session["state"] = "COMPLETED"
+                        msg = "🎉 برافو عليك! إجابة ممتازة! 👏\nأنت بطل حقيقي وكملت الدرس بالكامل اليوم! 🌟"
+                        # Phase 2: Save Review
+                        try:
+                            qs = generate_batch_mcqs(self.gemini_client, session["context_str"], count=4, previous_questions=session["asked_questions"])
+                            if len(qs) >= 2:
+                                save_questions_to_file("lesson_review.json", qs[:2], lesson_id, session.get("lesson_content"))
+                                save_questions_to_file("milestone_review.json", qs[2:], lesson_id, session.get("lesson_content"))
+                        except: pass
                 else:
                     session["quiz_attempts"] += 1
                     if session["quiz_attempts"] < 3:
@@ -494,8 +557,33 @@ class SmartOrchestrator:
                         session["previous_feedback"] = f"معلش حاول تاني! {mcq.get('gentle_explanation_if_wrong', '')}"
                         return self.run_interactive_lesson(lesson_id, session_id, None, use_tts, use_stt)
                     else:
-                        session["state"] = "COMPLETED"
-                        msg = f"مش مشكلة! {mcq.get('gentle_explanation_if_wrong', '')}\nلقد بذلت مجهود رائع! 🌟"
+                        # Too many attempts, move on anyway or end?
+                        # Let's move to next part but with a gentle message if it's not the last
+                        total_chunks = len(session["chunks"])
+                        current_idx = session["current_chunk_idx"]
+                        new_progress = int(((current_idx + 1) / total_chunks) * 100)
+                        session["progress"] = new_progress
+                        update_lesson_progress_db(lesson_id, new_progress)
+                        
+                        if current_idx < total_chunks - 1:
+                            session["current_chunk_idx"] += 1
+                            session["explanation_attempts"] = 0
+                            session["quiz_attempts"] = 0
+                            session["state"] = "EXPLAINING"
+                            msg = f"{mcq.get('gentle_explanation_if_wrong', '')}\nمش مشكلة، يلا نشوف الجزء التاني ونحاول فيه! 😊"
+                            if use_tts and self.voice:
+                                self.speak_latest_response(msg)
+                            return {
+                                "success": True, 
+                                "state": "EXPLAINING", 
+                                "message": msg, 
+                                "needs_input": True, 
+                                "progress": new_progress,
+                                "audio_played": True
+                            }
+                        else:
+                            session["state"] = "COMPLETED"
+                            msg = f"مش مشكلة! {mcq.get('gentle_explanation_if_wrong', '')}\nلقد بذلت مجهود رائع اليوم! 🌟"
 
                 audio_played = False
                 if use_tts and self.voice:
@@ -505,13 +593,29 @@ class SmartOrchestrator:
                 if session["state"] == "COMPLETED":
                     del self.chat_sessions[session_key]
 
-                return {"success": True, "state": "COMPLETED", "message": msg, "audio_played": audio_played, "is_correct": is_correct, "needs_input": False}
+                return {
+                    "success": True, 
+                    "state": session["state"], 
+                    "message": msg, 
+                    "audio_played": audio_played, 
+                    "is_correct": is_correct, 
+                    "needs_input": session["state"] != "COMPLETED",
+                    "progress": session.get("progress", 0)
+                }
             
             return {"success": False, "state": "ERROR", "message": f"Unknown State: {session['state']}"}
         
         except Exception as e:
-            print(f"❌ Error: {e}")
-            return {"success": False, "state": "ERROR", "message": str(e)}
+            import traceback
+            print(f"❌ Error in run_interactive_lesson: {e}")
+            traceback.print_exc()
+            # Return a friendly error message to the user, hide technical details
+            return {
+                "success": False, 
+                "state": "ERROR", 
+                "message": "يا بطل، حصلت مشكلة صغيرة عندي. ممكن تحاول تاني؟ 😅",
+                "technical_error": str(e) # Still return it in a field that might be logged but not shown as content
+            }
 
 # ==========================================
 # HELPERS & EXPORTS
@@ -535,6 +639,21 @@ def log_interaction_db(d):
                     (d.get("timestamp"), d.get("user_input"), d.get("intent"), d.get("topic"), d.get("question"), d.get("correct"), d.get("topic_id")))
         conn.commit(); cur.close(); conn.close()
     except: pass
+
+def update_lesson_progress_db(lesson_id, progress):
+    """Updates the progress and status of a lesson in the database."""
+    try:
+        conn = get_db_connection(); cur = conn.cursor()
+        # Also update status to 'in_progress' if progress > 0 and 'completed' if progress == 100
+        status = "in_progress"
+        if progress >= 100:
+            status = "completed"
+        
+        cur.execute("UPDATE lessons SET progress = %s, status = %s WHERE id = %s", (progress, status, lesson_id))
+        conn.commit(); cur.close(); conn.close()
+        print(f"✅ DB: Lesson {lesson_id} updated to {progress}% ({status})")
+    except Exception as e:
+        print(f"❌ DB Error updating progress: {e}")
 def process_text_input(t, s="default"): return orchestrator.handle_user_input(t, s)
 def process_voice_input(s="default"): return orchestrator.process_voice_input(s)
 def speak_text(t): return orchestrator.speak_latest_response(t)

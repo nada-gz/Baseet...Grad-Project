@@ -31,6 +31,7 @@ class ChatRequest(BaseModel):
 class BotResponse(BaseModel):
     message: str
     state: str
+    progress: Optional[int] = 0
 
 
 # =========================
@@ -52,7 +53,8 @@ async def start_lesson(request: StartLessonRequest):
 
     return BotResponse(
         message=result.get("message", "Error starting lesson"),
-        state=result.get("state", "error")
+        state=result.get("state", "error"),
+        progress=result.get("progress", 0)
     )
 
 
@@ -76,7 +78,8 @@ async def chat_lesson(request: ChatRequest):
 
     return BotResponse(
         message=result.get("message", "Error processing request"),
-        state=result.get("state", "error")
+        state=result.get("state", "error"),
+        progress=result.get("progress", 0)
     )
 
 
@@ -134,12 +137,7 @@ async def text_to_speech_endpoint(request: TTSRequest):
                 detail=result.get("error", "TTS failed")
             )
         
-        return {
-            "success": True,
-            "message": "Audio generated and playing",
-            "original_text": request.text,
-            "normalized_text": result.get("normalized_text")
-        }
+        return result
     except HTTPException:
         raise
     except Exception as e:
@@ -192,9 +190,9 @@ class InteractiveLessonResponse(BaseModel):
     state: str
     message: str
     audio_played: bool = False
-    needs_input: bool = False
     prompt: Optional[str] = None
     is_correct: Optional[bool] = None
+    progress: Optional[int] = 0
 
 
 @router.post("/interactive-lesson", response_model=InteractiveLessonResponse)
@@ -218,9 +216,9 @@ async def interactive_lesson_endpoint(request: InteractiveLessonRequest):
             state=result.get("state", "ERROR"),
             message=result.get("message", ""),
             audio_played=result.get("audio_played", False),
-            needs_input=result.get("needs_input", False),
             prompt=result.get("prompt"),
-            is_correct=result.get("is_correct")
+            is_correct=result.get("is_correct"),
+            progress=result.get("progress", 0)
         )
         
     except Exception as e:
