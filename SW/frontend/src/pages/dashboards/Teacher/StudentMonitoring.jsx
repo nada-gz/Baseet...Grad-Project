@@ -185,6 +185,16 @@ export default function StudentMonitoring() {
                                 </div>
                             </div>
 
+                            <div className="card-progress-summary">
+                                <div className="progress-label">
+                                    <span>Lesson Progress</span>
+                                    <span>{student.progress || 0}%</span>
+                                </div>
+                                <div className="progress-bar-small">
+                                    <div className="progress-fill-small" style={{ width: `${student.progress || 0}%` }} />
+                                </div>
+                            </div>
+
                             <div className="card-actions">
                                 <button
                                     className="btn-monitoring btn-academic"

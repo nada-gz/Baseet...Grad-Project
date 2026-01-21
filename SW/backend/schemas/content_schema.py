@@ -43,6 +43,7 @@ class StudentReadWithUser(BaseModel):
     online: bool = False
     last_access: Optional[datetime] = None
     state: Optional[str] = "Relaxed"
+    progress: Optional[int] = 0
 
     class Config:
         from_attributes = True

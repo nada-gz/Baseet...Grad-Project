@@ -91,6 +91,13 @@ def get_all_students(session: Session = Depends(get_session)):
     
     students_list = []
     for student, user, classroom, level in results:
+        # Calculate average progress for this student
+        lessons_stmt = select(Lesson).where(Lesson.student_id == student.id)
+        student_lessons = session.exec(lessons_stmt).all()
+        avg_progress = 0
+        if student_lessons:
+            avg_progress = int(sum(l.progress for l in student_lessons) / len(student_lessons))
+            
         students_list.append(StudentReadWithUser(
             id=student.id,
             user_id=student.user_id,
@@ -104,7 +111,8 @@ def get_all_students(session: Session = Depends(get_session)):
             status="Active",
             online=False,
             last_access=None,
-            state="Stressed" if student.id % 2 == 0 else "Relaxed"
+            state="Stressed" if student.id % 2 == 0 else "Relaxed",
+            progress=avg_progress
         ))
     return students_list
 
