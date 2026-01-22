@@ -1,0 +1,30 @@
+[
+    {
+        "timestamp": "2026-01-23 01:26:23",
+        "gsr": 2.01,
+        "temperature": 36.2,
+        "hr": 66,
+        "status": "relaxed"
+    },
+    {
+        "timestamp": "2026-01-23 01:30:43",
+        "gsr": 10.23,
+        "temperature": 37.9,
+        "hr": 105,
+        "status": "stressed"
+    },
+    {
+        "timestamp": "2026-01-23 01:31:03",
+        "gsr": 2.31,
+        "temperature": 36.5,
+        "hr": 76,
+        "status": "relaxed"
+    },
+    {
+        "timestamp": "2026-01-23 01:31:23",
+        "gsr": 10.88,
+        "temperature": 37.8,
+        "hr": 100,
+        "status": "stressed"
+    }
+]
