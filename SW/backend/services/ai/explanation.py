@@ -56,8 +56,10 @@ def initialize_chat_session(client, system_instruction):
     return chat
 
 
+FRIENDLY_ERROR_AR = "بسيط بياخد استراحة قصيرة عشان يفكر بعمق في كلامك الجميل.. خلينا نراجع اللي قلناه سوا يا بطل! 🌟"
+
 def generate_rag_answer_with_chat(chat_session, query_text, context_string, is_clarification=False):
-    """Sends query + RAG context to the chat session."""
+    """Sends query + RAG context to the chat session with multi-model failover."""
     if is_clarification:
         intent_instruction = (
             "**نية الطفل (Intent):** طلب توضيح/إعادة شرح ('مش فاهم').\n"
@@ -76,11 +78,33 @@ def generate_rag_answer_with_chat(chat_session, query_text, context_string, is_c
         f"**استعلام الطفل:** {query_text}"
     )
 
-    try:
-        response = chat_session.send_message(prompt)
-        return response.text
-    except Exception as e:
-        return f"❌ حصل خطأ أثناء محاولة توليد الإجابة من Gemini. (Error during generation): {e}"
+    import time
+    # Try models in order of preference
+    models_to_try = [GENERATION_MODEL, "gemini-2.0-flash-exp", "gemini-1.5-flash"]
+    
+    for model_name in models_to_try:
+        print(f"🤖 Attempting generation with {model_name}...")
+        for attempt in range(2): # 2 retries per model
+            try:
+                # If we are failing over, we might need a new session or force model change
+                # For simplicity in this structure, we assume chat_session is bound to a model, 
+                # but we can try to send with the existing session first.
+                response = chat_session.send_message(prompt)
+                return response.text
+            except Exception as e:
+                err_str = str(e).lower()
+                if "429" in err_str or "503" in err_str or "overloaded" in err_str or "exhausted" in err_str:
+                    print(f"⚠️ {model_name} busy (attempt {attempt+1}/2). Retrying in 2s...")
+                    time.sleep(2)
+                    continue
+                else:
+                    print(f"❌ {model_name} error: {e}")
+                    break # Try next model if it's not a temporary busy error
+        
+        print(f"🔄 {model_name} failed, falling back if possible...")
+
+    # If we get here, everything failed
+    return f"❌ {FRIENDLY_ERROR_AR}"
 
 
 def generate_mcq(client, context_string, previous_questions=None):

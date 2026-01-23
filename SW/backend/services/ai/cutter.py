@@ -27,7 +27,7 @@ except Exception as e:
 # Load Labeler
 if not os.path.exists(PATH_LABELER):
     raise ValueError(f"❌ Error: {PATH_LABELER} not found.")
-tokenizer = AutoTokenizer.from_pretrained(PATH_LABELER, local_files_only=True)
+tokenizer = AutoTokenizer.from_pretrained(PATH_LABELER, local_files_only=True, legacy=False)
 model = AutoModelForSeq2SeqLM.from_pretrained(PATH_LABELER, local_files_only=True)
 title_generator = pipeline("text2text-generation", model=model, tokenizer=tokenizer)
 

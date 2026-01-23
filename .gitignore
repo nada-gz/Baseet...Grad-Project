@@ -44,3 +44,9 @@ yarn-error.log*
 test.db
 *.sqlite
 *.sqlite3
+
+
+# Models
+SW/backend/services/ai/arat5_model/
+SW/backend/services/ai/splitter_model/
+SW/backend/services/ai/autism_rag_db/
