@@ -16,7 +16,7 @@ from routers.student_router import router as student_router
 from routers.teacher_router import router as teacher_router
 from routers.auth_router import router as auth_router
 from routers.dashboard_router import router as dashboard_router
-from routers.ai_router import router as ai_router
+#from routers.ai_router import router as ai_router
 from routers.iot_router import router as iot_router
 from routers.iot_router import start_mqtt_connection, stop_mqtt_connection
 
@@ -57,7 +57,7 @@ app.include_router(student_router)
 app.include_router(teacher_router)
 app.include_router(auth_router)
 app.include_router(dashboard_router)
-app.include_router(ai_router)
+#app.include_router(ai_router)
 app.include_router(iot_router)
 
 @app.get("/")
