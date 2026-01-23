@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -7,7 +8,9 @@ import {
   HelpCircle,
   PlayCircle,
   Users,
-  School
+  School,
+  Moon,
+  Sun
 } from "lucide-react";
 import Logo from "../components/ui/logo";
 import HiBaseet from "../assets/hii_baseet.png";
@@ -16,6 +19,26 @@ export default function MainLayout() {
   const { role, user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem("teacher-theme") === "dark";
+  });
+
+  useEffect(() => {
+    if (role === "teacher") {
+      if (isDarkMode) {
+        document.body.classList.add("dark-theme");
+        localStorage.setItem("teacher-theme", "dark");
+      } else {
+        document.body.classList.remove("dark-theme");
+        localStorage.setItem("teacher-theme", "light");
+      }
+    } else {
+      // Ensure other roles stay in light mode
+      document.body.classList.remove("dark-theme");
+    }
+  }, [isDarkMode, role]);
+
+  const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
   const getSidebarItems = () => {
     switch (role) {
@@ -173,6 +196,22 @@ export default function MainLayout() {
         </div>
 
         <div className="sidebar-footer">
+          {role === "teacher" && (
+            <div className="theme-toggle-container">
+              <span className="theme-label">
+                {isDarkMode ? "Dark Mode" : "Light Mode"}
+              </span>
+              <button
+                className={`theme-toggle-btn ${isDarkMode ? 'active' : ''}`}
+                onClick={toggleTheme}
+                title="Toggle Theme"
+              >
+                <div className="toggle-thumb">
+                  {isDarkMode ? <Moon size={14} /> : <Sun size={14} />}
+                </div>
+              </button>
+            </div>
+          )}
           <div className="user-name">{user?.email}</div>
           <button className="logout-btn" onClick={handleLogout}>
             Logout

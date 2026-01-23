@@ -44,6 +44,37 @@
   --font-title: 'Lexend', sans-serif;
   --font-text: 'Nunito', sans-serif;
   --font-special: 'Lexend', sans-serif;
+
+  /* Dark Mode specific (Default matches :root) */
+  --sidebar-bg: #ffffff;
+  --sidebar-text: #2F2E41;
+  --sidebar-hover: #f1f5f9;
+}
+
+/* -------------------------------------
+   Dark Theme Overrides
+-------------------------------------- */
+.dark-theme {
+  --primary-bg: #0b0e14;
+  /* Deeper black-grey */
+  --secondary-bg: #151921;
+  /* Dark card background */
+
+  --primary-text: #e1e7ef;
+  /* High contrast light text */
+  --secondary-text: #94a3b8;
+  /* Muted text */
+
+  --highlight: #6C63FF;
+  /* Baseet Purple from light theme */
+
+  --neutral: #262c36;
+  /* Subtle border color */
+
+  --sidebar-bg: #010409;
+  /* Deep black for sidebar */
+  --sidebar-text: #c9d1d9;
+  --sidebar-hover: #1c2128;
 }
 
 /* -------------------------------------
@@ -125,7 +156,7 @@ html {
   padding: 1.5rem 2rem;
   /* reduced padding */
   border-radius: 1rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -363,14 +394,15 @@ a:hover {
   left: 0;
   height: 100%;
   width: 260px;
-  background: var(--secondary-bg);
-  color: var(--primary-text);
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
   border-right: 1px solid var(--neutral);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: 20px;
   z-index: 100;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 .sidebar-header {
@@ -420,13 +452,15 @@ a:hover {
   padding: 12px;
   border-radius: 8px;
   text-decoration: none;
-  color: var(--secondary-text);
-  transition: background 0.3s ease, color 0.2s ease;
+  color: var(--sidebar-text);
+  opacity: 0.8;
+  transition: all 0.3s ease;
   font-family: var(--font-text);
 }
 
 .sidebar-link:hover {
-  background: rgba(108, 99, 255, 0.15);
+  background: var(--sidebar-hover);
+  opacity: 1;
 }
 
 .sidebar-link.active {
@@ -500,6 +534,63 @@ a:hover {
 }
 
 /* -------------------------------------
+   Theme Toggle Styles
+-------------------------------------- */
+.theme-toggle-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--primary-bg);
+  border-radius: 12px;
+  margin-bottom: 15px;
+  transition: all 0.3s ease;
+}
+
+.theme-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--secondary-text);
+}
+
+.theme-toggle-btn {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #cbd5e1;
+  /* Default slate-300 */
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+}
+
+.theme-toggle-btn.active {
+  background: var(--highlight);
+}
+
+.toggle-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--primary-text);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--highlight);
+}
+
+.theme-toggle-btn.active .toggle-thumb {
+  transform: translateX(20px);
+  color: var(--highlight);
+}
+
+/* -------------------------------------
    Main Content Area
 -------------------------------------- */
 
@@ -510,7 +601,9 @@ a:hover {
   display: flex;
   flex-direction: column;
   background: var(--primary-bg);
+  color: var(--primary-text);
   font-family: var(--font-text);
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* -------------------------------------
@@ -518,7 +611,7 @@ a:hover {
 -------------------------------------- */
 
 .topbar {
-  width: 83%;
+  width: calc(100% - 260px);
   background: var(--secondary-bg);
   padding: 25px 35px;
   display: flex;
@@ -531,6 +624,7 @@ a:hover {
   /* start after sidebar */
   z-index: 50;
   font-family: var(--font-text);
+  transition: all 0.3s ease;
 }
 
 .topbar-title {
@@ -650,7 +744,7 @@ a:hover {
   /* responsive on smaller screens */
   padding: 15px;
   border-radius: 12px;
-  background: var(--card-bg, #fff);
+  background: var(--secondary-bg);
   flex-shrink: 0;
   margin-bottom: 30px;
 }
@@ -740,7 +834,7 @@ a:hover {
   /* responsive minimum */
   max-width: 33%;
   /* 3 cards in a row */
-  background: var(--card-bg, #fff);
+  background: var(--secondary-bg);
   padding: 20px;
   border-radius: 12px;
   border: 1px solid var(--neutral);
@@ -753,7 +847,7 @@ a:hover {
 
 .student-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
 }
 
 .file-show {
@@ -922,7 +1016,7 @@ a:hover {
 
 .video-placeholder {
   height: 500px;
-  background: white;
+  background: var(--secondary-bg);
   border-radius: 16px;
   border: 2px dashed var(--highlight);
   display: flex;
@@ -971,7 +1065,7 @@ a:hover {
 }
 
 .lesson-btn.outline {
-  background: white;
+  background: var(--secondary-bg);
   color: var(--highlight);
   border: 2px solid var(--highlight);
 }
@@ -1286,7 +1380,7 @@ a:hover {
   padding: 18px 25px;
   font-weight: 600;
   cursor: pointer;
-  background: var(--primary-bg);
+  background: var(--secondary-bg);
   border-bottom: 1px solid var(--neutral);
 }
 
@@ -1331,7 +1425,7 @@ a:hover {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  background: var(--primary-bg);
+  background: var(--secondary-bg);
   border-radius: 12px;
   padding: 20px 25px;
   margin-top: 15px;
@@ -1735,9 +1829,9 @@ a:hover {
 }
 
 .teacher-card {
-  background-color: #ffffff;
+  background-color: var(--secondary-bg);
   border-radius: 12px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
   padding: 2rem;
   width: 310px;
   /* a bit narrower */
@@ -1749,14 +1843,16 @@ a:hover {
   justify-content: space-between;
   /* vertical centering of content */
   transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+  border: 1px solid var(--neutral);
 }
 
 .teacher-card:hover {
   transform: translateY(-10px);
   /* card goes up */
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+  background-color: var(--secondary-bg);
   /* subtle hover effect */
+  border-color: var(--highlight);
 }
 
 .teacher-card .card-icon .ass-status {
@@ -1828,6 +1924,7 @@ a:hover {
   color: var(--primary-text);
   background-color: var(--secondary-bg);
   margin-top: 15px;
+  transition: all 0.3s ease;
 }
 
 /* Files List */
@@ -1944,11 +2041,11 @@ a:hover {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2.5rem;
-  background: white;
+  background: var(--secondary-bg);
   padding: 1rem 1.5rem;
   border-radius: 1rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
-  border: 1px solid #f1f5f9;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--neutral);
 }
 
 .header-left {
@@ -1958,7 +2055,7 @@ a:hover {
 }
 
 .monitoring-back-icon-btn {
-  background: #f1f5f9;
+  background: var(--neutral);
   border: none;
   width: 44px;
   height: 44px;
@@ -1967,13 +2064,13 @@ a:hover {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #64748b;
+  color: var(--secondary-text);
   transition: all 0.2s ease;
 }
 
 .monitoring-back-icon-btn:hover {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: var(--sidebar-hover);
+  color: var(--highlight);
   transform: translateX(-2px);
 }
 
@@ -1993,7 +2090,7 @@ a:hover {
 .header-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--primary-text);
   margin: 0;
   line-height: 1.2;
 }
@@ -2011,12 +2108,13 @@ a:hover {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #ecfdf5;
-  color: #059669;
+  background: var(--neutral);
+  color: #10b981;
   padding: 0.5rem 1rem;
   border-radius: 99px;
   font-weight: 600;
   font-size: 0.875rem;
+  transition: all 0.3s ease;
 }
 
 .live-indicator .dot {
@@ -2024,7 +2122,7 @@ a:hover {
   height: 8px;
   background: #10b981;
   border-radius: 50%;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.4);
   animation: pulse 2s infinite;
 }
 
@@ -2133,11 +2231,11 @@ a:hover {
 }
 
 .glass-panel {
-  background: white;
-  border: 1px solid #f1f5f9;
+  background: var(--secondary-bg);
+  border: 1px solid var(--neutral);
   border-radius: 1.5rem;
-  box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.02);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-panel:hover {
@@ -2209,11 +2307,11 @@ a:hover {
 }
 
 .control-card {
-  background: white;
+  background: var(--secondary-bg);
   border-radius: 1rem;
   padding: 1.25rem;
-  border: 1px solid #f1f5f9;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--neutral);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2235,8 +2333,8 @@ a:hover {
   width: 3rem;
   height: 3rem;
   border-radius: 0.75rem;
-  background: #f1f5f9;
-  color: #94a3b8;
+  background: var(--neutral);
+  color: var(--secondary-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2259,7 +2357,7 @@ a:hover {
 .control-text h3 {
   font-size: 1rem;
   font-weight: 700;
-  color: #334155;
+  color: var(--primary-text);
   margin: 0;
 }
 
@@ -2277,7 +2375,7 @@ a:hover {
 .custom-toggle {
   width: 3.5rem;
   height: 2rem;
-  background: #e2e8f0;
+  background: var(--neutral);
   border-radius: 99px;
   position: relative;
   cursor: pointer;
@@ -2302,13 +2400,13 @@ a:hover {
 .toggle-circle {
   width: 1.5rem;
   height: 1.5rem;
-  background: white;
+  background: var(--primary-text);
   border-radius: 50%;
   position: absolute;
   top: 0.25rem;
   left: 0.25rem;
   transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
 .custom-toggle.checked .toggle-circle {
@@ -2323,11 +2421,11 @@ a:hover {
 }
 
 .metric-card {
-  background: white;
+  background: var(--secondary-bg);
   border-radius: 1.5rem;
   padding: 1.5rem;
-  border: 1px solid #f1f5f9;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--neutral);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2356,7 +2454,7 @@ a:hover {
   gap: 0.75rem;
   margin-bottom: 1rem;
   font-weight: 700;
-  color: #475569;
+  color: var(--primary-text);
 }
 
 .metric-icon {
@@ -2390,7 +2488,7 @@ a:hover {
 }
 
 .gauge-bg-arc {
-  stroke: #f1f5f9;
+  stroke: var(--neutral);
 }
 
 .gauge-value-arc {
@@ -2420,12 +2518,12 @@ a:hover {
 .gauge-unit-pill {
   margin-top: 0.25rem;
   padding: 0.1rem 0.6rem;
-  border: 1px solid;
+  border: 1px solid var(--neutral);
   border-radius: 99px;
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--secondary-bg);
 }
 
 .gauge-value-text {
@@ -2458,10 +2556,10 @@ a:hover {
   background-color: var(--secondary-bg);
   border-radius: 1rem;
   padding: 2rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   /* Soft shadow */
   transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-  border: 1px solid transparent;
+  border: 1px solid var(--neutral);
   /* Prepare for hover border */
   cursor: pointer;
   display: flex;
@@ -2514,16 +2612,16 @@ a:hover {
   padding: 0.75rem;
   font-family: var(--font-text);
   font-size: 0.95rem;
-  background: #f9f9f9;
+  background: var(--primary-bg);
   color: var(--primary-text);
   transition: all 0.2s;
   line-height: 1.5;
 }
 
 .level-card-textarea:focus {
-  background: #fff;
+  background: var(--secondary-bg);
   border-color: var(--highlight);
-  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2);
   outline: none;
 }
 
@@ -2534,7 +2632,7 @@ a:hover {
   align-items: center;
   font-size: 0.9rem;
   color: var(--secondary-text);
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--neutral);
   padding-top: 1rem;
 }
 
@@ -2575,7 +2673,9 @@ a:hover {
 }
 
 .back:hover {
-  opacity: 65%;
+  opacity: 1;
+  color: var(--highlight);
+  background: var(--neutral);
 }
 
 /* -------------------------------------
@@ -2589,12 +2689,13 @@ a:hover {
 }
 
 .level-section {
-  background: white;
+  background: var(--secondary-bg);
   border-radius: 1rem;
   padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   margin-bottom: 2rem;
   animation: fadeIn 0.4s ease-out;
+  border: 1px solid var(--neutral);
 }
 
 .level-header {
@@ -2617,7 +2718,7 @@ a:hover {
 
 /* Class Card */
 .class-management-card {
-  background: white;
+  background: var(--secondary-bg);
   border-radius: 1rem;
   border: 1px solid var(--neutral);
   padding: 1.5rem;
@@ -2630,7 +2731,7 @@ a:hover {
 
 .class-management-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px -8px rgba(108, 99, 255, 0.15);
+  box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.5);
   border-color: var(--highlight);
 }
 
@@ -2654,19 +2755,20 @@ a:hover {
 }
 
 .stat-box {
-  background: #f8f9fa;
+  background: var(--neutral);
   padding: 1rem;
   border-radius: 0.75rem;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 1px solid transparent;
+  border: 1px solid var(--neutral);
 }
 
 .stat-box:hover {
-  background: #fff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  background: var(--secondary-bg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   transform: scale(1.02);
+  border-color: var(--highlight);
 }
 
 .stat-number {
@@ -2687,7 +2789,7 @@ a:hover {
 .manage-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--primary-bg);
   backdrop-filter: blur(8px);
   z-index: 1000;
   overflow-y: auto;
@@ -2716,7 +2818,7 @@ a:hover {
   align-items: center;
   justify-content: space-between;
   padding-bottom: 1rem;
-  border-bottom: 2px solid #f3f4f6;
+  border-bottom: 2px solid var(--neutral);
   margin-bottom: 1rem;
 }
 
@@ -2732,7 +2834,7 @@ a:hover {
 }
 
 .selection-card {
-  background: white;
+  background: var(--secondary-bg);
   border: 2px solid var(--neutral);
   border-radius: 0.75rem;
   padding: 0.75rem 1rem;
@@ -2777,7 +2879,7 @@ a:hover {
   align-items: center;
   justify-content: center;
   color: white;
-  background: #f3f4f6;
+  background: var(--neutral);
   flex-shrink: 0;
   transition: all 0.2s;
 }
@@ -2815,7 +2917,7 @@ a:hover {
 .empty-state-box {
   padding: 1.5rem;
   text-align: center;
-  background-color: #f9fafb;
+  background-color: var(--secondary-bg);
   border: 2px dashed var(--neutral);
   border-radius: 1rem;
   color: var(--secondary-text);
@@ -2834,7 +2936,7 @@ a:hover {
 
 /* Add Level Section */
 .add-level-section {
-  background: white;
+  background: var(--secondary-bg);
   padding: 1.5rem;
   border-radius: 1rem;
   border: 1px solid var(--neutral);
@@ -2852,14 +2954,14 @@ a:hover {
   display: block;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--primary-text);
   margin-bottom: 0.5rem;
 }
 
 .add-level-input {
   width: 100%;
   padding: 0.75rem;
-  background-color: #f9fafb;
+  background-color: var(--secondary-bg);
   border: 1px solid var(--neutral);
   border-radius: 0.75rem;
   outline: none;
@@ -2879,7 +2981,7 @@ a:hover {
 
 /* Generic Delete Button */
 .delete-btn {
-  background: white;
+  background: var(--secondary-bg);
   border: 1px solid #fee2e2;
   color: #ef4444;
   padding: 0.5rem;
@@ -2903,18 +3005,19 @@ a:hover {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.25rem;
-  background: white;
+  background: var(--neutral);
   border: 1px solid var(--neutral);
   border-radius: 0.75rem;
-  color: var(--secondary-text);
+  color: var(--primary-text);
   font-weight: 600;
   transition: all 0.2s;
   cursor: pointer;
 }
 
 .back-button:hover {
-  background: #f8f9fa;
+  background: var(--sidebar-hover);
   transform: translateX(-4px);
+  border-color: var(--highlight);
 }
 
 /* --- Full Migration Helpers --- */
@@ -2938,7 +3041,7 @@ a:hover {
 }
 
 .level-badge {
-  background: #f3f4f6;
+  background: var(--neutral);
   color: #6b7280;
   font-size: 0.7rem;
   padding: 0.25rem 0.6rem;
@@ -2950,8 +3053,8 @@ a:hover {
 .add-class-form {
   margin-bottom: 1.5rem;
   padding: 1rem;
-  background: white;
-  border: 1px solid #e0e7ff;
+  background: var(--secondary-bg);
+  border: 1px solid var(--neutral);
   border-radius: 1rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   display: flex;
@@ -2963,8 +3066,8 @@ a:hover {
 .add-class-input {
   flex: 1;
   padding: 0.75rem 1rem;
-  background: #f5f8ff;
-  border: 1px solid #dbeafe;
+  background: var(--primary-bg);
+  border: 1px solid var(--neutral);
   border-radius: 0.75rem;
   outline: none;
   transition: all 0.2s;
@@ -2977,10 +3080,10 @@ a:hover {
 .empty-placeholder {
   padding: 2.5rem;
   text-align: center;
-  background: #f9fafb;
+  background: var(--secondary-bg);
   border-radius: 1.5rem;
-  border: 2px dashed #e5e7eb;
-  color: #9ca3af;
+  border: 2px dashed var(--neutral);
+  color: var(--secondary-text);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2994,7 +3097,7 @@ a:hover {
   gap: 1rem;
   margin-bottom: 1.5rem;
   padding-bottom: 1.5rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--neutral);
 }
 
 .manage-title {
@@ -3047,7 +3150,7 @@ a:hover {
 
 .user-name {
   font-weight: 700;
-  color: #1f2937;
+  color: var(--primary-text);
 }
 
 .user-email {
@@ -3088,7 +3191,7 @@ a:hover {
 }
 
 .cancel-btn {
-  color: #6b7280;
+  color: var(--secondary-text);
 }
 
 .icon-box {
@@ -3121,13 +3224,13 @@ a:hover {
   flex-wrap: nowrap;
   gap: 1rem;
   margin-bottom: 2.5rem;
-  background: white;
+  background: var(--secondary-bg);
   padding: 1.5rem;
   padding-bottom: 1rem;
   border-radius: 1.25rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
   align-items: center;
-  border: 1px solid #f1f5f9;
+  border: 1px solid var(--neutral);
   overflow-x: auto;
   /* Allow horizontal scroll if space is too tight */
 }
@@ -3142,8 +3245,10 @@ a:hover {
 .search-input-wrapper input {
   width: 100%;
   padding: 0.85rem 1rem 0.85rem 2.8rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--neutral);
   border-radius: 0.85rem;
+  background: var(--primary-bg);
+  color: var(--primary-text);
   outline: none;
   transition: all 0.2s;
   font-size: 0.95rem;
@@ -3151,7 +3256,7 @@ a:hover {
 
 .search-input-wrapper input:focus {
   border-color: var(--highlight);
-  box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2);
 }
 
 .search-input-wrapper .search-icon {
@@ -3173,9 +3278,9 @@ a:hover {
 
 .filter-select {
   padding: 0.85rem 2.5rem 0.85rem 1rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--neutral);
   border-radius: 0.85rem;
-  background-color: #ffffff;
+  background-color: var(--secondary-bg);
   background-image: url('data:image/svg+xml;utf8,<svg fill="%2364748b" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
@@ -3184,27 +3289,27 @@ a:hover {
   outline: none;
   font-size: 0.9rem;
   font-weight: 500;
-  color: #334155;
+  color: var(--primary-text);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .filter-select:hover {
   border-color: var(--highlight);
-  background-color: #f8fafc;
+  background-color: var(--neutral);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .filter-select:focus {
   border-color: var(--highlight);
-  box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.15);
-  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2);
+  background-color: var(--secondary-bg);
 }
 
 .monitoring-grid {
@@ -3214,11 +3319,11 @@ a:hover {
 }
 
 .student-monitoring-card {
-  background: white;
+  background: var(--secondary-bg);
   border-radius: 1.5rem;
   padding: 1.75rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-  border: 1px solid #f1f5f9;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--neutral);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
@@ -3227,7 +3332,8 @@ a:hover {
 
 .student-monitoring-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.5);
+  border-color: var(--highlight);
 }
 
 .online-status-badge {
@@ -3246,13 +3352,15 @@ a:hover {
 }
 
 .status-online {
-  background: #ecfdf5;
-  color: #059669;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .status-offline {
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--neutral);
+  color: var(--secondary-text);
+  border: 1px solid var(--neutral);
 }
 
 .badge-submitted,
@@ -3266,23 +3374,27 @@ a:hover {
 }
 
 .badge-submitted {
-  background: #e0f2fe;
-  color: #0369a1;
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(14, 165, 233, 0.2);
 }
 
 .badge-resubmitted {
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .badge-evaluated {
-  background: #dcfce7;
-  color: #166534;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .badge-not-submitted {
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--neutral);
+  color: var(--secondary-text);
+  border: 1px solid var(--neutral);
 }
 
 .status-dot {
@@ -3311,27 +3423,27 @@ a:hover {
   width: 56px;
   height: 56px;
   border-radius: 1rem;
-  background: #f1f5f9;
+  background: var(--neutral);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--highlight);
   font-weight: 800;
   font-size: 1.5rem;
-  border: 2px solid #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 2px solid var(--secondary-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .card-student-info h3 {
   font-size: 1.25rem;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--primary-text);
   margin: 0;
 }
 
 .card-student-info p {
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--secondary-text);
   margin: 0 0 0.1rem 0;
 }
 
@@ -3341,9 +3453,10 @@ a:hover {
   row-gap: 1.25rem;
   column-gap: 0.5rem;
   margin-bottom: 2rem;
-  background: #f8fafc;
+  background: var(--primary-bg);
   padding: 1.25rem;
   border-radius: 1rem;
+  border: 1px solid var(--neutral);
 }
 
 .detail-item {
@@ -3354,7 +3467,7 @@ a:hover {
 .detail-label {
   font-size: 0.65rem;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--secondary-text);
   font-weight: 700;
   margin-bottom: 0.3rem;
   letter-spacing: 0.05em;
@@ -3362,7 +3475,7 @@ a:hover {
 
 .detail-value {
   font-size: 0.95rem;
-  color: #1e293b;
+  color: var(--primary-text);
   font-weight: 600;
 }
 
@@ -3388,9 +3501,9 @@ a:hover {
 }
 
 .btn-academic {
-  background: #f0f9ff;
-  color: #0369a1;
-  border: 1px solid #bae6fd;
+  background: var(--neutral);
+  color: var(--highlight);
+  border: 1px solid var(--neutral);
 }
 
 .btn-academic:hover {
@@ -3474,8 +3587,9 @@ a:hover {
   left: 20px;
   top: 0;
   bottom: 0;
-  width: 2px;
-  background: #e2e8f0;
+  width: 0px;
+  /* Removed vertical line */
+  background: transparent;
   z-index: 0;
 }
 
@@ -3500,7 +3614,7 @@ a:hover {
 .milestone-marker {
   width: 42px;
   height: 42px;
-  background: white;
+  background: var(--secondary-bg);
   border: 4px solid var(--highlight);
   border-radius: 50%;
   display: flex;
@@ -3520,11 +3634,11 @@ a:hover {
 }
 
 .lesson-progress-card {
-  background: white;
+  background: var(--secondary-bg);
   border-radius: 1.25rem;
   padding: 1.5rem;
-  border: 1px solid #f1f5f9;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--neutral);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
   transition: all 0.2s;
 }
 
@@ -3556,7 +3670,7 @@ a:hover {
 .lesson-card-header h4 {
   font-size: 1.15rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--primary-text);
   margin: 0;
 }
 
@@ -3571,8 +3685,8 @@ a:hover {
 }
 
 .assignment-item-block {
-  background: white;
-  border: 1px solid #f1f5f9;
+  background: var(--secondary-bg);
+  border: 1px solid var(--neutral);
   border-radius: 1rem;
   margin-bottom: 1.5rem;
   overflow: hidden;
@@ -3583,7 +3697,7 @@ a:hover {
   align-items: center;
   justify-content: space-between;
   /* padding: 1rem 1.25rem; */
-  background: #f8fafc;
+  background: var(--primary-bg);
   /* border-bottom: 1px solid #f1f5f9; */
 }
 
@@ -3627,35 +3741,35 @@ a:hover {
   padding: 0.45rem 1rem;
   font-weight: 700;
   font-size: 0.8rem;
-  background: white;
-  color: #1e293b;
-  border: 1px solid #e2e8f0;
+  background: var(--neutral);
+  color: var(--primary-text);
+  border: 1px solid var(--neutral);
   border-radius: 0.6rem;
   transition: all 0.2s;
   white-space: nowrap;
 }
 
 .btn-view-file:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: var(--neutral);
+  border-color: var(--highlight);
 }
 
 .btn-view-file.submission {
-  background: #f0f9ff;
-  color: #0369a1;
-  border-color: #bae6fd;
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+  border-color: rgba(14, 165, 233, 0.2);
 }
 
 .btn-view-file.submission:hover {
-  background: #e0f2fe;
+  background: rgba(14, 165, 233, 0.25);
 }
 
 .eval-form {
   margin-top: 1rem;
-  background: #fff;
+  background: var(--secondary-bg);
   padding: 1.25rem;
   border-radius: 1rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--neutral);
 }
 
 .eval-form textarea {
@@ -3805,12 +3919,12 @@ a:hover {
 }
 
 .student-course-card {
-  background-color: white;
+  background-color: var(--secondary-bg);
   border-radius: 1rem;
   padding: 2rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   transition: all 0.3s ease;
-  border: 1px solid transparent;
+  border: 1px solid var(--neutral);
   display: flex;
   flex-direction: column;
   min-height: 280px;
@@ -3822,9 +3936,9 @@ a:hover {
 
 .student-course-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 12px 24px rgba(108, 99, 255, 0.15);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
   border-color: var(--highlight);
-  background: white;
+  background: var(--secondary-bg);
 }
 
 .student-course-header {
@@ -3862,17 +3976,17 @@ a:hover {
   font-size: 0.95rem;
   color: var(--primary-text);
   line-height: 1.6;
-  background: #f8fafc;
+  background: var(--primary-bg);
   padding: 1rem;
   border-radius: 0.5rem;
-  border: 1px solid #f1f5f9;
+  border: 1px solid var(--neutral);
   flex-grow: 1;
 }
 
 .student-course-footer {
   margin-top: 1.5rem;
   padding-top: 1rem;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--neutral);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -4188,11 +4302,11 @@ a:hover {
 }
 
 .btn-record {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--neutral);
+  border: 1px solid var(--neutral);
   border-radius: 12px;
   padding: 8px 12px;
-  color: #64748b;
+  color: var(--secondary-text);
   cursor: pointer;
   transition: all 0.2s;
   margin: 0 8px;
@@ -4202,9 +4316,9 @@ a:hover {
 }
 
 .btn-record:hover:not(:disabled) {
-  border-color: #8b5cf6;
-  color: #8b5cf6;
-  background: #f5f3ff;
+  border-color: var(--highlight);
+  color: var(--highlight);
+  background: var(--sidebar-hover);
 }
 
 .btn-record.recording {
@@ -4320,7 +4434,7 @@ a:hover {
 .progress-bar-bg {
   width: 100%;
   height: 8px;
-  background: #f1f5f9;
+  background: var(--neutral);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -4352,7 +4466,7 @@ a:hover {
 .progress-bar-small {
   width: 100%;
   height: 6px;
-  background: #f1f5f9;
+  background: var(--neutral);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -4374,10 +4488,10 @@ a:hover {
   width: 90%;
   padding: 1.5rem 2.5rem;
   border-radius: 30px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
-  box-shadow: 0 20px 40px rgba(108, 99, 255, 0.15);
+  background: var(--secondary-bg);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   text-align: center;
-  border: 4px solid #e0e7ff;
+  border: 4px solid var(--neutral);
 }
 
 .baseet-selection-header {
@@ -4421,8 +4535,8 @@ a:hover {
   gap: 0.8rem;
   padding: 1.5rem;
   border-radius: 20px;
-  border: 2px solid #e2e8f0;
-  background: white;
+  border: 2px solid var(--neutral);
+  background: var(--secondary-bg);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -4434,26 +4548,26 @@ a:hover {
 .selection-btn span {
   font-weight: 700;
   font-size: 1.2rem;
-  color: #334155;
+  color: var(--primary-text);
 }
 
 .selection-btn.chat-mode:hover {
   border-color: #6366f1;
-  background: #eef2ff;
+  background: var(--secondary-bg);
   transform: translateY(-5px);
   box-shadow: 0 10px 15px rgba(99, 102, 241, 0.1);
 }
 
 .selection-btn.voice-mode:hover {
   border-color: #ec4899;
-  background: #fdf2f8;
+  background: var(--secondary-bg);
   transform: translateY(-5px);
   box-shadow: 0 10px 15px rgba(236, 72, 153, 0.1);
 }
 
 .selection-btn.video-mode:hover {
   border-color: #f59e0b;
-  background: #fffbeb;
+  background: var(--secondary-bg);
   transform: translateY(-5px);
   box-shadow: 0 10px 15px rgba(245, 158, 11, 0.1);
 }
@@ -4613,12 +4727,13 @@ a:hover {
   position: absolute;
   top: -60px;
   right: -40px;
-  background: white;
+  background: var(--secondary-bg);
   padding: 1rem 1.5rem;
   border-radius: 20px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--neutral);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
   font-weight: 700;
-  color: #4f46e5;
+  color: var(--highlight);
   z-index: 15;
   animation: float-cloud 3s infinite ease-in-out;
 }
@@ -4630,7 +4745,7 @@ a:hover {
   left: 20px;
   width: 20px;
   height: 20px;
-  background: white;
+  background: var(--secondary-bg);
   transform: rotate(45deg);
 }
 
@@ -4655,12 +4770,12 @@ a:hover {
 }
 
 .listening-badge {
-  background: #eef2ff;
+  background: var(--secondary-bg);
   color: #4f46e5;
 }
 
 .speaking-badge {
-  background: #fdf2f8;
+  background: var(--secondary-bg);
   color: #db2777;
 }
 
@@ -4672,24 +4787,24 @@ a:hover {
 }
 
 .response-card {
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--secondary-bg);
   padding: 1.5rem;
   border-radius: 20px;
-  border-right: 6px solid #4f46e5;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border-right: 6px solid var(--highlight);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .response-card p {
   font-size: 1.2rem;
   line-height: 1.6;
-  color: #1e293b;
+  color: var(--primary-text);
   margin: 0;
 }
 
 .voice-footer {
   padding: 1.5rem;
   text-align: center;
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--primary-bg);
 }
 
 .helper-text {
