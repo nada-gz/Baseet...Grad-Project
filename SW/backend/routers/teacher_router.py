@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, List
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 from sqlalchemy.orm import selectinload
 from pathlib import Path
 
@@ -91,12 +91,34 @@ def get_all_students(session: Session = Depends(get_session)):
     
     students_list = []
     for student, user, classroom, level in results:
-        # Calculate average progress for this student
-        lessons_stmt = select(Lesson).where(Lesson.student_id == student.id)
-        student_lessons = session.exec(lessons_stmt).all()
+        # Calculate average progress for this student based on total assigned lessons
         avg_progress = 0
-        if student_lessons:
-            avg_progress = int(sum(l.progress for l in student_lessons) / len(student_lessons))
+        try:
+            if student.classroom_id:
+                # 1. Get content courses for the classroom
+                course_links = session.exec(
+                    select(ClassroomCourseLink).where(ClassroomCourseLink.classroom_id == student.classroom_id)
+                ).all()
+                course_ids = [link.course_id for link in course_links]
+                
+                if course_ids:
+                    # 2. count total content lessons
+                    total_lessons_stmt = select(func.count(ContentLesson.id)).where(ContentLesson.course_number.in_(course_ids))
+                    total_lessons_count = session.exec(total_lessons_stmt).first() or 0
+                    
+                    if total_lessons_count > 0:
+                        # 3. sum student's progress
+                        lessons_stmt = select(func.sum(Lesson.progress)).where(
+                            Lesson.student_id == student.id,
+                            Lesson.content_lesson_id.in_(
+                                select(ContentLesson.id).where(ContentLesson.course_number.in_(course_ids))
+                            )
+                        )
+                        total_progress_sum = session.exec(lessons_stmt).first() or 0
+                        avg_progress = int(total_progress_sum / total_lessons_count)
+        except Exception as e:
+            print(f"Error calculating progress for student {student.id}: {e}")
+            avg_progress = 0
             
         students_list.append(StudentReadWithUser(
             id=student.id,
@@ -673,7 +695,18 @@ def get_student_educational_progress(student_id: int, session: Session = Depends
     milestones_resp = []
     # Group by course and milestone using itertools or manual loop
     from itertools import groupby
+    
+    # We need to track prev_status across lessons within a course to handle dynamic unlocking
+    # prev_status = "completed" initially for the very first lesson to allow it to be in-progress
+    prev_status = "completed"
+    current_course_id = None
+
     for (c_num, m_num), group in groupby(content_lessons, key=lambda x: (x.course_number, x.milestone_number)):
+        # Reset prev_status if we switch courses (if applicable, though usually one course at a time)
+        if current_course_id != c_num:
+            prev_status = "completed"
+            current_course_id = c_num
+
         lessons_progress_list = []
         for cl in group:
             # Check for student's progress record
@@ -692,6 +725,13 @@ def get_student_educational_progress(student_id: int, session: Session = Depends
                 progress_val = lesson_progress.progress
                 status_val = lesson_progress.status
                 lesson_instance_id = lesson_progress.id
+            else:
+                # AUTO-UNLOCK logic: If previous lesson was completed, this one is in-progress
+                if prev_status == "completed":
+                    status_val = "in-progress"
+
+            # Update prev_status for the next iteration
+            prev_status = status_val
 
             # Fetch assignments for this template
             ca_stmt = select(ContentAssignment).where(ContentAssignment.lesson_id == cl.id)
