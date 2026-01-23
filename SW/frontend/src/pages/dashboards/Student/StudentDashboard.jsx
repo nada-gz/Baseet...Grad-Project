@@ -11,6 +11,7 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
   const [currentAssignments, setCurrentAssignments] = useState([]);
   const [assignmentStatus, setAssignmentStatus] = useState("loading"); // 'none', 'not-submitted', 'submitted', 'evaluated'
+  const [selectionModal, setSelectionModal] = useState(null); // { id: ... }
 
   useEffect(() => {
     const loadData = async () => {
@@ -140,12 +141,12 @@ export default function StudentDashboard() {
                   />
                 </div>
 
-                <Link
-                  to={`/dashboard/student/lesson/${currentLesson.id}`}
+                <button
+                  onClick={() => setSelectionModal({ id: currentLesson.id })}
                   className="btn btn-primary continue-btn"
                 >
                   Continue
-                </Link>
+                </button>
               </div>
             </div>
 
@@ -275,6 +276,63 @@ export default function StudentDashboard() {
           <p>No lessons assigned yet.</p>
         )}
       </main>
+
+      {selectionModal && (
+        <div className="modal-overlay">
+          <div className="modal-card lesson-selection-modal">
+            <div className="baseet-selection-header">
+              <img
+                src={require("../../../assets/hi_baseet.png")}
+                alt="Baseet waving"
+                className="baseet-selection-img"
+              />
+              <h3>بسيط مستني يكلمك! ✨</h3>
+              <p>تحب تذاكر الدرس ده بـ الشات، الصوت، ولا الفيديو؟</p>
+            </div>
+
+            <div className="selection-actions">
+              <button
+                className="selection-btn video-mode"
+                onClick={() => {
+                  window.location.href = `/dashboard/student/lesson/${selectionModal.id}/video`;
+                  setSelectionModal(null);
+                }}
+              >
+                <div className="mode-icon">🎬</div>
+                <span>فيديو</span>
+              </button>
+              <button
+                className="selection-btn chat-mode"
+                onClick={() => {
+                  window.location.href = `/dashboard/student/lesson/${selectionModal.id}`;
+                  setSelectionModal(null);
+                }}
+              >
+                <div className="mode-icon">💬</div>
+                <span>شات</span>
+              </button>
+
+              <button
+                className="selection-btn voice-mode"
+                onClick={() => {
+                  window.location.href = `/dashboard/student/lesson/${selectionModal.id}/voice`;
+                  setSelectionModal(null);
+                }}
+              >
+                <div className="mode-icon">🎙️</div>
+                <span>صوت</span>
+              </button>
+            </div>
+
+            <button
+              className="btn btn-outline close-selection"
+              onClick={() => setSelectionModal(null)}
+            >
+              إلغاء
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

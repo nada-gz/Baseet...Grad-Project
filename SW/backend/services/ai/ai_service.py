@@ -66,7 +66,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 CHROMA_DB_PATH = os.path.join(os.path.dirname(__file__), "autism_rag_db")
 COLLECTION_NAME = "autism_content_arabic"
 EMBEDDING_MODEL_NAME = 'intfloat/multilingual-e5-large'
-GENERATION_MODEL = 'gemini-2.0-flash-exp'
+GENERATION_MODEL = 'gemini-2.5-flash'
 SHARED_FILE = os.getenv("SHARED_FILE", "shared_data.json")
 
 # --- AI / RAG Initialization ---
@@ -223,9 +223,15 @@ class SmartOrchestrator:
     def speak_latest_response(self, text_to_speak: str) -> Dict[str, Any]:
         if not TTS_AVAILABLE or not self.voice:
             return {"success": False, "error": "TTS not available"}
+        if not text_to_speak or text_to_speak.strip().startswith("❌"):
+            print("⚠️ Skipping TTS for error message or empty text.")
+            return {"success": False, "error": "Cannot speak error message"}
+
         try:
             normalized_text = self.text_processor.normalize_for_tts(text_to_speak)
             audio_base64 = self.voice.speak(normalized_text)
+            if not audio_base64:
+                return {"success": False, "error": "TTS engine returned no audio"}
             return {"success": True, "original_text": text_to_speak, "audio_base64": audio_base64}
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -311,7 +317,7 @@ class SmartOrchestrator:
                     return {
                         "success": True, 
                         "state": session["state"], 
-                        "message": "", # Silent return to avoid duplication
+                        "message": "إزيك يا حبيبي عامل إيه النهاردة؟", 
                         "needs_input": True,
                         "audio_played": False
                     }
@@ -397,8 +403,8 @@ class SmartOrchestrator:
                     is_clarification=is_clarification
                 )
                 
-                # Prepend a friendly bridge if this is the first explanation after greeting
-                if session["explanation_attempts"] == 0:
+                # Prepend a friendly bridge if this is the first explanation after greeting and NOT an error
+                if session["explanation_attempts"] == 0 and not (explanation and explanation.strip().startswith("❌")):
                     explanation = f"يارب دايما بخير! 🌟\n{explanation}"
 
                 session["explanation_attempts"] += 1
@@ -464,7 +470,7 @@ class SmartOrchestrator:
                 session["state"] = "QUIZ_ANSWERING"
                 
                 options = "\n".join([f"{i+1}. {opt}" for i, opt in enumerate(mcq["options_ar"])])
-                intro = f"{session['previous_feedback']}\n\n" if session.get("previous_feedback") else "✅ شاطر! خد السؤال ده:\n"
+                intro = f"{session['previous_feedback']}\n\n" if session.get("previous_feedback") else ("✅ شاطر! قولّي الإجابة:\n" if use_stt else "✅ شاطر! خد السؤال ده:\n")
                 msg = f"{intro}❓ {mcq['question_ar']}\n\n{options}"
                 session["previous_feedback"] = "" # Clear buffer
                 
@@ -492,7 +498,7 @@ class SmartOrchestrator:
                         else:
                             return {"success": False, "state": session["state"], "message": "🎤 مسمعتش الإجابة، ممكن تقول الرقم تاني؟", "needs_input": True, "audio_played": False}
                     else:
-                        return {"success": True, "state": session["state"], "message": "اكتب رقم الإجابة الصحيحة يا بطل (1 أو 2 أو 3) 📝", "needs_input": True, "audio_played": False}
+                        return {"success": True, "state": session["state"], "message": ("قول رقم الإجابة الصحيحة يا بطل (1 أو 2 أو 3) 🎙️" if use_stt else "اكتب رقم الإجابة الصحيحة يا بطل (1 أو 2 أو 3) 📝"), "needs_input": True, "audio_played": False}
 
                 mcq = session["current_mcq"]
                 try:
@@ -501,7 +507,7 @@ class SmartOrchestrator:
                     correct_idx = int(mcq["correct_answer_ar"]) - 1
                     is_correct = choice_idx == correct_idx
                 except:
-                    return {"success": False, "state": session["state"], "message": "⚠️ اكتب رقم صحيح (1 أو 2 أو 3)", "needs_input": True}
+                    return {"success": False, "state": session["state"], "message": ("⚠️ قول رقم صحيح (1 أو 2 أو 3)" if use_stt else "⚠️ اكتب رقم صحيح (1 أو 2 أو 3)"), "needs_input": True}
                 
                 log_interaction_db({
                     "timestamp": datetime.datetime.now(), "user_input": user_input, "intent": "Quiz", 
