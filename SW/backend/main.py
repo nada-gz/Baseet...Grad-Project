@@ -1,4 +1,6 @@
 import os
+import asyncio
+import contextlib
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -12,8 +14,29 @@ from routers.teacher_router import router as teacher_router
 from routers.auth_router import router as auth_router
 from routers.dashboard_router import router as dashboard_router
 from routers.ai_router import router as ai_router
+from routers.iot_router import router as iot_router
+from routers.iot_router import start_mqtt_connection, stop_mqtt_connection, periodic_save_task
 
-app = FastAPI(title="My Backend Project")
+# --- LIFESPAN MANAGEMENT ---
+@contextlib.asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage startup and shutdown events."""
+    # Startup
+    create_tables()
+    
+    # Start MQTT connection
+    await start_mqtt_connection()
+    
+    # Start periodic save task
+    save_task = asyncio.create_task(periodic_save_task())
+    
+    yield
+    
+    # Shutdown
+    save_task.cancel()
+    await stop_mqtt_connection()
+
+app = FastAPI(title="My Backend Project", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -29,11 +52,6 @@ os.makedirs("uploads/materials", exist_ok=True)
 # Mount uploads folder to serve static files
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# Create tables on startup
-@app.on_event("startup")
-def on_startup():
-    create_tables()
-
 # Include routers
 app.include_router(user_router)
 app.include_router(student_router)
@@ -41,6 +59,7 @@ app.include_router(teacher_router)
 app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(ai_router)
+app.include_router(iot_router)
 
 # Root route
 @app.get("/")
@@ -51,4 +70,3 @@ def read_root():
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
