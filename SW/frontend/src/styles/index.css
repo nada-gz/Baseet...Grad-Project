@@ -2069,9 +2069,10 @@ a:hover {
 }
 
 .monitoring-back-icon-btn:hover {
-  background: var(--sidebar-hover);
+  background: var(--neutral);
   color: var(--highlight);
-  transform: translateX(-2px);
+  border: 1px solid var(--highlight);
+  box-shadow: 0 0 15px rgba(108, 99, 255, 0.2);
 }
 
 .header-info {
@@ -2662,20 +2663,24 @@ a:hover {
 }
 
 .back {
-  padding: 8px 12px;
-  border-radius: 8px;
-  text-decoration: none;
-  color: var(--secondary-text);
-  font-size: 0.95rem;
-  font-family: var(--font-text);
-  transition: background 0.2s ease, color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--neutral);
+  border: 1px solid var(--neutral);
+  border-radius: 0.75rem;
+  color: var(--primary-text);
+  font-weight: 600;
+  transition: all 0.2s;
   cursor: pointer;
 }
 
 .back:hover {
-  opacity: 1;
-  color: var(--highlight);
   background: var(--neutral);
+  border-color: var(--highlight);
+  color: var(--highlight);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 /* -------------------------------------
@@ -3015,9 +3020,9 @@ a:hover {
 }
 
 .back-button:hover {
-  background: var(--sidebar-hover);
-  transform: translateX(-4px);
+  background: var(--neutral);
   border-color: var(--highlight);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 /* --- Full Migration Helpers --- */
