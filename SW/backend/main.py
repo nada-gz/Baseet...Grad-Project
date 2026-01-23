@@ -24,9 +24,10 @@ from routers.iot_router import start_mqtt_connection, stop_mqtt_connection
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage startup and shutdown events."""
-    # Startup
-    create_tables()
-    
+
+    # 🚫 DO NOT create tables in production
+    # create_tables()
+
     # Start MQTT connection
     await start_mqtt_connection()
     
@@ -34,6 +35,7 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     await stop_mqtt_connection()
+
 
 app = FastAPI(title="My Backend Project", lifespan=lifespan)
 
