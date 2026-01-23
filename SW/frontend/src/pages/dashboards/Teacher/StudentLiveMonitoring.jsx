@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import api from '../../../services/api';
 import { ArrowLeft, Activity, Zap, Music, Thermometer, Droplets, User, Heart } from 'lucide-react';
 import '../../../styles/index.css';
 
@@ -121,25 +122,39 @@ export default function StudentLiveMonitoring() {
         status: "Offline"
     });
 
-    const [controls, setControls] = useState({
-        led: false,
-        music: true
-    });
-
-    // Simulation
+    // Real Data Fetching
     useEffect(() => {
         const fetchData = async () => {
-            setData(prev => ({
-                temp: parseFloat((35 + Math.random() * 2).toFixed(1)), // 35-37
-                hr: Math.floor(60 + Math.random() * 30), // 60-90
-                gsr: parseFloat((0 + Math.random() * 2).toFixed(1)),
-                status: Math.random() > 0.8 ? "Stressed" : "Relaxed"
-            }));
+            if (!studentId) return;
+            try {
+                const res = await api.get(`/iot/current_status`, {
+                    params: { student_id: studentId }
+                });
+
+                if (res.data && res.data.latest_reading) {
+                    setData({
+                        temp: res.data.latest_reading.temperature,
+                        hr: res.data.latest_reading.hr,
+                        gsr: res.data.latest_reading.gsr,
+                        status: res.data.status
+                    });
+                } else if (res.data) {
+                    // Just status
+                    setData(prev => ({
+                        ...prev,
+                        status: res.data.status || "Offline"
+                    }));
+                }
+            } catch (err) {
+                console.error("Failed to fetch IoT status:", err);
+                setData(prev => ({ ...prev, status: "Offline" }));
+            }
         };
 
-        const interval = setInterval(fetchData, 2000);
+        const interval = setInterval(fetchData, 3000); // Fetch every 3 seconds
+        fetchData(); // Initial fetch
         return () => clearInterval(interval);
-    }, []);
+    }, [studentId]);
 
     // Helper for status class
     const getStatusClass = () => {
@@ -216,52 +231,6 @@ export default function StudentLiveMonitoring() {
                     </div>
                 </div>
 
-                {/* 3. Controls Row */}
-                <div className="controls-section">
-                    {/* LED Control */}
-                    <div className="control-card glass-panel">
-                        <div className="control-info">
-                            <div className={`control-icon-box ${controls.led ? 'active' : ''}`}>
-                                <Zap size={24} />
-                            </div>
-                            <div className="control-text">
-                                <h3>LED Light</h3>
-                                <span>Visual Stimulus</span>
-                            </div>
-                        </div>
-
-                        <div className="toggle-wrapper">
-                            <div
-                                className={`custom-toggle ${controls.led ? 'checked' : ''}`}
-                                onClick={() => setControls(prev => ({ ...prev, led: !prev.led }))}
-                            >
-                                <div className="toggle-circle"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Music Control */}
-                    <div className="control-card glass-panel">
-                        <div className="control-info">
-                            <div className={`control-icon-box ${controls.music ? 'active' : ''}`}>
-                                <Music size={24} />
-                            </div>
-                            <div className="control-text">
-                                <h3>Calming Music</h3>
-                                <span>Audio Stimulus</span>
-                            </div>
-                        </div>
-
-                        <div className="toggle-wrapper">
-                            <div
-                                className={`custom-toggle ${controls.music ? 'checked' : ''}`}
-                                onClick={() => setControls(prev => ({ ...prev, music: !prev.music }))}
-                            >
-                                <div className="toggle-circle"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
             </div>
         </div>
