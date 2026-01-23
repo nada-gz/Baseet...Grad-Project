@@ -20,6 +20,8 @@ from routers.dashboard_router import router as dashboard_router
 from routers.iot_router import router as iot_router
 from routers.iot_router import start_mqtt_connection, stop_mqtt_connection
 
+# stoping iot broker warning temporarily
+ENABLE_MQTT = os.getenv("ENABLE_MQTT", "false") == "true"
 # --- LIFESPAN MANAGEMENT ---
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -35,6 +37,7 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     await stop_mqtt_connection()
+
 
 
 app = FastAPI(title="My Backend Project", lifespan=lifespan)
