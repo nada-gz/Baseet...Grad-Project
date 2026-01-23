@@ -19,6 +19,7 @@ export default function LessonChat() {
   const audioRef = useRef(null);
 
   const messagesEndRef = useRef(null);
+  const hasStarted = useRef(false);
 
   // Auto-scroll
   useEffect(() => {
@@ -27,7 +28,8 @@ export default function LessonChat() {
 
   // Load lesson + start explanation
   useEffect(() => {
-    if (!student) return;
+    if (!student || hasStarted.current) return;
+    hasStarted.current = true;
 
     const startLesson = async () => {
       try {
@@ -125,9 +127,14 @@ export default function LessonChat() {
           setAudioState({ idx: null, playing: false, paused: false });
         };
         audioRef.current.play();
+      } else {
+        throw new Error("TTS failed");
       }
     } catch (err) {
       console.error("TTS error", err);
+      if (err.response && (err.response.status === 401 || err.response.status === 400)) {
+        alert("بسيط صوته تعبان شوية دلوقتي (خلصنا الكريديتس)، تقدر تقرأ الكلام المكتوب! 💜");
+      }
       setAudioState({ idx: null, playing: false, paused: false });
     }
   };

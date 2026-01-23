@@ -11,6 +11,7 @@ export default function StudentLessons() {
 
   const [milestones, setMilestones] = useState({});
   const [confirmLesson, setConfirmLesson] = useState(null);
+  const [selectionModal, setSelectionModal] = useState(null); // { lessonId: ... }
 
   const groupByMilestone = (lessons) => {
     const grouped = {};
@@ -50,6 +51,8 @@ export default function StudentLessons() {
       setConfirmLesson(null);
       // reload lessons
       loadLessons();
+      // Show selection modal to pick mode for the retaken lesson
+      setSelectionModal({ id: lessonId });
     } catch (err) {
       console.error("Failed to reset lesson:", err);
     }
@@ -109,7 +112,7 @@ export default function StudentLessons() {
                               <button
                                 className="btn btn-primary"
                                 onClick={() =>
-                                  navigate(`/dashboard/student/lesson/${lesson.id}`)
+                                  setSelectionModal({ id: lesson.id })
                                 }
                               >
                                 <Play size={18} /> Continue
@@ -157,6 +160,63 @@ export default function StudentLessons() {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {selectionModal && (
+        <div className="modal-overlay">
+          <div className="modal-card lesson-selection-modal">
+            <div className="baseet-selection-header">
+              <img
+                src={require("../../../assets/hi_baseet.png")}
+                alt="Baseet waving"
+                className="baseet-selection-img"
+              />
+              <h3>بسيط مستني يكلمك! ✨</h3>
+              <p>تحب تذاكر الدرس ده بـ الشات، الصوت، ولا الفيديو؟</p>
+            </div>
+
+            <div className="selection-actions">
+              <button
+                className="selection-btn video-mode"
+                onClick={() => {
+                  window.location.href = `/dashboard/student/lesson/${selectionModal.id}/video`;
+                  setSelectionModal(null);
+                }}
+              >
+                <div className="mode-icon">🎬</div>
+                <span>فيديو</span>
+              </button>
+              <button
+                className="selection-btn chat-mode"
+                onClick={() => {
+                  window.location.href = `/dashboard/student/lesson/${selectionModal.id}`;
+                  setSelectionModal(null);
+                }}
+              >
+                <div className="mode-icon">💬</div>
+                <span>شات</span>
+              </button>
+
+              <button
+                className="selection-btn voice-mode"
+                onClick={() => {
+                  window.location.href = `/dashboard/student/lesson/${selectionModal.id}/voice`;
+                  setSelectionModal(null);
+                }}
+              >
+                <div className="mode-icon">🎙️</div>
+                <span>صوت</span>
+              </button>
+            </div>
+
+            <button
+              className="btn btn-outline close-selection"
+              onClick={() => setSelectionModal(null)}
+            >
+              إلغاء
+            </button>
           </div>
         </div>
       )}

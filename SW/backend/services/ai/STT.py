@@ -14,7 +14,7 @@ init(autoreset=True)
 # --- CONFIGURATION ---
 STT_MODEL_ID = "IbrahimAmin/egyptian-arabic-wav2vec2-xlsr-53"
 SHARED_FILE = "shared_data.json"
-RECORD_SECONDS = 5  # Duration to listen automatically
+RECORD_SECONDS = 7  # Duration to listen automatically
 SAMPLE_RATE = 16000
 
 class EgyptianEar:
@@ -56,8 +56,8 @@ class EgyptianEar:
             
             # Check if there is actual audio (simple volume check)
             volume_norm = np.linalg.norm(recording) * 10
-            if volume_norm < 1:
-                print(Fore.YELLOW + "⚠️ Audio too quiet, might be silence.")
+            if volume_norm < 0.3:  # Lowered from 1.0 to 0.3 for better sensitivity
+                print(Fore.YELLOW + f"⚠️ Audio too quiet ({volume_norm:.2f}), might be silence.")
                 return ""
 
             # Transcribe
