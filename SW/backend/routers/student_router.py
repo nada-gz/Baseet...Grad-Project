@@ -163,10 +163,9 @@ def get_lessons_route(student_id: int, course_id: int = None, session: Session =
     # Sort content lessons to find the first one
     content_lessons.sort(key=lambda x: (x.milestone_number, x.lesson_number))
 
+    prev_status = "completed" # Theoretical status of the "0-th" lesson to unlock the 1st
     for i, cl in enumerate(content_lessons):
         # 2. Check for student's progress record
-        # Find milestone first (legacy structure might still be used for progress)
-        # Actually, let's use the new content_lesson_id if possible
         lp_stmt = select(Lesson).where(
             Lesson.student_id == student_id,
             Lesson.content_lesson_id == cl.id
@@ -185,31 +184,28 @@ def get_lessons_route(student_id: int, course_id: int = None, session: Session =
             
             lesson_progress = session.exec(lp_stmt_old).first()
             
-            # If found by old way, link it for future
             if lesson_progress:
                 lesson_progress.content_lesson_id = cl.id
                 session.add(lesson_progress)
                 session.commit()
 
         # 3. Construct LessonRead
-        # Default values if no progress record exists
         progress_val = 0
-        status_val = "locked" # Default to locked if no record
-        lesson_id_val = cl.id # Use Content ID if no instance yet
+        status_val = "locked" 
+        lesson_id_val = cl.id 
         
-        # AUTO-UNLOCK logic: If it's the first lesson and no progress exists, make it 'in-progress'
-        if not has_progress and i == 0:
-            status_val = "in-progress"
-
         if lesson_progress:
             progress_val = lesson_progress.progress
             status_val = lesson_progress.status
             lesson_id_val = lesson_progress.id
-        
-        # Merge materials (from ContentMaterial)
-        # Note: LessonRead.materials expects MaterialRead which has lesson_id.
-        # This is student-specific. We might need a ContentMaterialRead instead.
-        # For now, I'll adapt it.
+        else:
+            # AUTO-UNLOCK logic: If previous lesson was completed, this one is in-progress
+            if prev_status == "completed":
+                status_val = "in-progress"
+
+        # Update prev_status for the next iteration
+        prev_status = status_val
+
         materials = []
         for cm in cl.materials:
             materials.append({
@@ -345,25 +341,57 @@ def update_lesson_route(student_id: int, lesson_id: int, data: LessonUpdate):
         session.add(lesson)
         session.flush()
 
-        milestone_lessons = session.exec(
-            select(Lesson).where(
-                Lesson.student_id == student_id,
-                Lesson.milestone_number == lesson.milestone_number
-            )
-        ).all()
+        # Find the milestone number for this lesson
+        milestone = session.get(Milestone, lesson.milestone_id)
+        if not milestone:
+            # Try finding via ContentLesson if milestone_id is missing
+            cl = session.get(ContentLesson, lesson.content_lesson_id)
+            milestone_num = cl.milestone_number if cl else 0
+        else:
+            milestone_num = milestone.number
 
-        if all(l.progress == 100 for l in milestone_lessons):
-            next_milestone_number = lesson.milestone_number + 1
-            stmt = (
-                update(Lesson)
-                .where(
-                    Lesson.student_id == student_id,
-                    Lesson.milestone_number == next_milestone_number,
-                    Lesson.status == "locked"
-                )
-                .values(status="in-progress")
+        # 1. Get all ContentLessons for this milestone to know what SHOULD be completed
+        course_number = None
+        if lesson.content_lesson_id:
+            cl = session.get(ContentLesson, lesson.content_lesson_id)
+            course_number = cl.course_number
+        
+        cl_stmt = select(ContentLesson).where(ContentLesson.milestone_number == milestone_num)
+        if course_number:
+            cl_stmt = cl_stmt.where(ContentLesson.course_number == course_number)
+        
+        required_content_lessons = session.exec(cl_stmt).all()
+        required_ids = [rcl.id for rcl in required_content_lessons]
+
+        # 2. Check student's progress for these specific content lessons
+        completed_stmt = select(Lesson).where(
+            Lesson.student_id == student_id,
+            Lesson.content_lesson_id.in_(required_ids),
+            Lesson.status == "completed"
+        )
+        completed_lessons = session.exec(completed_stmt).all()
+
+        # 3. If all content lessons for this milestone have a 'completed' record, unlock the next milestone
+        if len(completed_lessons) >= len(required_ids):
+            next_milestone_number = milestone_num + 1
+            
+            # Find all ContentLessons in the NEXT milestone to unlock their first one (or all)
+            # Actually, standard logic is usually to unlock the first lesson or the whole milestone
+            # Here we follow the existing pattern of updating matching Lesson records if they exist
+            # But they might NOT exist yet.
+            
+            # Update existing locked records
+            # We must join Milestone to find by number safely
+            # Or use ContentLesson join which is safer
+            locked_stmt = select(Lesson).join(ContentLesson, Lesson.content_lesson_id == ContentLesson.id).where(
+                Lesson.student_id == student_id,
+                ContentLesson.milestone_number == next_milestone_number,
+                Lesson.status == "locked"
             )
-            session.exec(stmt)
+            locked_lessons = session.exec(locked_stmt).all()
+            for ll in locked_lessons:
+                ll.status = "in-progress"
+                session.add(ll)
 
         session.commit()
         session.refresh(lesson)
