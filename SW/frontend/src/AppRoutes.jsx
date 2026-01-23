@@ -23,6 +23,7 @@ import ClassManagement from "./pages/dashboards/Teacher/ClassManagement";
 import StudentDashboard from "./pages/dashboards/Student/StudentDashboard";
 import LessonPlayer from "./pages/dashboards/Student/LessonPlayer";
 import LessonChat from "./pages/dashboards/Student/LessonChat";
+import LessonVoice from "./pages/dashboards/Student/LessonVoice";
 import StudentLessons from "./pages/dashboards/Student/StudentLessons";
 import StudentCourses from "./pages/dashboards/Student/StudentCourses";
 import StudentMaterials from "./pages/dashboards/Student/StudentMaterials";
@@ -71,6 +72,8 @@ const router = createBrowserRouter([
           { path: "/dashboard/student/courses", element: <StudentCourses /> },
           { path: "/dashboard/student/courses/:courseId", element: <StudentLessons /> },
           { path: "/dashboard/student/lesson/:lessonId", element: <LessonChat /> },
+          { path: "/dashboard/student/lesson/:lessonId/voice", element: <LessonVoice /> },
+          { path: "/dashboard/student/lesson/:lessonId/video", element: <LessonPlayer /> },
           { path: "/dashboard/student/materials", element: <StudentMaterials /> },
           { path: "/dashboard/student/assignments", element: <StudentAssignments /> },
           { path: "/dashboard/student/quizzes", element: <StudentQuizzes /> },

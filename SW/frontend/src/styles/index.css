@@ -1507,6 +1507,7 @@ a:hover {
   color: rgb(205, 33, 33);
   font-size: 14px;
 }
+
 .deadline {
   margin-left: 7px;
   margin-right: 7px;
@@ -4160,4 +4161,608 @@ a:hover {
 
 .uppload {
   margin-top: -1px;
+}
+
+/* Lesson Chat Audio Features */
+.ai-message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.btn-icon.tts-btn {
+  background: rgba(139, 92, 246, 0.1);
+  border: none;
+  border-radius: 50%;
+  padding: 8px;
+  color: #8b5cf6;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.btn-icon.tts-btn:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.2);
+  transform: scale(1.1);
+}
+
+.btn-icon.tts-btn.speaking {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  animation: pulse-red-chat 1.5s infinite;
+}
+
+.btn-record {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 8px 12px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-record:hover:not(:disabled) {
+  border-color: #8b5cf6;
+  color: #8b5cf6;
+  background: #f5f3ff;
+}
+
+.btn-record.recording {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #ef4444;
+  animation: pulse-red-chat 1.5s infinite;
+}
+
+@keyframes pulse-red-chat {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.animate-spin {
+  animation: spin-chat 1s linear infinite;
+}
+
+@keyframes spin-chat {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* AI Message Content Layout */
+.ai-message-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.ai-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 4px;
+  justify-content: flex-end;
+}
+
+.ai-text {
+  line-height: 1.8;
+  text-align: right;
+}
+
+.stop-btn {
+  color: #64748b;
+  background: rgba(100, 116, 139, 0.1);
+  border: none;
+  border-radius: 50%;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stop-btn:hover {
+  background: rgba(100, 116, 139, 0.2);
+  color: #475569;
+}
+
+/* AI Message List Padding Fix */
+.ai-text ol,
+.ai-text ul {
+  padding-right: 2rem !important;
+  margin: 0.5rem 0;
+}
+
+.ai-text li {
+  margin-bottom: 0.4rem;
+}
+
+/* Lesson Chat Progress Bar */
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.lesson-progress-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 180px;
+}
+
+.progress-text {
+  font-size: 0.85rem;
+  color: #8b5cf6;
+  font-weight: 600;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #8b5cf6, #c084fc);
+  transition: width 0.5s ease-out;
+  border-radius: 10px;
+}
+
+/* Student Monitoring Card Progress */
+.card-progress-summary {
+  margin: 1rem 0;
+  padding: 0 0.5rem;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.progress-bar-small {
+  width: 100%;
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-fill-small {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  /* Greenish for progress */
+  border-radius: 10px;
+  transition: width 0.6s ease;
+}
+
+/* ==========================================================================
+   Lesson Selection Modal (Chat vs Voice)
+   ========================================================================== */
+
+.lesson-selection-modal {
+  max-width: 650px;
+  width: 90%;
+  padding: 1.5rem 2.5rem;
+  border-radius: 30px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+  box-shadow: 0 20px 40px rgba(108, 99, 255, 0.15);
+  text-align: center;
+  border: 4px solid #e0e7ff;
+}
+
+.baseet-selection-header {
+  margin-bottom: 2rem;
+}
+
+.baseet-selection-img {
+  width: 140px;
+  margin-bottom: 1rem;
+  transition: transform 0.3s ease;
+}
+
+.baseet-selection-img:hover {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.baseet-selection-header h3 {
+  font-size: 1.8rem;
+  color: #4f46e5;
+  margin-bottom: 0.5rem;
+  font-family: 'Cairo', sans-serif;
+}
+
+.baseet-selection-header p {
+  color: #64748b;
+  font-size: 1.1rem;
+}
+
+.selection-actions {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.selection-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1.5rem;
+  border-radius: 20px;
+  border: 2px solid #e2e8f0;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.selection-btn .mode-icon {
+  font-size: 2.5rem;
+}
+
+.selection-btn span {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: #334155;
+}
+
+.selection-btn.chat-mode:hover {
+  border-color: #6366f1;
+  background: #eef2ff;
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px rgba(99, 102, 241, 0.1);
+}
+
+.selection-btn.voice-mode:hover {
+  border-color: #ec4899;
+  background: #fdf2f8;
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px rgba(236, 72, 153, 0.1);
+}
+
+.selection-btn.video-mode:hover {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px rgba(245, 158, 11, 0.1);
+}
+
+.close-selection {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+/* ==========================================================================
+   Lesson Voice Page
+   ========================================================================== */
+
+.lesson-voice-page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: 'Cairo', sans-serif;
+}
+
+.voice-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -1;
+  opacity: 0.15;
+}
+
+.voice-header {
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.btn-back {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: #4f46e5;
+  font-weight: 700;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.btn-back:hover {
+  transform: translateX(5px);
+}
+
+.voice-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  min-width: 200px;
+}
+
+.v-progress-bar {
+  width: 100%;
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.v-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #ec4899);
+  transition: width 0.5s ease;
+}
+
+.voice-main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  gap: 2rem;
+}
+
+/* Baseet Avatar & Animations */
+.baseet-avatar-container {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+.baseet-voice-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 10;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.1));
+}
+
+.pulse-rings {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring {
+  position: absolute;
+  border: 2px solid rgba(99, 102, 241, 0.3);
+  border-radius: 50%;
+  opacity: 0;
+}
+
+/* Listening Mode Pulse */
+.baseet-avatar-container.listening .ring {
+  animation: ring-pulse 3s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+.ring-1 {
+  width: 100%;
+  height: 100%;
+  animation-delay: 0s;
+}
+
+.ring-2 {
+  width: 120%;
+  height: 120%;
+  animation-delay: 1s;
+}
+
+.ring-3 {
+  width: 140%;
+  height: 140%;
+  animation-delay: 2s;
+}
+
+/* Speaking Mode Bounce */
+.baseet-avatar-container.speaking .baseet-voice-img {
+  animation: speaking-bounce 0.5s infinite alternate ease-in-out;
+}
+
+/* Loading Cloud */
+.loading-cloud {
+  position: absolute;
+  top: -60px;
+  right: -40px;
+  background: white;
+  padding: 1rem 1.5rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  font-weight: 700;
+  color: #4f46e5;
+  z-index: 15;
+  animation: float-cloud 3s infinite ease-in-out;
+}
+
+.loading-cloud::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 20px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  transform: rotate(45deg);
+}
+
+/* Status Badges */
+.status-indicator {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.listening-badge,
+.speaking-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem 1.5rem;
+  border-radius: 30px;
+  font-weight: 700;
+  font-size: 1.2rem;
+  animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.listening-badge {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.speaking-badge {
+  background: #fdf2f8;
+  color: #db2777;
+}
+
+/* Response Preview */
+.response-preview-container {
+  max-width: 600px;
+  width: 100%;
+  min-height: 100px;
+}
+
+.response-card {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 1.5rem;
+  border-radius: 20px;
+  border-right: 6px solid #4f46e5;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.response-card p {
+  font-size: 1.2rem;
+  line-height: 1.6;
+  color: #1e293b;
+  margin: 0;
+}
+
+.voice-footer {
+  padding: 1.5rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.helper-text {
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* Keyframes */
+@keyframes ring-pulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes speaking-bounce {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+
+  100% {
+    transform: translateY(-15px) scale(1.02);
+  }
+}
+
+@keyframes float-cloud {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pop-in {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
