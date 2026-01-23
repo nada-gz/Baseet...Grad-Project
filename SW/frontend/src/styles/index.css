@@ -1927,17 +1927,10 @@ a:hover {
 }
 
 /* -------------------------------------
-   Live Monitoring / Gauges (Redesign)
--------------------------------------- */
-/* -------------------------------------
-   Live Monitoring - Modern & Creative Redesign
--------------------------------------- */
-/* -------------------------------------
    Live Monitoring - Modern Layout Update
 -------------------------------------- */
 .monitoring-page {
-  min-height: 100vh;
-  background-color: #f8fafc;
+  min-height: 80vh;
   /* Very light slate */
   padding: 2rem;
   font-family: var(--font-text);
