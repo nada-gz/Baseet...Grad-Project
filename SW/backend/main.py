@@ -25,7 +25,7 @@ from routers.iot_router import start_mqtt_connection, stop_mqtt_connection
 async def lifespan(app: FastAPI):
     """Manage startup and shutdown events."""
 
-    # 🚫 DO NOT create tables in production
+    # DO NOT create tables in production
     # create_tables()
 
     # Start MQTT connection
