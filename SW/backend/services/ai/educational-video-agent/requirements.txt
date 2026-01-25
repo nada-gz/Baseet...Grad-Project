@@ -1,0 +1,12 @@
+openai
+manim
+python-dotenv
+
+PyPDF2
+aiofiles
+elevenlabs
+moviepy
+
+# Image retrieval
+google-search-results
+requests
