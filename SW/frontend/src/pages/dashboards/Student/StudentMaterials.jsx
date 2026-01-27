@@ -113,19 +113,29 @@ export default function StudentMaterials() {
   };
 
   return (
-    <div className="materials-page">
+    <div className="student-materials-page kid-friendly-vibe">
+      <div className="hero-banner-frame">
+        <img
+          src={require("../../../assets/baseet_studying_banner.png")}
+          alt="Baseet Studying"
+        />
+        <div className="frame-text-overlay">
+          <h1>كنز المعلومات! 💎</h1>
+          <p>اكتشف الكتب والفيديوهات اللي هتخليك أشطر بطل</p>
+        </div>
+      </div>
+
       {courses.length === 0 ? (
-        <div className="text-center p-10 bg-white rounded-lg border border-dashed border-slate-300">
-          <p className="text-slate-500">No courses assigned yet.</p>
+        <div className="empty-milestones">
+          <p>لسه مفيش كورسات.. بسيط مستنيك!</p>
         </div>
       ) : (
         <>
           {/* Course Filter */}
-          <div className="course-filter-section" style={{ marginBottom: "1rem" }}>
-            <div className="flex items-center gap-3">
-              <p className="filter-text">Filter by Course:</p>
+          <div className="course-filter-section" style={{ marginBottom: "2rem" }}>
+            <div className="flex items-center gap-4">
               <select
-                className="p-2 border border-slate-300 rounded-lg text-sm bg-white"
+                className="kid-select"
                 value={selectedCourse || ""}
                 onChange={(e) => setSelectedCourse(Number(e.target.value) || null)}
               >
@@ -135,125 +145,93 @@ export default function StudentMaterials() {
                   </option>
                 ))}
               </select>
+              <span className="filter-label" style={{ fontWeight: 800, fontSize: "1.1rem" }}>: اختر الكورس</span>
             </div>
           </div>
 
           {Object.keys(milestones).length === 0 ? (
-            <div className="text-center p-10 bg-white rounded-lg border border-dashed border-slate-300 mt-4">
-              <p className="text-slate-500 italic">No milestones assigned yet for this course.</p>
+            <div className="empty-milestones mt-4">
+              <p>لسه مفيش مراحل موجودة.. بسيط مستنيك!</p>
             </div>
           ) : (
-            Object.entries(milestones).map(([milestoneNumber, lessons]) => (
-              <div key={milestoneNumber} className="milestone-card">
-                {/* Milestone Header */}
-                <div
-                  className="milestone-header"
-                  onClick={() => toggleMilestone(milestoneNumber)}
-                >
-                  {openMilestones[milestoneNumber] ? (
-                    <ChevronDown size={18} color="var(--highlight)" />
-                  ) : (
-                    <ChevronRight size={18} color="var(--highlight)" />
-                  )}
-                  <h2>Milestone {milestoneNumber}</h2>
-                </div>
+            <div className="milestones-container">
+              {Object.entries(milestones)
+                .sort(([a], [b]) => Number(a) - Number(b))
+                .map(([milestoneNumberStr, lessons]) => {
+                  const milestoneNumber = Number(milestoneNumberStr);
+                  return (
+                    <div key={milestoneNumber} className="milestone-island">
+                      <div className="milestone-header-kid">
+                        <div className="milestone-badge">مرحلة {milestoneNumber}</div>
+                        <h2 className="milestone-title">المرحلة {milestoneNumber}</h2>
+                      </div>
 
-                {/* Lessons */}
-                {openMilestones[milestoneNumber] &&
-                  lessons.map((lesson) => {
-                    const status = getLessonStatus(lesson);
+                      <div className="lesson-materials-container">
+                        {lessons.map((lesson) => {
+                          const status = getLessonStatus(lesson);
+                          const isOpen = openLessons[lesson.id];
 
-                    return (
-                      <div key={lesson.id} className="lesson-block">
-                        <div
-                          className="lesson-header"
-                          onClick={() => toggleLesson(lesson.id)}
-                        >
-                          {openLessons[lesson.id] ? (
-                            <ChevronDown size={16} />
-                          ) : (
-                            <ChevronRight size={16} />
-                          )}
-                          <span>
-                            Lesson {lesson.lesson_number}: {lesson.title}
-                          </span>
-                        </div>
+                          return (
+                            <div key={lesson.id} className={`lesson-material-block ${status}`}>
+                              <div
+                                className="lesson-header-pill"
+                                onClick={() => toggleLesson(lesson.id)}
+                              >
+                                <div className="lesson-pill-info">
+                                  <div className="lesson-pill-icon">
+                                    {isOpen ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                                  </div>
+                                  <span>درس {lesson.lesson_number}: {lesson.title}</span>
+                                </div>
+                                {status === "locked" && <Lock size={18} className="text-secondary-text" />}
+                              </div>
 
-                        {/* Materials */}
-                        {openLessons[lesson.id] ? (
-                          lesson.materials?.length > 0 ? (
-                            <div className="materials-list">
-                              {lesson.materials.map((material) => (
-                                <div key={material.id} className="material-item">
-                                  {status === "locked" ? (
-                                    <>
-                                      <div className="material-info">
-                                        <div className="material-icon">
-                                          {materialIcons[material.material_type] || (
-                                            <File size={18} />
-                                          )}
+                              {isOpen && (
+                                <div className="materials-bubbles-row">
+                                  {lesson.materials?.length > 0 ? (
+                                    lesson.materials.map((material) => (
+                                      <div key={material.id} className="material-bubble">
+                                        <div className="material-bubble-content">
+                                          <div className="material-bubble-icon">
+                                            {status === "locked" ? (
+                                              <Lock size={24} />
+                                            ) : (
+                                              materialIcons[material.material_type] || <File size={24} />
+                                            )}
+                                          </div>
+                                          <div className="material-bubble-text">
+                                            <h4>{material.title}</h4>
+                                          </div>
                                         </div>
-                                        <div className="material-text">
-                                          <p className="material-title">{material.title}</p>
-                                          {material.description && (
-                                            <p className="material-description">
-                                              {material.description}
-                                            </p>
+
+                                        <div className="material-bubble-actions">
+                                          {status !== "locked" && (
+                                            <a
+                                              href={material.file_url ? `http://127.0.0.1:8000${material.file_url}` : "#"}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="btn-circle-action"
+                                              title="View"
+                                            >
+                                              <Eye size={18} />
+                                            </a>
                                           )}
                                         </div>
                                       </div>
-                                      <span className="material-locked">
-                                        <Lock size={24} />
-                                      </span>
-                                    </>
+                                    ))
                                   ) : (
-                                    <div className="material-item-content flex items-center justify-between w-full">
-                                      <a
-                                        href={material.file_url ? `http://127.0.0.1:8000${material.file_url}` : "#"}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="material-info clickable-material flex-grow"
-                                        style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center" }}
-                                      >
-                                        <div className="material-icon">
-                                          {materialIcons[material.material_type] || (
-                                            <File size={18} />
-                                          )}
-                                        </div>
-                                        <div className="material-text">
-                                          <p className="material-title">{material.title}</p>
-                                          {material.description && (
-                                            <p className="material-description">
-                                              {material.description}
-                                            </p>
-                                          )}
-                                        </div>
-                                      </a>
-                                      <a
-                                        href={material.file_url ? `http://127.0.0.1:8000${material.file_url}` : "#"}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="material-btn material-btn-outline material-btn-equal ml-4"
-                                      >
-                                        <Eye size={16} /> View
-                                      </a>
-                                    </div>
+                                    <div className="empty-bubble">مفيش ملفات موجودة حالياً 😅</div>
                                   )}
                                 </div>
-                              ))}
+                              )}
                             </div>
-                          ) : (
-                            <div className="materials-empty-icon">
-                              <span>No materials uploaded yet</span>
-                              <Frown size={24} className="sad-icon" />
-                            </div>
-                          )
-                        ) : null}
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-              </div>
-            ))
+                    </div>
+                  );
+                })}
+            </div>
           )}
         </>
       )}

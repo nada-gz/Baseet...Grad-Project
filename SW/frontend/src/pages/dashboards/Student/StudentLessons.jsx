@@ -59,82 +59,98 @@ export default function StudentLessons() {
   };
 
   return (
-    <div className="student-lessons-page">
+    <div className="student-lessons-page kid-friendly-vibe">
+      <div className="hero-blob-container" style={{ borderColor: '#D6DEFF', boxShadow: '0 12px 0 #D6DEFF' }}>
+        <div className="hero-blob-bg" style={{ background: 'radial-gradient(circle, #F1F4FF 0%, #D6DEFF 100%)' }}></div>
+        <div className="hero-blob-content">
+          <div className="hero-blob-image-wrapper shift-right">
+            <img
+              src={require("../../../assets/hii_baseet.png")}
+              alt="Greeting Baseet"
+              className="hero-blob-img"
+            />
+          </div>
+          <div className="hero-blob-text">
+            <h1 style={{ color: '#4A90E2' }}>✨ ! مغامرتك التعليمية</h1>
+            <p>املى الطريق بالنجوم وكمل دروسك يا بطل</p>
+          </div>
+        </div>
+      </div>
+
       {Object.keys(milestones).length === 0 ? (
-        <div className="text-center p-10 bg-white rounded-lg border border-dashed border-slate-300">
-          <p className="text-slate-500">No milestones assigned yet for this course.</p>
+        <div className="empty-milestones">
+          <p>لسه مفيش دروس موجودة.. بسيط مستنيك!</p>
         </div>
       ) : (
-        Object.entries(milestones)
-          .sort(([a], [b]) => Number(a) - Number(b))
-          .map(([milestoneNumberStr, lessons]) => {
-            const milestoneNumber = Number(milestoneNumberStr);
-            return (
-              <div key={milestoneNumber} className="milestone-section">
-                <h2 className="milestone-title">Milestone {milestoneNumber}</h2>
+        <div className="milestones-container">
+          {Object.entries(milestones)
+            .sort(([a], [b]) => Number(a) - Number(b))
+            .map(([milestoneNumberStr, lessons]) => {
+              const milestoneNumber = Number(milestoneNumberStr);
+              return (
+                <div key={milestoneNumber} className="milestone-island">
+                  <div className="milestone-header">
+                    <div className="milestone-badge">مرحلة {milestoneNumber}</div>
+                  </div>
 
-                <div className="lesson-list">
-                  {lessons.map((lesson) => {
-                    const status = lesson.status;
+                  <div className="lesson-path">
+                    {lessons.map((lesson) => {
+                      const status = lesson.status;
 
-                    return (
-                      <div key={lesson.id} className={`lesson-card ${status}`}>
-                        <div className="lesson-info">
-                          <h3 className="lesson-title">
-                            {lesson.number} {lesson.title}
-                          </h3>
-                          <p className="lesson-desc">{lesson.description}</p>
-
-                          <div className="progress-bar">
-                            <div
-                              className="progress-fill"
-                              style={{ width: `${lesson.progress}%` }}
-                            />
+                      return (
+                        <div key={lesson.id} className={`lesson-bubble ${status}`}>
+                          <div className="lesson-icon-outer">
+                            <div className="lesson-icon">
+                              {status === "locked" ? <Lock size={24} /> : lesson.number}
+                            </div>
                           </div>
 
-                          <span className={`lesson-status ${status}`}>
-                            {status.replace("-", " ")}
-                          </span>
-                        </div>
+                          <div className="lesson-info">
+                            <h3 className="lesson-title">{lesson.title}</h3>
+                            <p className="lesson-desc">{lesson.description}</p>
 
-                        <div className="lesson-actions">
-                          {status === "completed" && (
-                            <button
-                              className="btn btn-outline"
-                              onClick={() => setConfirmLesson(lesson)}
-                            >
-                              <RotateCcw size={18} /> Retake
-                            </button>
-                          )}
+                            <div className="progress-bar-mini">
+                              <div
+                                className="progress-fill"
+                                style={{ width: `${lesson.progress}%` }}
+                              />
+                            </div>
+                          </div>
 
-                          {status === "in-progress" && (
-                            <>
+                          <div className="lesson-actions">
+                            {status === "completed" && (
                               <button
-                                className="btn btn-primary"
+                                className="btn-circle btn-retake"
+                                onClick={() => setConfirmLesson(lesson)}
+                                title="إعادة الدرس"
+                              >
+                                <RotateCcw size={18} />
+                              </button>
+                            )}
+
+                            {status === "in-progress" && (
+                              <button
+                                className="btn btn-primary btn-sm rounded-full"
                                 onClick={() =>
                                   setSelectionModal({ id: lesson.id })
                                 }
                               >
-                                <Play size={18} /> Continue
+                                <Play size={18} /> استكمال
                               </button>
-                              <button
-                                className="btn btn-outline"
-                                onClick={() => setConfirmLesson(lesson)}
-                              >
-                                Restart
-                              </button>
-                            </>
-                          )}
+                            )}
 
-                          {status === "locked" && <Lock size={24} />}
+                            {status === "locked" && (
+                              <div className="locked-badge">مغلق</div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+        </div>
       )}
 
       {confirmLesson && (
