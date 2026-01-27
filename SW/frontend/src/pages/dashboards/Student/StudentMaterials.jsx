@@ -120,7 +120,7 @@ export default function StudentMaterials() {
           alt="Baseet Studying"
         />
         <div className="frame-text-overlay">
-          <h1>كنز المعلومات! 💎</h1>
+          <h1>💎 ! كنز المعلومات</h1>
           <p>اكتشف الكتب والفيديوهات اللي هتخليك أشطر بطل</p>
         </div>
       </div>

@@ -60,7 +60,7 @@ export default function StudentLessons() {
 
   return (
     <div className="student-lessons-page kid-friendly-vibe">
-      <div className="hero-blob-container" style={{ borderColor: '#D6DEFF', boxShadow: '0 12px 0 #D6DEFF' }}>
+      <div className="hero-blob-container assignments-style" style={{ borderColor: '#D6DEFF', boxShadow: '0 12px 0 #D6DEFF' }}>
         <div className="hero-blob-bg" style={{ background: 'radial-gradient(circle, #F1F4FF 0%, #D6DEFF 100%)' }}></div>
         <div className="hero-blob-content">
           <div className="hero-blob-image-wrapper shift-right">
