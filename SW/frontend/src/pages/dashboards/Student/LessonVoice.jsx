@@ -200,31 +200,34 @@ export default function LessonVoice() {
     };
 
     return (
-        <div className="lesson-voice-page">
-            {/* Background elements */}
-            <img src={require("../../../assets/student_background.png")} className="voice-bg" alt="" />
+        <div className="lesson-voice-page underwater">
+            <div className="underwater-deco"></div>
+            <div className="underwater-rays"></div>
 
-            <div className="voice-header">
-                <button className="btn-back" onClick={() => navigate(-1)}>
-                    <ArrowRight size={24} />
-                    Back to Lessons
-                </button>
-
-                <div className="voice-progress">
-                    <span>Progress: {lessonProgress}%</span>
-                    <div className="v-progress-bar">
-                        <div className="v-progress-fill" style={{ width: `${lessonProgress}%` }}></div>
+            <div className="hero-blob-container compact" style={{ margin: '20px 40px', width: 'auto' }}>
+                <div className="hero-blob-bg" style={{ background: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)' }}></div>
+                <div className="hero-blob-content">
+                    <div className="hero-blob-text">
+                        <h1 style={{ fontSize: '2rem', color: 'white' }}>
+                           ✨ ! مغامرة الصوت مع بسيط
+                        </h1>
                     </div>
                 </div>
+                <button className="btn-back" onClick={() => navigate(-1)} style={{ position: 'absolute', top: '15px', left: '15px', zIndex: 10 }}>
+                    <ArrowRight size={22} />
+                    <span>الرجوع</span>
+                </button>
             </div>
 
             <div className="voice-main-content">
                 <div className={`baseet-avatar-container ${status}`}>
-                    <div className="pulse-rings">
-                        <div className="ring ring-1"></div>
-                        <div className="ring ring-2"></div>
-                        <div className="ring ring-3"></div>
-                    </div>
+                    {status !== 'idle' && (
+                        <div className="pulse-rings">
+                            <div className="ring ring-1"></div>
+                            <div className="ring ring-2"></div>
+                            <div className="ring ring-3"></div>
+                        </div>
+                    )}
 
                     <img
                         src={require(`../../../assets/${status === 'idle' ? 'hii_baseet.png' :
@@ -245,21 +248,21 @@ export default function LessonVoice() {
                 <div className="status-indicator">
                     {status === 'listening' && (
                         <div className="listening-badge">
-                            <Mic size={24} className="mic-icon pulse" />
-                            <span>بسيط بيسمعك...</span>
+                            <Mic size={30} className="mic-icon pulse" />
+                            <span>بسيط ببيسمعك يا بطل... ✨</span>
                         </div>
                     )}
                     {status === 'speaking' && (
                         <div className="speaking-badge">
                             {voiceUnavailable ? (
                                 <>
-                                    <Volume2 size={24} className="speaker-icon opacity-50" />
-                                    <span className="text-orange-500 font-bold">بسيط صوته مجهد شوية (اقرأ الكلام) 😴</span>
+                                    <Volume2 size={30} className="speaker-icon opacity-50" />
+                                    <span style={{ color: 'var(--secondary-text)' }}>بسيط صوته مجهد شوية، اقرأ الكلام! 😴</span>
                                 </>
                             ) : (
                                 <>
-                                    <Volume2 size={24} className="speaker-icon animate-bounce" />
-                                    <span>بسيط بيتكلم...</span>
+                                    <Volume2 size={30} className="speaker-icon animate-bounce" />
+                                    <span>بسيط بيتكلم... ✨</span>
                                 </>
                             )}
                         </div>
@@ -274,7 +277,6 @@ export default function LessonVoice() {
                     )}
                 </div>
             </div>
-
-        </div>
+        </div >
     );
 }

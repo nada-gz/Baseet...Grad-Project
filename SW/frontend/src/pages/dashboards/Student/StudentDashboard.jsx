@@ -290,8 +290,8 @@ export default function StudentDashboard() {
                   className="studying-banner-img"
                 />
                 <div className="studying-text">
-                  <h3>مغامرة المذاكرة بدأت! 📚</h3>
-                  <p>كل درس بتخلصه بيقربك خطوة من النجاح!</p>
+                  <h3> 📚 ! مغامرة المذاكرة بدأت</h3>
+                  <p> ! كل درس بتخلصه بيقربك خطوة من النجاح</p>
                 </div>
               </div>
             </>
@@ -309,8 +309,8 @@ export default function StudentDashboard() {
                   alt="Baseet waving"
                   className="baseet-selection-img"
                 />
-                <h3>بسيط مستني يكلمك! ✨</h3>
-                <p>تحب تذاكر الدرس ده بـ الشات، الصوت، ولا الفيديو؟</p>
+                <h3>✨ ! بسيط مستني يكلمك</h3>
+                <p>تحب تذاكر الدرس ده بـ الشات، ولا الصوت، ولا الفيديو؟</p>
               </div>
 
               <div className="selection-actions">
