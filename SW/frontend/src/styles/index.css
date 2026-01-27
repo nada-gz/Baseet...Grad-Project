@@ -15,40 +15,52 @@
 -------------------------------------- */
 :root {
   /* Backgrounds */
-  --primary-bg: #E7E7E9;
-  /* light gray background */
+  --primary-bg: #FFF9E6;
+  /* Creamy yellow background */
   --secondary-bg: #ffffff;
   /* white card background */
 
   /* Text */
-  --primary-text: #2F2E41;
-  /* dark gray/purple for readability */
-  --secondary-text: #555555;
-  /* medium gray for secondary text */
+  --primary-text: #2D3436;
+  /* Soft Dark Slate */
+  --secondary-text: #636E72;
+  /* Medium Gray */
 
-  /* Highlights / buttons / headings */
+  /* Kid-Friendly Highlights */
   --highlight: #6C63FF;
-  /* bright purple for highlights/buttons */
+  /* Original Baseet Purple */
+  --primary-color: #FFBE0B;
+  /* Sunny Yellow */
+  --secondary-color: #FB5607;
+  /* Playful Orange */
+  --accent-color: #FF006E;
+  /* Bright Pink */
+  --success-color: #3A86FF;
+  /* Bright Blue */
 
   /* Feedback colors */
-  --error-bg: #f28b82;
-  /* gentle red for errors */
-  --success-bg: #a8dadc;
-  /* soft pastel teal/mint for success */
+  --error-bg: #FF5E5E;
+  /* Bright red */
+  --success-bg: #00F5D4;
+  /* Bright teal */
 
   /* Borders / neutral elements */
-  --neutral: #d3d3d3;
-  /* light neutral for inputs/borders */
+  --neutral: #DFE6E9;
 
   /* Fonts */
   --font-title: 'Lexend', sans-serif;
   --font-text: 'Nunito', sans-serif;
   --font-special: 'Lexend', sans-serif;
 
+  /* Bubbly Shapes */
+  --radius-xl: 3rem;
+  --radius-lg: 2rem;
+  --radius-md: 1.5rem;
+
   /* Dark Mode specific (Default matches :root) */
   --sidebar-bg: #ffffff;
-  --sidebar-text: #2F2E41;
-  --sidebar-hover: #f1f5f9;
+  --sidebar-text: #2D3436;
+  --sidebar-hover: #F1F2F6;
 }
 
 /* -------------------------------------
@@ -118,8 +130,8 @@ html {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-right: 100px;
-  margin-left: 230px;
+  margin-right: 80px;
+  margin-left: 200px;
 }
 
 /* Right side: Form takes full available space */
@@ -128,7 +140,11 @@ html {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-right: 230px;
+  margin-right: 140px;
+}
+
+.form-inner {
+  width: 100%;
 }
 
 /* Image scaling */
@@ -151,19 +167,25 @@ html {
 /* -------------------------------------
    Card (slightly smaller)
 -------------------------------------- */
+/* Card (slightly smaller) */
 .card {
   background-color: var(--secondary-bg);
-  padding: 1.5rem 2rem;
-  /* reduced padding */
-  border-radius: 1rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 2.5rem;
+  /* increased padding for airy feel */
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 0 #DFE6E9, 0 20px 40px rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
   color: var(--primary-text);
   min-height: auto;
-  /* remove fixed height */
-  width: 100%;
+  border: 4px solid var(--neutral);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 0 #DFE6E9, 0 25px 50px rgba(0, 0, 0, 0.08);
 }
 
 /* -------------------------------------
@@ -201,14 +223,14 @@ html {
 input,
 select {
   width: 100%;
-  padding: 0.85rem 1rem;
-  border-radius: 0.75rem;
-  border: 1px solid var(--neutral);
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 3px solid var(--neutral);
   background-color: var(--secondary-bg);
   color: var(--primary-text);
   font-size: 1rem;
   font-family: var(--font-text);
-  transition: border 0.2s, box-shadow 0.2s;
+  transition: all 0.2s ease;
   margin-bottom: 15px;
 }
 
@@ -241,65 +263,67 @@ select:focus {
    Buttons
 -------------------------------------- */
 .btn {
-  padding: 0.85rem 1.5rem;
-  font-weight: 600;
-  font-size: 1rem;
-  border-radius: 0.75rem;
+  padding: 1rem 2rem;
+  font-weight: 800;
+  font-size: 1.1rem;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  border: 2px solid transparent;
+  gap: 0.75rem;
+  border: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.1);
+}
+
+.btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.1);
 }
 
 .btn-primary {
   background-color: var(--highlight);
-  color: var(--secondary-bg);
-  border-color: var(--highlight);
+  color: white;
 }
 
 .btn-primary:hover {
-  background-color: var(--secondary-bg);
-  color: var(--highlight);
-  border-color: var(--highlight);
+  background-color: #5851DB;
+  transform: scale(1.05);
 }
 
 .btn-secondary {
-  background-color: var(--success-bg);
-  color: var(--secondary-bg);
-  border-color: var(--success-bg);
+  background-color: var(--secondary-color);
+  color: white;
 }
 
 .btn-secondary:hover {
-  background-color: var(--secondary-bg);
-  color: var(--success-bg);
-  border-color: var(--success-bg);
+  background-color: #E64A19;
+  transform: scale(1.05);
 }
 
 .btn-danger {
   background-color: var(--error-bg);
-  color: var(--secondary-bg);
-  border-color: var(--error-bg);
+  color: white;
 }
 
 .btn-danger:hover {
-  background-color: var(--secondary-bg);
-  color: var(--error-bg);
-  border-color: var(--error-bg);
+  background-color: #E53935;
+  transform: scale(1.05);
 }
 
 .btn-outline {
-  background-color: transparent;
-  border: 2px solid var(--highlight);
+  background-color: white;
+  border: 4px solid var(--highlight);
   color: var(--highlight);
 }
 
 .btn-outline:hover {
   background-color: var(--highlight);
-  color: var(--secondary-bg);
-  border-color: var(--highlight);
+  color: white;
 }
 
 /* -------------------------------------
@@ -330,10 +354,54 @@ select:focus {
 
 .error-message {
   background-color: var(--error-bg);
-  color: var(--secondary-bg);
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
+  color: white;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 800;
+  border: 4px solid #DF4343;
+  box-shadow: 0 6px 0 #DF4343;
+}
+
+/* Studying Footer Banner */
+.dashboard-studying-footer {
+  margin-top: 60px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  background: white;
+  padding: 40px;
+  border-radius: var(--radius-xl);
+  border: 5px dashed var(--highlight);
+  background-image: radial-gradient(var(--neutral) 1px, transparent 1px);
+  background-size: 30px 30px;
+  box-shadow: 0 15px 0 rgba(0, 0, 0, 0.02);
+}
+
+.studying-banner-img {
+  width: 250px;
+  height: auto;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border: 5px solid white;
+}
+
+.studying-text {
+  text-align: right;
+}
+
+.studying-text h3 {
+  font-family: var(--font-title);
+  font-size: 2rem;
+  color: var(--highlight);
+  margin-bottom: 12px;
+}
+
+.studying-text p {
+  font-size: 1.2rem;
+  color: var(--secondary-text);
   font-weight: 600;
 }
 
@@ -379,9 +447,12 @@ a:hover {
   width: 100%;
   min-height: 100vh;
   background: var(--primary-bg);
+  background-image: url("../assets/kid_friendly_bg.png");
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
   position: relative;
   font-family: var(--font-text);
-  /* default font for all text inside layout */
 }
 
 /* -------------------------------------
@@ -700,53 +771,255 @@ a:hover {
   font-family: var(--font-text);
 }
 
-/* Lesson Card Container */
+/* Lesson Card Container (Island Style) */
 .lesson-content {
   position: relative;
   background: var(--secondary-bg);
-  padding: 30px;
-  border-radius: 12px;
-  border: 1px solid var(--neutral);
+  padding: 40px;
+  border-radius: var(--radius-xl);
+  border: 6px solid #FFF1C1;
   display: flex;
   flex-direction: column;
   /* allow stacking main card + 3 cards row */
   align-items: center;
   /* justify-content: center; */
   margin-top: 65px;
-  width: 850px;
-  margin-left: 125px;
+  width: 900px;
+  margin-left: 100px;
+  box-shadow: 0 20px 0 #FFF1C1, 0 30px 60px rgba(0, 0, 0, 0.1);
+  overflow: visible;
+  /* ensure deco doesn't get clipped */
 }
 
-/* Icon */
+/* Icon / Deco */
 .lesson-deco {
   position: absolute;
-  top: 12px;
-  right: 16px;
-
-  width: 100px;
-  /* small icon size */
+  top: -60px;
+  right: -40px;
+  width: 180px;
   height: auto;
-
-  opacity: 0.9;
-  /* soft look */
+  opacity: 1;
   pointer-events: none;
-  /* don’t block clicks */
+  z-index: 10;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.1));
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+
+  50% {
+    transform: translateY(-15px) rotate(3deg);
+  }
+}
+
+/* Welcome Banner */
+.welcome-banner-container {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  width: 100%;
+  margin-bottom: 40px;
+  background: white;
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  border: 4px solid var(--primary-color);
+  box-shadow: 0 10px 0 #FFF1C1;
+}
+
+.welcome-banner-img {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 5px solid var(--primary-color);
+  background: #FFF9E6;
+}
+
+.welcome-text h1 {
+  font-family: var(--font-title);
+  font-size: 2.2rem;
+  color: var(--highlight);
+  margin-bottom: 8px;
+}
+
+.welcome-text p {
+  font-size: 1.2rem;
+  color: var(--secondary-text);
+  font-weight: 600;
+}
+
+/* -------------------------------------
+   Student Lessons Page (Kid Style)
+-------------------------------------- */
+.student-lessons-page {
+  padding: 40px;
+}
+
+.lessons-hero {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  background: white;
+  padding: 40px;
+  border-radius: var(--radius-xl);
+  border: 6px solid #FFF1C1;
+  box-shadow: 0 15px 0 #FFF1C1;
+  margin-bottom: 60px;
+}
+
+.lessons-hero-img {
+  width: 180px;
+  height: auto;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.1));
+}
+
+.hero-text h1 {
+  font-family: var(--font-title);
+  font-size: 2.5rem;
+  color: var(--highlight);
+  margin-bottom: 12px;
+}
+
+.milestone-island {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  padding: 50px;
+  border-radius: var(--radius-xl);
+  border: 4px dashed var(--neutral);
+  margin-bottom: 80px;
+  position: relative;
+}
+
+.milestone-badge {
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary-color);
+  color: white;
+  padding: 10px 30px;
+  border-radius: 30px;
+  font-weight: 800;
+  font-size: 1.2rem;
+  box-shadow: 0 8px 0 #E67E22;
+}
+
+.milestone-title {
+  text-align: center;
+  margin-bottom: 50px;
+  font-size: 2rem;
+  color: var(--primary-text);
+  font-family: var(--font-title);
+}
+
+.lesson-path {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.lesson-bubble {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  background: white;
+  padding: 25px;
+  border-radius: var(--radius-lg);
+  border: 4px solid var(--neutral);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+}
+
+.lesson-bubble:hover {
+  transform: scale(1.02) rotate(1deg);
+  border-color: var(--highlight);
+}
+
+.lesson-icon-outer {
+  width: 80px;
+  height: 80px;
+  background: #F1F2F6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 5px solid white;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.lesson-bubble.completed .lesson-icon-outer {
+  background: var(--success-bg);
+  color: white;
+}
+
+.lesson-bubble.in-progress .lesson-icon-outer {
+  background: var(--highlight);
+  color: white;
+}
+
+.lesson-icon {
+  font-size: 2rem;
+  font-weight: 900;
+}
+
+.progress-bar-mini {
+  width: 150px;
+  height: 10px;
+  background: #F1F2F6;
+  border-radius: 5px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.btn-circle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: none;
+  background: #F1F2F6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-circle:hover {
+  background: var(--neutral);
+  transform: rotate(20deg);
+}
+
+.locked-badge {
+  background: #F1F2F6;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #B2BEC3;
 }
 
 /* Continue Card */
 .continue-card {
   display: flex;
   align-items: center;
-  gap: 20px;
-  width: 800px;
-  /* fixed width for all cards */
+  gap: 30px;
+  width: 100%;
   max-width: 100%;
-  /* responsive on smaller screens */
-  padding: 15px;
-  border-radius: 12px;
-  background: var(--secondary-bg);
+  padding: 30px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, #FFF9E6 0%, #FFFFFF 100%);
   flex-shrink: 0;
-  margin-bottom: 30px;
+  margin-bottom: 40px;
+  border: 4px dashed var(--primary-color);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.03);
 }
 
 /* Left Video Icon */
@@ -794,24 +1067,27 @@ a:hover {
 /* Progress Bar */
 .progress-bar {
   width: 100%;
-  height: 14px;
-  background: var(--neutral);
-  border-radius: 10px;
+  height: 24px;
+  background: #F1F2F6;
+  border-radius: 12px;
   overflow: hidden;
-  margin-bottom: 25px;
+  margin-bottom: 30px;
+  border: 3px solid var(--neutral);
+  position: relative;
 }
 
 .progress-fill {
   height: 100%;
-  background: var(--highlight);
-  transition: width 0.4s ease;
+  background: linear-gradient(90deg, var(--highlight) 0%, #A29BFE 100%);
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-radius: 10px;
 }
 
 /* Continue Button */
 .continue-btn {
   align-self: flex-start;
-  padding: 0.75rem 2rem;
-  font-size: 1rem;
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
 }
 
 /* -------------------------------
@@ -826,23 +1102,385 @@ a:hover {
   /* responsive wrap */
 }
 
+/* -------------------------------------
+   Student Materials Page (Kid Style)
+-------------------------------------- */
+.student-materials-page {
+  padding: 40px;
+  overflow-x: hidden;
+}
+
+.hero-blob-container {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 60px;
+  margin-bottom: 50px;
+  background: white;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 4px solid #FFF1C1;
+  box-shadow: 0 12px 0 #FFF1C1, 0 30px 60px rgba(0, 0, 0, 0.05);
+}
+
+/* Page-Specific Hero Modifiers */
+.hero-blob-container.assignments-style {
+  height: 280px;
+  padding: 0 50px;
+  width: 95%;
+  /* Slightly narrower than full */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Dashboard Integrated Hero Style */
+.hero-blob-container.integrated {
+  background: url('../assets/baseet_welcome_banner_v2.png') center/cover no-repeat;
+  border: 6px solid white;
+  box-shadow: 0 15px 40px rgba(108, 99, 255, 0.2);
+  display: block;
+  /* Stack text over bg */
+  height: auto;
+  min-height: 300px;
+  padding: 60px;
+}
+
+.hero-blob-container.integrated .hero-blob-content {
+  justify-content: flex-end;
+  /* Text on the right */
+}
+
+.hero-blob-container.integrated .hero-blob-text {
+  text-align: right;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 25px 40px;
+  border-radius: 30px;
+  display: inline-block;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(5px);
+}
+
+/* Materials Banner Frame Style */
+.hero-banner-frame {
+  position: relative;
+  width: 100%;
+  max-height: 240px;
+  /* Constrain height */
+  margin-bottom: 50px;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  background: white;
+  border: 4px solid white;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.06);
+}
+
+.hero-banner-frame img {
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+  /* Ensure it fits nicely */
+  display: block;
+}
+
+.hero-banner-frame .frame-text-overlay {
+  position: absolute;
+  bottom: 30px;
+  right: 40px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px 35px;
+  border-radius: 30px;
+  text-align: right;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border: 3px solid var(--primary-color);
+}
+
+.hero-banner-frame .frame-text-overlay h1 {
+  font-family: var(--font-title);
+  color: var(--highlight);
+  font-size: 2.2rem;
+  margin-bottom: 5px;
+}
+
+.hero-banner-frame .frame-text-overlay p {
+  font-weight: 700;
+  color: var(--secondary-text);
+}
+
+.hero-blob-bg {
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 500px;
+  height: 400px;
+  background: radial-gradient(circle, #FFF9E6 0%, #FFF1C1 100%);
+  border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+  z-index: 1;
+  animation: blob-float 10s infinite ease-in-out;
+}
+
+/* Dashboard Image-Blob Style */
+.hero-blob-bg.dashboard-image-blob {
+  background: url('../assets/baseet_welcome_banner_v2.png') center/cover no-repeat;
+  width: 550px;
+  height: 450px;
+  top: -80px;
+  left: -100px;
+  /* Moved to the left side */
+  z-index: 1;
+  border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+  border: 8px solid white;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  animation: blob-float 12s infinite ease-in-out;
+}
+
+@keyframes blob-float {
+
+  0%,
+  100% {
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  33% {
+    border-radius: 60% 40% 50% 50% / 50% 60% 40% 60%;
+    transform: translate(10px, -20px) rotate(5deg);
+  }
+
+  66% {
+    border-radius: 50% 50% 60% 40% / 60% 40% 60% 40%;
+    transform: translate(-15px, 10px) rotate(-3deg);
+  }
+}
+
+.hero-blob-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 40px;
+}
+
+.hero-blob-text {
+  flex: 1;
+  text-align: right;
+}
+
+.hero-blob-text h1 {
+  font-family: var(--font-title);
+  font-size: 2.8rem;
+  color: var(--highlight);
+  margin-bottom: 10px;
+}
+
+.hero-blob-text p {
+  font-size: 1.3rem;
+  color: var(--secondary-text);
+  font-weight: 700;
+}
+
+.hero-blob-image-wrapper {
+  flex-shrink: 0;
+  width: 280px;
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.hero-blob-image-wrapper.shift-right {
+  transform: translateX(30px);
+}
+
+.hero-blob-img {
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 15px 15px rgba(0, 0, 0, 0.1));
+  animation: char-float 4s infinite ease-in-out;
+}
+
+@keyframes char-float {
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-15px) rotate(2deg);
+  }
+}
+
+.kid-select {
+  padding: 0.8rem 1.5rem;
+  border-radius: var(--radius-md);
+  border: 3px solid var(--primary-color);
+  font-family: var(--font-title);
+  font-weight: 700;
+  color: var(--primary-text);
+  background: white;
+  box-shadow: 0 4px 0 #FFF1C1;
+  cursor: pointer;
+  outline: none;
+}
+
+.lesson-materials-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.lesson-material-block {
+  border: 4px solid var(--neutral);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.lesson-material-block.in-progress {
+  border-color: var(--highlight);
+  box-shadow: 0 8px 0 #E0E7FF;
+}
+
+.lesson-header-pill {
+  padding: 20px 30px;
+  background: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.lesson-header-pill:hover {
+  background: #F8F9FA;
+}
+
+.lesson-pill-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-family: var(--font-title);
+  font-weight: 700;
+  color: var(--primary-text);
+  font-size: 1.2rem;
+}
+
+.materials-bubbles-row {
+  padding: 25px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  background: #FCFDFF;
+  border-top: 2px dashed var(--neutral);
+}
+
+.material-bubble {
+  flex: 1;
+  min-width: 280px;
+  max-width: 350px;
+  background: white;
+  border: 4px solid var(--neutral);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 6px 0 var(--neutral);
+}
+
+.material-bubble:hover {
+  transform: translateY(-5px);
+  border-color: var(--highlight);
+  box-shadow: 0 10px 0 #E0E7FF;
+}
+
+.material-bubble-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.material-bubble-icon {
+  width: 55px;
+  height: 55px;
+  background: var(--primary-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--highlight);
+  border: 3px solid white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.material-bubble-text h4 {
+  font-family: var(--font-title);
+  font-size: 1.1rem;
+  color: var(--primary-text);
+}
+
+.btn-circle-action {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: var(--highlight);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 0 #5851DB;
+}
+
+.btn-circle-action:hover {
+  transform: scale(1.1) rotate(10deg);
+  background: var(--primary-color);
+  box-shadow: 0 4px 0 #D48806;
+  color: white;
+}
+
+.empty-bubble {
+  font-family: var(--font-title);
+  font-weight: 700;
+  color: var(--secondary-text);
+  padding: 15px;
+  text-align: center;
+  width: 100%;
+}
+
 /* Individual Student Card */
 .student-card {
   flex: 1;
   /* each card takes equal space */
-  min-width: 220px;
+  min-width: 260px;
   /* responsive minimum */
-  max-width: 33%;
+  max-width: 32%;
   /* 3 cards in a row */
   background: var(--secondary-bg);
-  padding: 20px;
-  border-radius: 12px;
-  border: 1px solid var(--neutral);
+  padding: 30px;
+  border-radius: var(--radius-lg);
+  border: 4px solid var(--neutral);
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.02);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  transition: transform 0.2s ease, box-shadow 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.student-card:hover {
+  transform: translateY(-8px);
+  border-color: var(--primary-color);
+  box-shadow: 0 15px 0 #FFF1C1;
 }
 
 .student-card:hover {
@@ -896,13 +1534,21 @@ a:hover {
 .topbar-greeting {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 15px;
+  background: white;
+  padding: 8px 25px;
+  border-radius: 40px;
+  border: 4px solid var(--primary-color);
+  box-shadow: 0 6px 0 #FFF1C1;
+  font-family: var(--font-title);
+  font-size: 1.4rem;
 }
 
 .topbar-hi-icon {
-  width: 40px;
+  width: 50px;
   height: auto;
-  display: block;
+  margin-top: -10px;
+  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.1));
 }
 
 /* -------------------------------------
@@ -1384,6 +2030,12 @@ a:hover {
   border-bottom: 1px solid var(--neutral);
 }
 
+.kid-friendly-vibe .milestone-header {
+  border-bottom: none;
+  background: transparent;
+  padding: 40px 0 20px 0;
+}
+
 .milestone-header h2 {
   margin: 0;
   font-size: 1.2rem;
@@ -1425,7 +2077,7 @@ a:hover {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  background: var(--secondary-bg);
+  background: var(--neutral);
   border-radius: 12px;
   padding: 20px 25px;
   margin-top: 15px;
@@ -3541,7 +4193,7 @@ a:hover {
   font-weight: 600;
   color: #64748b;
   margin-right: 0.5rem;
-  margin-top: 0.85rem;
+  margin-top: -1.5rem;
   white-space: nowrap;
 }
 
@@ -4878,4 +5530,250 @@ a:hover {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* -------------------------------------
+   Student Assignments Page (Kid Style)
+-------------------------------------- */
+/* -------------------------------------
+   Student Assignments Page (Kid Style)
+-------------------------------------- */
+.student-assignments-page {
+  padding: 40px;
+}
+
+.error-bubble-container {
+  margin-bottom: 30px;
+}
+
+.error-bubble {
+  background: white;
+  border: 4px solid var(--error-bg);
+  border-radius: var(--radius-md);
+  padding: 15px 25px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  position: relative;
+  box-shadow: 0 6px 0 var(--error-bg);
+}
+
+.error-icon {
+  font-size: 1.5rem;
+}
+
+.close-error {
+  margin-right: auto;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--secondary-text);
+}
+
+.assignments-bubbles-container {
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  background: #FCFDFF;
+  border-top: 2px dashed var(--neutral);
+}
+
+.assignment-bubble-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.assignment-bubble {
+  background: white;
+  border: 4px solid var(--neutral);
+  border-radius: var(--radius-md);
+  padding: 20px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 6px 0 var(--neutral);
+}
+
+.assignment-bubble:hover {
+  transform: translateY(-3px);
+  border-color: var(--highlight);
+  box-shadow: 0 9px 0 #E0E7FF;
+}
+
+.assignment-bubble-main {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.assignment-bubble-icon {
+  width: 60px;
+  height: 60px;
+  background: var(--primary-bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--highlight);
+  border: 3px solid white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.assignment-bubble-text h4 {
+  font-family: var(--font-title);
+  font-size: 1.2rem;
+  color: var(--primary-text);
+  margin-bottom: 5px;
+}
+
+.deadline-pill {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--secondary-color);
+  background: #FFF5F1;
+  padding: 3px 12px;
+  border-radius: 20px;
+  display: inline-block;
+}
+
+.assignment-bubble-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-circle-action {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  background: var(--highlight);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 0 #5851DB;
+}
+
+.btn-circle-action:hover {
+  transform: scale(1.1);
+}
+
+.btn-circle-action:active {
+  transform: translateY(4px);
+  box-shadow: none;
+}
+
+.btn-circle-action.resubmit {
+  background: var(--secondary-color);
+  box-shadow: 0 4px 0 #D35400;
+}
+
+/* Submission Card & Feedback */
+.submission-card-kid {
+  background: white;
+  border: 4px solid var(--neutral);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-right: 40px;
+  position: relative;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+}
+
+.submission-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.status-badge-kid {
+  padding: 6px 20px;
+  border-radius: 20px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+.status-badge-kid.submitted {
+  background: #E0F7FA;
+  color: #00838F;
+}
+
+.status-badge-kid.resubmitted {
+  background: #FFF3E0;
+  color: #EF6C00;
+}
+
+.status-badge-kid.evaluated {
+  background: #E8F5E9;
+  color: #2E7D32;
+}
+
+.deadline-text {
+  font-size: 0.85rem;
+  color: var(--secondary-text);
+  font-weight: 700;
+}
+
+/* Baseet Speech Bubble */
+.baseet-feedback-speech {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  margin-top: 15px;
+}
+
+.baseet-mini-avatar {
+  width: 60px;
+  height: 60px;
+  background: white;
+  border-radius: 50%;
+  border: 3px solid var(--primary-color);
+  padding: 5px;
+  flex-shrink: 0;
+}
+
+.baseet-mini-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.speech-bubble {
+  background: #F1F4FF;
+  border-radius: 20px;
+  border-top-right-radius: 0;
+  padding: 15px 20px;
+  position: relative;
+  flex-grow: 1;
+  border: 2px solid #D6DEFF;
+}
+
+.speech-bubble::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -10px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 10px 0 0 10px;
+  border-color: #D6DEFF transparent transparent transparent;
+}
+
+.speech-content p {
+  font-weight: 700;
+  color: var(--primary-text);
+  margin-bottom: 10px;
+}
+
+.stars-kid {
+  font-size: 1.2rem;
+  letter-spacing: 5px;
 }
