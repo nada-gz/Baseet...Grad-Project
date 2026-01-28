@@ -1,0 +1,8 @@
+modal
+torch
+sentence-transformers
+google-generativeai
+python-dotenv
+chromadb
+psycopg2-binary
+

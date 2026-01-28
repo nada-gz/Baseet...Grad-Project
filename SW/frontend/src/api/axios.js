@@ -1,14 +1,14 @@
-import axios from 'axios';
+import axios from "axios";
 
-// Use localhost consistently to match FastAPI CORS
+const API_URL = import.meta.env?.REACT_APP_API_URL;
+
+if (!API_URL) {
+  console.error("❌ REACT_APP_API_URL is missing");
+}
 const api = axios.create({
-  baseURL: "http://127.0.0.1:8000",
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  baseURL: API_URL || "",
 });
 
-// Auto-attach Authorization header with Bearer token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -24,12 +24,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
-      localStorage.removeItem('token');
-      localStorage.removeItem('role');
-      window.location.href = '/login';
-    }
+    if (
+  error.response?.status === 401 &&
+  error.config?.url?.startsWith('/auth')
+) {
+  localStorage.removeItem('token');
+  window.location.href = '/login';
+}
+
 
     if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
       console.error('Network Error - Backend may not be running or CORS issue:', {

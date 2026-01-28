@@ -1,33 +1,4 @@
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,// it was 'http://127.0.0.1:8000', i changed it for deployment 
-  headers: { 'Content-Type': 'application/json' },
-});
-
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-    }
-    if (error.code === 'ERR_NETWORK') {
-      console.error("Network Error: Backend not reachable");
-    }
-    return Promise.reject(error);
-  }
-);
+import api from '../api/axios.js';
 
 export const register = async (username, email, password, role) => {
   const response = await api.post('/auth/register', { username, email, password, role });

@@ -17,7 +17,6 @@ export default function LessonPlayer() {
       try {
         // Call backend to get a single lesson for this student
         const res = await api.get(`/students/${student.id}/lessons/${lessonId}`);
-        console.log("Lesson loaded:", res.data);
         setLesson(res.data);
       } catch (error) {
         console.error("Failed to load lesson:", error);

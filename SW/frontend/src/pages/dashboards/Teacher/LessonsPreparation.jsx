@@ -658,14 +658,6 @@ export default function LessonPreparation() {
             formData.append("title", lesson.title);
             formData.append("description", lesson.description || "");
 
-            console.log("Saving lesson:", {
-              course_number: course.course_number,
-              milestone_number: milestone.milestone_number,
-              lesson_number: lesson.lesson_number,
-              title: lesson.title,
-              description: lesson.description || ""
-            });
-
             const res = await api.post("/teacher/lessons", formData, {
               headers: {
                 "Content-Type": undefined,

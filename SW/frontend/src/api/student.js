@@ -6,10 +6,8 @@ import api from './axios';
  * @returns {Promise<Object>} Student data
  */
 export const getStudentById = async (studentId) => {
-  console.log('[Student API] Fetching student with ID:', studentId);
   try {
     const response = await api.get(`/students/${studentId}`);
-    console.log('[Student API] Student fetched successfully:', response.data);
     return response.data;
   } catch (error) {
     console.error('[Student API] Error fetching student:', error);
@@ -24,11 +22,8 @@ export const getStudentById = async (studentId) => {
  * @returns {Promise<Object>} Updated student data
  */
 export const updateStudent = async (studentId, data) => {
-  console.log('[Student API] Updating student with ID:', studentId);
-  console.log('[Student API] Update data:', data);
   try {
     const response = await api.put(`/students/${studentId}`, data);
-    console.log('[Student API] Student updated successfully:', response.data);
     return response.data;
   } catch (error) {
     console.error('[Student API] Error updating student:', error);
@@ -42,10 +37,8 @@ export const updateStudent = async (studentId, data) => {
  * @returns {Promise<Object>} Dashboard data with lessons, materials, assignments, quizzes, ask_baseet
  */
 export const getStudentDashboard = async (studentId) => {
-  console.log('[Student API] Fetching dashboard for student ID:', studentId);
   try {
     const response = await api.get(`/students/${studentId}/dashboard`);
-    console.log('[Student API] Dashboard fetched successfully:', response.data);
     return response.data;
   } catch (error) {
     console.error('[Student API] Error fetching dashboard:', error);
