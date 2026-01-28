@@ -193,37 +193,45 @@ export default function StudentAssignments() {
   };
 
   return (
-    <div className="materials-page">
+    <div className="student-assignments-page kid-friendly-vibe">
+      <div className="hero-blob-container assignments-style" style={{ borderColor: '#E0E7FF', boxShadow: '0 12px 0 #E0E7FF' }}>
+        <div className="hero-blob-bg" style={{ background: 'radial-gradient(circle, #F1F4FF 0%, #E0E7FF 100%)' }}></div>
+        <div className="hero-blob-content">
+          <div className="hero-blob-image-wrapper shift-right">
+            <img
+              src={require("../../../assets/hi_baseet.png")}
+              alt="Hi Baseet"
+              className="hero-blob-img"
+            />
+          </div>
+          <div className="hero-blob-text">
+            <h1 style={{ color: '#6C63FF' }}>🏆 ! تحدي الأبطال </h1>
+            <p>ورينا شطارتك وحل المهمات عشان تجمع النجوم</p>
+          </div>
+        </div>
+      </div>
+
       {errorMessage && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Error: </strong>
-          <span className="block sm:inline">{errorMessage}</span>
-          <span className="absolute top-0 bottom-0 right-0 px-4 py-3" onClick={() => setErrorMessage(null)}>
-            <svg
-              className="fill-current text-red-500"
-              role="button"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              style={{ width: '24px', height: '24px' }}
-            >
-              <title>Close</title>
-              <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
-            </svg>
-          </span>
+        <div className="error-bubble-container">
+          <div className="error-bubble">
+            <span className="error-icon">⚠️</span>
+            <p>{errorMessage}</p>
+            <button className="close-error" onClick={() => setErrorMessage(null)}>×</button>
+          </div>
         </div>
       )}
+
       {courses.length === 0 ? (
-        <div className="text-center p-10 bg-white rounded-lg border border-dashed border-slate-300">
-          <p className="text-slate-500">No courses assigned yet.</p>
+        <div className="empty-milestones">
+          <p>لسه مفيش كورسات.. بسيط مستنيك!</p>
         </div>
       ) : (
         <>
           {/* Course Filter */}
-          <div className="course-filter-section" style={{ marginBottom: "1rem" }}>
-            <div className="flex items-center gap-3">
-              <p className="filter-text">Filter by Course:</p>
+          <div className="course-filter-section" style={{ marginBottom: "2rem" }}>
+            <div className="flex items-center gap-4">
               <select
-                className="p-2 border border-slate-300 rounded-lg text-sm bg-white"
+                className="kid-select"
                 value={selectedCourse || ""}
                 onChange={(e) => setSelectedCourse(Number(e.target.value) || null)}
               >
@@ -233,262 +241,160 @@ export default function StudentAssignments() {
                   </option>
                 ))}
               </select>
+              <span className="filter-label" style={{ fontWeight: 800, fontSize: "1.1rem" }}>: اختر الكورس</span>
             </div>
           </div>
 
           {Object.keys(milestones).length === 0 ? (
-            <div className="text-center p-10 bg-white rounded-lg border border-dashed border-slate-300 mt-4">
-              <p className="text-slate-500 italic">No milestones assigned yet for this course.</p>
+            <div className="empty-milestones mt-4">
+              <p>لسه مفيش مهمات موجودة.. بسيط مستنيك!</p>
             </div>
           ) : (
-            Object.entries(milestones).map(([milestoneNumber, lessons]) => (
-              <div key={milestoneNumber} className="milestone-card">
-                <div
-                  className="milestone-header"
-                  onClick={() => toggleMilestone(milestoneNumber)}
-                >
-                  {openMilestones[milestoneNumber] ? (
-                    <ChevronDown size={18} color="var(--highlight)" />
-                  ) : (
-                    <ChevronRight size={18} color="var(--highlight)" />
-                  )}
-                  <h2>Milestone {milestoneNumber}</h2>
-                </div>
+            <div className="milestones-container">
+              {Object.entries(milestones)
+                .sort(([a], [b]) => Number(a) - Number(b))
+                .map(([milestoneNumberStr, lessons]) => {
+                  const milestoneNumber = Number(milestoneNumberStr);
+                  return (
+                    <div key={milestoneNumber} className="milestone-island">
+                      <div className="milestone-header-kid">
+                        <div className="milestone-badge">مرحلة {milestoneNumber}</div>
+                        <h2 className="milestone-title">المرحلة {milestoneNumber}</h2>
+                      </div>
 
-                {openMilestones[milestoneNumber] &&
-                  lessons.map((lesson) => {
-                    const status = getLessonStatus(lesson);
-                    return (
-                      <div key={lesson.id} className="lesson-block">
-                        <div
-                          className="lesson-header"
-                          onClick={() => toggleLesson(lesson.id)}
-                        >
-                          {openLessons[lesson.id] ? (
-                            <ChevronDown size={16} />
-                          ) : (
-                            <ChevronRight size={16} />
-                          )}
-                          <span>
-                            Lesson {lesson.lesson_number}: {lesson.title}
-                          </span>
-                        </div>
+                      <div className="lesson-assignments-container">
+                        {lessons.map((lesson) => {
+                          const status = getLessonStatus(lesson);
+                          const isOpen = openLessons[lesson.id];
 
-                        {openLessons[lesson.id] ? (
-                          lesson.assignments?.length > 0 ? (
-                            <>
-                              <div className="materials-list">
-                                {lesson.assignments.map((assignment) => (
-                                  <div key={assignment.id} className="material-item">
-                                    {status === "locked" ? (
-                                      <div className="material-info">
-                                        <div className="material-icon">
-                                          {assignmentIcons[assignment.assignment_type] || (
-                                            <File size={18} />
-                                          )}
-                                        </div>
-                                        <div className="material-text">
-                                          <div className="flex items-center gap-2">
-                                            <p className="material-title">{assignment.title}</p>
-                                            {assignment.deadline && (
-                                              <div className="material-deadline text-red-500 text-[10px] font-bold bg-red-50 px-1 py-0.5 rounded border border-red-200 shrink-0">
-                                                <span className="ml-1 bg-red-500 text-white px-1 rounded">
-                                                  {formatRemaining(assignment.deadline)}
-                                                </span>
-                                              </div>
-                                            )}
-                                          </div>
-                                          {assignment.description && (
-                                            <p className="material-description">
-                                              {assignment.description}
-                                            </p>
-                                          )}
-                                        </div>
-                                        <span className="material-locked">
-                                          <Lock size={24} />
-                                        </span>
-                                      </div>
-                                    ) : (
-                                      <>
-                                        <div className="assignment-item-content w-full flex justify-between items-start">
-                                          <div className="material-info mb-2 flex-grow">
-                                            <div className="material-icon">
-                                              {assignmentIcons[assignment.assignment_type] || (
-                                                <File size={18} />
+                          return (
+                            <div key={lesson.id} className={`lesson-assignment-block ${status}`}>
+                              <div
+                                className="lesson-header-pill"
+                                onClick={() => toggleLesson(lesson.id)}
+                              >
+                                <div className="lesson-pill-info">
+                                  <div className="lesson-pill-icon">
+                                    {isOpen ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                                  </div>
+                                  <span>درس {lesson.lesson_number}: {lesson.title}</span>
+                                </div>
+                                {status === "locked" && <Lock size={18} className="text-secondary-text" />}
+                              </div>
+
+                              {isOpen && (
+                                <div className="assignments-bubbles-container">
+                                  {lesson.assignments?.length > 0 ? (
+                                    lesson.assignments.map((assignment) => (
+                                      <div key={assignment.id} className="assignment-bubble-wrapper">
+                                        <div className="assignment-bubble">
+                                          <div className="assignment-bubble-main">
+                                            <div className="assignment-bubble-icon">
+                                              {status === "locked" ? (
+                                                <Lock size={24} />
+                                              ) : (
+                                                assignmentIcons[assignment.assignment_type] || <File size={24} />
                                               )}
                                             </div>
-                                            <div className="material-text">
-                                              <div className="flex items-center gap-2">
-                                                <p className="material-title">{assignment.title}</p>
-                                                {assignment.deadline && (
-                                                  <div className="material-deadline text-red-500 text-[10px] font-bold bg-red-50 px-1 py-0.5 rounded border border-red-200 shrink-0">
-                                                    {!assignment.submission && (
-                                                      <span className="ml-1 bg-red-500 text-white px-1 rounded">
-                                                        {formatRemaining(assignment.deadline)}
-                                                      </span>
+                                            <div className="assignment-bubble-text">
+                                              <h4>{assignment.title}</h4>
+                                              {assignment.deadline && !assignment.submission && (
+                                                <div className="deadline-pill">
+                                                  ⏱️ {formatRemaining(assignment.deadline)}
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+
+                                          <div className="assignment-bubble-actions">
+                                            {status !== "locked" && (
+                                              <>
+                                                {/* View Files */}
+                                                {(assignment.files || []).map((f) => (
+                                                  <a
+                                                    key={f.id}
+                                                    href={`http://127.0.0.1:8000${f.file_url}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="btn-circle-action"
+                                                    title="View"
+                                                  >
+                                                    <Eye size={18} />
+                                                  </a>
+                                                ))}
+
+                                                {/* Upload/Resubmit */}
+                                                <button
+                                                  className={`btn-circle-action ${assignment.submission ? 'resubmit' : 'upload'}`}
+                                                  onClick={() => handleUploadClick(assignment.id)}
+                                                  title={assignment.submission ? "Resubmit" : "Upload"}
+                                                >
+                                                  {assignment.submission ? <RefreshCcw size={18} /> : <Upload size={18} />}
+                                                </button>
+                                              </>
+                                            )}
+                                          </div>
+
+                                          <input
+                                            type="file"
+                                            multiple
+                                            style={{ display: "none" }}
+                                            ref={(el) => (fileInputsRef.current[assignment.id] = el)}
+                                            onChange={(e) => handleFileChange(assignment.id, e)}
+                                          />
+                                        </div>
+
+                                        {/* Status & Feedback */}
+                                        {assignment.submission && (
+                                          <div className="submission-card-kid">
+                                            <div className="submission-header">
+                                              <span className={`status-badge-kid ${assignment.submission.status}`}>
+                                                {assignment.submission.status === 'evaluated' ? 'تم التقييم ✨' :
+                                                  assignment.submission.status === 'resubmitted' ? 'تم الإرسال مرة أخرى 🚀' :
+                                                    assignment.submission.status === 'submitted' ? 'تم الإرسال 👍' : 'لم يتم الإرسال'}
+                                              </span>
+                                              {assignment.deadline && (
+                                                <span className="deadline-text">آخر موعد: {new Date(assignment.deadline).toLocaleDateString()}</span>
+                                              )}
+                                            </div>
+
+                                            {assignment.submission.feedback && (
+                                              <div className="baseet-feedback-speech">
+                                                <div className="baseet-mini-avatar">
+                                                  <img src={require("../../../assets/hii_baseet.png")} alt="Baseet" />
+                                                </div>
+                                                <div className="speech-bubble">
+                                                  <div className="speech-content">
+                                                    <p>{assignment.submission.feedback.comment}</p>
+                                                    {assignment.submission.feedback.rating && (
+                                                      <div className="stars-kid">
+                                                        {"⭐".repeat(assignment.submission.feedback.rating)}
+                                                      </div>
                                                     )}
                                                   </div>
-                                                )}
-                                              </div>
-                                              {assignment.description && (
-                                                <p className="material-description">
-                                                  {assignment.description}
-                                                </p>
-                                              )}
-                                            </div>
-                                          </div>
-
-                                          <div className="assignment-actions flex items-center gap-4 ml-4">
-
-
-                                            {/* View Buttons for Files */}
-                                            {assignment.files && assignment.files.map((f) => (
-                                              <a
-                                                key={f.id}
-                                                href={`http://127.0.0.1:8000${f.file_url}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="material-btn material-btn-outline material-btn-equal"
-                                              >
-                                                <Eye size={16} /> View
-                                              </a>
-                                            ))}
-
-                                            {/* Legacy File URL View Button */}
-                                            {!assignment.files?.length && assignment.file_url && (
-                                              <a
-                                                href={`http://127.0.0.1:8000${assignment.file_url}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="vieww material-btn material-btn-outline material-btn-equal"
-                                              >
-                                                <Eye size={16} /> View
-                                              </a>
-                                            )}
-
-                                            {/* Upload Button */}
-                                            <div className="uppload material-actions-wrapper">
-                                              <button
-                                                className="material-btn material-btn-outline material-btn-equal"
-                                                onClick={() => handleUploadClick(assignment.id)}
-                                              >
-                                                {assignment.submission ? (
-                                                  <>
-                                                    <RefreshCcw size={16} /> Resubmit
-                                                  </>
-                                                ) : (
-                                                  <>
-                                                    <Upload size={16} /> Upload
-                                                  </>
-                                                )}
-                                              </button>
-                                            </div>
-                                          </div>
-                                        </div>
-
-                                        <input
-                                          type="file"
-                                          multiple
-                                          style={{ display: "none" }}
-                                          ref={(el) => (fileInputsRef.current[assignment.id] = el)}
-                                          onChange={(e) => handleFileChange(assignment.id, e)}
-                                        />
-                                      </>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-
-                              {/* Submitted & Feedback Section */}
-                              <div className="submission-feedback-wrapper">
-                                {lesson.assignments.map((assignment) => (
-                                  <div
-                                    key={assignment.id}
-                                    className="submission-feedback-card"
-                                  >
-                                    <div className="card-assignment-item-bottom">
-                                      <div className="item-assignment-status">
-                                        <div className="flex items-center">
-                                          <span className={`status-badge ${assignment.submission?.status === 'evaluated' ? 'badge-evaluated' :
-                                            assignment.submission?.status === 'resubmitted' ? 'badge-resubmitted' :
-                                              assignment.submission?.status === 'submitted' ? 'badge-submitted' : 'badge-not-submitted'
-                                            }`}>
-                                            {assignment.submission?.status || "not submitted yet"}
-                                          </span>
-                                        </div>
-                                        {assignment.deadline && (
-                                          <span className="material-deadline deadline text-red-500 text-[10px] font-bold bg-red-50 px-2 py-0.5 rounded border border-red-200 ml-2">
-                                            Deadline: {new Date(assignment.deadline).toLocaleString()}
-                                          </span>
-                                        )}
-                                        {(assignment.submission?.status === 'submitted' || assignment.submission?.status === 'resubmitted' || assignment.submission?.status === 'evaluated') && assignment.submission?.timing && (
-                                          <span className="text-secondary-text text-sm ml-2 italic">
-                                            ({assignment.submission.updated_at ? 'Resubmitted at' : 'Submitted at'}: {new Date(assignment.submission.timing).toLocaleString()})
-                                          </span>
-                                        )}
-                                      </div>
-                                      <div className="item-assignment-actions"></div>
-                                      {assignment.submission && (
-                                        <div className="submission-details">
-                                          {assignment.submission.description && (
-                                            <p className="submission-desc">
-                                              {assignment.submission.description}
-                                            </p>
-                                          )}
-                                          {assignment.submission.files && assignment.submission.files.length > 0 && (
-                                            <div className="submission-files-list mt-2">
-                                              {assignment.submission.files.map((file, idx) => (
-                                                <div key={idx} className="flex items-center gap-2 mb-1">
-                                                  <a
-                                                    href={`http://127.0.0.1:8000${file.file_url}`}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="text-sm text-secondary-text hover:text-highlight transition-colors flex items-center gap-1"
-                                                  >
-                                                    📄 <span className="underline decoration-slate-300 underline-offset-4">{file.file_name}</span>
-                                                  </a>
                                                 </div>
-                                              ))}
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    {assignment.submission?.feedback && (
-                                      <div className="feedback-box">
-                                        <div className="feedback-title">Feedback</div>
-                                        <div className="feedback-comment">
-                                          {assignment.submission.feedback.comment}
-                                        </div>
-                                        {assignment.submission.feedback.rating && (
-                                          <div className="feedback-rating">
-                                            {renderStars(
-                                              assignment.submission.feedback.rating
+                                              </div>
                                             )}
                                           </div>
                                         )}
                                       </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </>
-                          ) : (
-                            <div className="materials-empty-icon">
-                              <span>No assignments uploaded yet</span>
-                              <Frown size={24} className="sad-icon" />
+                                    ))
+                                  ) : (
+                                    <div className="empty-bubble">مفيش مهمات موجودة حالياً 😅</div>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                          )
-                        ) : null}
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-              </div >
-            ))
+                    </div>
+                  );
+                })}
+            </div>
           )}
         </>
       )}
-    </div >
+    </div>
   );
 }
