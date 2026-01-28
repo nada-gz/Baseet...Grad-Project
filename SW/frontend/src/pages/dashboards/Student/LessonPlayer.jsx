@@ -35,74 +35,87 @@ export default function LessonPlayer() {
 
   return (
     <div className="lesson-player">
-      {/* Center Floating Asset */}
-      {/* <img
-        src={require("../../../assets/cute_baseet.png")}
-        alt="cute Baseet"
-        className="floating-asset center-between"
-      /> */}
-
-      {/* Right Side Floating Asset */}
+      {/* Floating Asset */}
       <img
-        src={require("../../../assets/crazy_baseet.png")}
-        alt="falling Baseet"
-        className="floating-asset right-side"
+        src={require("../../../assets/hi_baseet.png")}
+        alt="Baseet"
+        className="chat-floating-baseet"
       />
 
-      {/* ================= HEADER ================= */}
-      <div className="lesson-player-header">
-        <h1>
-          <span className="lesson-number">{lesson.number}</span>{" "}
-          {lesson.title}
-        </h1>
-
-        <div className="lesson-helper">
-          <img
-            src={require("../../../assets/BASEET-smiling.png")}
-            alt="Baseet helper"
-          />
-          <span>Hi! I’m Baseet 👋</span>
+      {/* Header */}
+      <div className="hero-blob-container compact" style={{ marginBottom: '30px', width: '100%' }}>
+        <div className="hero-blob-bg" style={{ background: 'linear-gradient(135deg, #FFF9E6 0%, #FFF1C1 100%)' }}></div>
+        <div className="hero-blob-content">
+          <div className="hero-blob-text">
+            <h1 style={{ fontSize: '2.2rem', marginBottom: '10px' }}>
+              <span className="lesson-number">{lesson.number}</span>{" "}
+              {lesson.title}
+            </h1>
+            <div className="lesson-helper">
+              <img
+                src={require("../../../assets/BASEET-smiling.png")}
+                alt="Baseet helper"
+                style={{ width: '50px' }}
+              />
+              <span style={{ fontWeight: 800 }}>أهلاً! أنا بسيط 👋</span>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* ================= VIDEO ================= */}
-      <div className="lesson-video" style={{ position: "relative" }}>
-        <div className="video-placeholder">🎥 Lesson Video Here</div>
+      <div className="lesson-video">
+        <div className="video-placeholder">
+          <div className="animate-bounce text-4xl">🎬</div>
+          فيديو الدرس هيكون هنا يا بطل!
+        </div>
 
         <img
           src={require("../../../assets/eyes_baseet.png")}
           alt="Eyes on border"
-          className="eyes-border"
+          className="eyes-border-chat"
+          style={{ width: '60px', top: '-30px', left: '-10px' }}
         />
       </div>
 
       {/* ================= CONTROLS ================= */}
       <div className="lesson-controls">
         <button className="lesson-btn primary">
-          <Play size={22} /> Play
+          <Play size={24} /> تشغيل
         </button>
 
         <button className="lesson-btn secondary">
-          <Pause size={22} /> Pause
+          <Pause size={24} /> إيقاف مؤقت
         </button>
 
         <button className="lesson-btn outline">
-          <Mic size={22} /> Record
+          <Mic size={24} /> سجل ملاحظة
         </button>
       </div>
 
       {/* ================= Q&A ================= */}
-      <div className="lesson-qa">
-        <div className="qa-header">
-          <HelpCircle size={22} />
-          <span>Ask Baseet</span>
+      <div className="chat-messages" style={{ minHeight: '150px', maxHeight: '300px' }}>
+        <div className="chat-bubble ai">
+          <div className="ai-avatar-msg">
+            <img src={require("../../../assets/BASEET-smiling.png")} alt="Baseet" />
+          </div>
+          <div className="ai-text">
+            عندك أي سؤال عن الفيديو؟ أنا هنا عشان أساعدك! ✨
+          </div>
         </div>
+      </div>
 
-        <textarea placeholder="Type your question here ✨" />
-
-        <button className="lesson-btn primary send-btn">
-          <Send size={18} /> Send
-        </button>
+      <div className="chat-input-wrapper">
+        <div className="chat-input">
+          <textarea
+            dir="rtl"
+            placeholder="اسأل بسيط أي حاجة... ✨"
+            style={{ textAlign: "right" }}
+          />
+          <button className="btn btn-primary send-btn">
+            <Send size={20} />
+          </button>
+        </div>
       </div>
     </div>
   );
