@@ -2,46 +2,122 @@ import os
 import json
 import time
 import re
+from elevenlabs import VoiceSettings
 from elevenlabs.client import ElevenLabs
-from elevenlabs import save
 from colorama import Fore, init
 from dotenv import load_dotenv
+import base64
 
-# 1. Initialize environment and colors
+# 1. تهيئة البيئة
 load_dotenv()
 init(autoreset=True)
 
+# 2. إعداد المسارات
+current_dir = os.path.dirname(os.path.abspath(__file__))
+env_path = os.path.join(current_dir, ".env")
+SHARED_FILE = os.path.join(current_dir, "shared_data.json")
+if os.path.exists(env_path): load_dotenv(dotenv_path=env_path)
+
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 VOICE_ID = os.getenv("VOICE_ID")
-# SHARED_FILE = r"Z:\content_grad\Grad-Project\SW\backend\services\ai\shared_data.json"
 
 class TextPostProcessor:
-    """
-    Handles Text Normalization and Dialect Adaptation.
-    """
     def __init__(self):
         self.msa_to_egy = {
-            r"\bهذا\b": "دَه", r"\bهذه\b": "دِي", r"\bسوف\b": "هَـ",
-            r"\bنحن\b": "إِحْنَا", r"\bلماذا\b": "لِيه", r"\bكيف\b": "إِزَّاي",
-            r"\bالآن\b": "دِلْوَقْتِي", r"\bحسنا\b": "طَيِّب", r"\bجدا\b": "أَوِي",
-            r"\bماذا\b": "إِيه"
+            r"\bحبيبي\b": "حَبِيبِي",       # بتشكيل يضمن الحنية
+            r"\bعامل ايه\b": "عَامِل إِيه", # النطق المصري لـ "شو الأخبار"
+            r"\bيا بطل\b": "يَا بَطَل",
+            r"\bيا شطورة\b": "يَا شَطُّورَه",
+            # --- ضبط الضمائر (أهم حاجة طلبتيها) ---
+            r"\bانت\b": "إِنْتِي",        # للمؤنث بنطق صريح
+            r"\bأنت\b": "إِنْتِي",
+            r"\bانتَ\b": "إِنْتَا",        # للمذكر
+            r"\bانتا\b": "إِنْتَا",
+            r"\bانت\b": "إِنْتَا",
+            r"\bأنت\b": "إِنْتِي",         # افتراضي للمؤنث بما إن الصوت بنت
+            # --- 🟢 (1) تظبيط "إيه الأخبار" و "النباتات" ---
+            r"\bاي الاخبار\b": "إِيه الْأَخْبَار",
+            r"\bايه الاخبار\b": "إِيه الْأَخْبَار",
+            r"\bما الاخبار\b": "إِيه الْأَخْبَار",
+            
+            # النباتات الخضراء -> خضره (بالهاء)
+            r"\bالنباتات الخضراء\b": "النَّبَاتَات الْخَضْرَه",
+            r"\bالنباتات الخضرا\b": "النَّبَاتَات الْخَضْرَه",
+            r"\bنباتات\b": "نَبَاتَات",
+
+            # --- 🟢 (2) الحل السحري للجيم المصرية (حرف گ) ---
+            r"\bالحديقة\b": "الْگِنِينَه", 
+            r"\bالجنينة\b": "الْگِنِينَه",
+            r"\bجنينة\b": "گِنِينَه",
+            
+            r"\bجميل\b": "گَمِيل",        # جيم مصرية
+            r"\bجديد\b": "گِدِيد",
+            r"\bجاهز\b": "گَاهِز",
+
+            # --- 🟢 (3) تظبيط "إزيك" بكل أشكالها ---
+            r"\bكيف حالك\b": "إِزَّيَّك",   # (Iz-zay-yak)
+            r"\bكيفك\b": "إِزَّيَّك",
+            r"\bازيك\b": "إِزَّيَّك",       # حتى لو كتبتيها من غير همزة
+            r"\bإزيك\b": "إِزَّيَّك",
+            r"\bكيف\b": "إِزَّاي",
+            
+            # --- 🟢 (4) تحويلات اللهجة العامية ---
+            r"\bجدا\b": "أَوِي",          
+            r"\bجيد\b": "تَمَام",         
+            r"\bمسجد\b": "الْجَامِع",     
+            r"\bصديقي\b": "صَاحْبِي",
+            r"\bقولي\b": "قُولِي",
+            r"\bقلي\b": "قُولِي",
+            
+            r"\bهذا\b": "دَه", r"\bهذه\b": "دِي", 
+            r"\bسوف\b": "هَـ", r"\bنحن\b": "إِحْنَا", 
+            r"\bلماذا\b": "لِيه بَس", 
+            r"\bالآن\b": "دِلْوَقْتِي", r"\bحسنا\b": "مَاشِي", 
+            r"\bماذا\b": "إِيه",
+            
+            r"\bأريد\b": "عايْزَه", 
+            r"\bلا\b": "لَأ", 
+            r"\bنعم\b": "أَيْوَة",
+            r"\bيا\b": "يَا",
+            r"\bغدا\b": "بُكْرَه",
+
+            r"\bالماء\b": "الْمَيَّه", 
+            r"\bمياه\b": "مَيَّه",
+            r"\bماء\b": "مَيَّه",
+            r"\bشكرا\b": "شُكْراً",
         }
+        
+        # قاموس التشكيل عشان النطق يبقى سليم
         self.egy_diacritics = {
-            "انا": "أَنَا", "انت": "أَنْتَ", "هو": "هُوَ", "هي": "هِيَّ",
+            "انا": "أَنَا", "هو": "هُوَ", "هي": "هِيَّ",
             "احنا": "إِحْنَا", "ده": "دَه", "دي": "دِي", "عشان": "عَشَان",
-            "كده": "كِدَه", "ايه": "إِيه", "لا": "لَأ", "نعم": "أَيْوَة",
-            "شكرا": "شُكْراً", "يا": "يَااا", "مصر": "مَصْر"
+            "كده": "كِدَه", "ايه": "إِيه", "مصر": "مَصْر", 
+            "يا": "يَا", "شاطر": "شَاطِر", "برافو": "بْرَافُو",
+            "عايزه": "عايْزَه", "الميه": "الْمَيَّه", "الاخبار": "الْأَخْبَار"
         }
 
     def normalize_for_tts(self, text):
         if not text: return ""
-        text = text.replace("أ", "ا").replace("إ", "ا").replace("ة", "ه")
+        
+        # 1. استبدال التاء المربوطة بـ هاء (القاعدة الذهبية)
+        text = text.replace("ة", "ه").replace("اء ", "ه ")
+
+        # 2. توحيد الألفات
+        text = text.replace("أ", "ا").replace("إ", "ا")
+        
+        # 3. تطبيق القاموس
         for pattern, replacement in self.msa_to_egy.items():
             text = re.sub(pattern, replacement, text)
         
+        # 4. التشكيل النهائي
         words = text.split()
         final_words = []
         for word in words:
+            # لو الكلمة فيها حرف (گ) سيبها زي ما هي عشان الـ AI ينطقها G
+            if "گ" in word:
+                final_words.append(word)
+                continue
+                
             clean_word = word.replace("ا", "ا")
             if clean_word in self.egy_diacritics:
                 final_words.append(self.egy_diacritics[clean_word])
@@ -49,122 +125,104 @@ class TextPostProcessor:
                 final_words.append(self.egy_diacritics[word])
             else:
                 final_words.append(word)
+                
         return " ".join(final_words)
 
-class voice:
-    """
-    Reads processed text and converts it to speech using ElevenLabs.
-    """
+class TTSGenerator:
     def __init__(self):
         print(Fore.YELLOW + "👄 Connecting to ElevenLabs...")
+        if not ELEVENLABS_API_KEY: return
         try:
             self.client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
-            self.voice_id = VOICE_ID
-            print(Fore.GREEN + "✅ TTS System Online")
-        except:
-            print(Fore.RED + "❌ Check API Key")
+            self.voice_id = VOICE_ID if VOICE_ID else "EXAVITQu4vr4xnSDxMaL"
+            print(Fore.GREEN + f"✅ TTS System Online (Voice ID: {self.voice_id})")
+        except Exception as e:
+            print(Fore.RED + f"❌ Connection Error: {e}")
 
     def speak(self, text):
         if not text: return None
         print(Fore.MAGENTA + f"\n🗣️  Speaking: {text}")
         try:
-            audio = self.client.text_to_speech.convert(
+            audio_generator = self.client.text_to_speech.convert(
                 text=text,
                 voice_id=self.voice_id,
-                model_id="eleven_multilingual_v2"
+                model_id="eleven_multilingual_v2",
+                voice_settings=VoiceSettings(
+                    stability=0.90,       # رفعنا الثبات عشان يهدى وما يسرعش
+                    similarity_boost=0.50, # قللنا التعزيز عشان الصوت يبقى أوضح وأهدى
+                    style=0.0,
+                    use_speaker_boost=True
+                )
             )
-            # Return audio data as base64 for frontend
-            import base64
-            # ElevenLabs convert returns a generator of bytes
-            audio_bytes = b"".join(audio)
-            audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
             
-            # Optional: keep saving locally for debug if needed
-            # save(audio_bytes, "output.mp3")
+            audio_bytes = b"".join(audio_generator)
             
-            return audio_base64
+            try:
+                print(Fore.YELLOW + "🔊 Playing audio locally...")
+                temp_file = os.path.join(current_dir, "temp_voice.mp3")
+                with open(temp_file, "wb") as f:
+                    f.write(audio_bytes)
+                os.startfile(temp_file)
+            except: pass
+            
+            return base64.b64encode(audio_bytes).decode("utf-8")
+
         except Exception as e:
             print(Fore.RED + f"❌ TTS Error: {e}")
             return None
 
 def create_test_file():
-    """Creates a dummy JSON file if one doesn't exist so the script runs immediately."""
-    print(Fore.YELLOW + "⚠️  No JSON file found. Creating a test file...")
-    data = {
-        "raw_text": "مرحبا، النظام يعمل بنجاح",
-        "status": "new",
-        "timestamp": time.time() + 10 # Future timestamp to ensure it triggers
-    }
-    with open(SHARED_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-    print(Fore.GREEN + "✅ Test file created.")
+    # جملة الاختبار عشان تتأكدي إن كله تمام
+    data = {"raw_text": "ازيك يا سكر، ايه الاخبار؟ شوفتي النباتات الخضرا في الجنينة؟", "status": "new", "timestamp": time.time() + 5}
+    try:
+        os.makedirs(os.path.dirname(SHARED_FILE), exist_ok=True)
+        with open(SHARED_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+    except: pass
 
 def main():
     print(Fore.WHITE + "="*50)
-    print(Fore.WHITE + "🚀 MODULE 2: JSON READER & TTS PROCESSOR")
+    print(Fore.WHITE + "🚀 TTS PROCESSOR (FINAL EGYPTIAN VERSION)")
     print(Fore.WHITE + "="*50)
-
-    # Check if file exists, if not, create it so code doesn't wait forever
-    if not os.path.exists(SHARED_FILE):
-        create_test_file()
+    if not os.path.exists(SHARED_FILE): create_test_file()
 
     processor = TextPostProcessor()
-    tongue = voice()
-    
+    tts_engine = TTSGenerator()
     last_processed_time = 0
-
-    print(Fore.CYAN + "👀 Watching 'shared_data.json' for new text...")
+    print(Fore.CYAN + "👀 Waiting for new text...")
 
     while True:
         try:
             processed_something = False
-
-            # Check if file exists
             if os.path.exists(SHARED_FILE):
-                with open(SHARED_FILE, 'r', encoding='utf-8') as f:
-                    try:
+                try:
+                    with open(SHARED_FILE, 'r', encoding='utf-8') as f:
                         data = json.load(f)
-                    except json.JSONDecodeError:
-                        data = {} 
+                except: time.sleep(0.5); continue
                 
-                # Check timestamp and status
-                file_timestamp = data.get("timestamp", 0)
-                
-                if data.get("status") == "new" and file_timestamp > last_processed_time:
-                    
-                    raw_text = data["raw_text"]
-                    print(Fore.WHITE + f"\n📥 Received from JSON: {raw_text}")
-                    
-                    # 1. Pre-process
-                    clean_text = processor.normalize_for_tts(raw_text)
-                    print(Fore.GREEN + f"✨ Processed: {clean_text}")
-                    
-                    # 2. Speak
-                    tongue.speak(clean_text)
-                    
-                    # 3. Update Status
-                    last_processed_time = file_timestamp
-                    data["status"] = "processed"
-                    
-                    # Write back to file to mark as done
-                    with open(SHARED_FILE, 'w', encoding='utf-8') as f:
-                        json.dump(data, f, ensure_ascii=False, indent=4)
+                if data.get("status") == "new" and data.get("timestamp", 0) > last_processed_time:
+                    raw_text = data.get("raw_text", "")
+                    if raw_text:
+                        print(Fore.WHITE + f"\n📥 Received: {raw_text}")
+                        clean_text = processor.normalize_for_tts(raw_text)
+                        print(Fore.GREEN + f"✨ Processed: {clean_text}")
+                        audio_base64 = tts_engine.speak(clean_text)
                         
-                    print(Fore.CYAN + "✅ Marked as processed. Waiting for next...")
-                    processed_something = True
-            
-            # Print dots so you know it's not frozen
-            if not processed_something:
-                print(".", end="", flush=True)
-
-            time.sleep(1)
-
-        except KeyboardInterrupt:
-            print("\n👋 Exiting Processor.")
-            break
-        except Exception as e:
-            print(Fore.RED + f"\n⚠️ Error: {e}")
-            time.sleep(1)
+                        if audio_base64:
+                            data["status"] = "processed"
+                            data["audio_base64"] = audio_base64
+                            with open(SHARED_FILE, 'w', encoding='utf-8') as f:
+                                json.dump(data, f, ensure_ascii=False, indent=4)
+                            print(Fore.CYAN + "✅ Success!")
+                        else:
+                            data["status"] = "error"
+                            with open(SHARED_FILE, 'w', encoding='utf-8') as f:
+                                json.dump(data, f, ensure_ascii=False, indent=4)
+                        last_processed_time = data.get("timestamp", 0)
+                        processed_something = True
+            if not processed_something: time.sleep(1)
+        except KeyboardInterrupt: break
+        except Exception: time.sleep(1)
 
 if __name__ == "__main__":
     main()
