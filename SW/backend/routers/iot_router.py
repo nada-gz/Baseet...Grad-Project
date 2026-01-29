@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
+from sqlmodel import select
 import json
 import ssl
 import time
@@ -8,6 +9,8 @@ import requests
 import contextlib
 from gmqtt import Client as MQTTClient
 from typing import List, Optional
+from db.database import Session, get_session, engine
+from models.iot_reading import IOTReading
 
 # --- CONFIGURATION ---
 MQTT_CONFIG = {
@@ -39,38 +42,28 @@ client = MQTTClient("fastapi_brain")
 
 # --- DATA PERSISTENCE ---
 def save_sensor_data(data: dict):
-    """Saves ONLY GSR, Temp, HR, and Status to JSON. Ignores control fields."""
+    """Saves GSR, Temp, HR, and Status to the database."""
     try:
         # Only save if we have at least one sensor reading
         if not any(key in data for key in ["gsr", "temperature", "hr", "status"]):
             print("No sensor data found in message, skipping save")
             return
         
-        try:
-            with open(JSON_FILE, "r") as f:
-                logs = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            logs = []
-
-        # Create entry with ONLY sensor data - explicitly exclude control fields
-        entry = {
-            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "gsr": data.get("gsr", 0),
-            "temperature": data.get("temperature", 0),
-            "hr": data.get("hr", 0),
-            "status": data.get("status", "unknown")
-        }
-        logs.append(entry)
-        
-        # Keep only the last 500 entries to prevent the file from growing too large
-        logs = logs[-500:] 
-
-        with open(JSON_FILE, "w") as f:
-            json.dump(logs, f, indent=4)
-        
-        print(f"✓ Saved sensor reading: GSR={entry['gsr']}, Temp={entry['temperature']}, HR={entry['hr']}, Status={entry['status']}")
+        with Session(engine) as session:
+            reading = IOTReading(
+                student_id=data.get("student_id", 1), # Default to student 1 if not specified
+                heart_rate=data.get("hr", 0),
+                gsr=data.get("gsr", 0),
+                temperature=data.get("temperature", 0),
+                status=data.get("status", "unknown")
+            )
+            session.add(reading)
+            session.commit()
+            print(f"✓ Saved sensor reading to DB: HR={reading.heart_rate}, Temp={reading.temperature}, GSR={reading.gsr}, Status={reading.status}")
     except Exception as e:
-        print(f"Logging Error: {e}")
+        print(f"Database Logging Error: {e}")
+        import traceback
+        traceback.print_exc()
 
 # --- MQTT CALLBACKS ---
 def on_connect(client, flags, rc, properties):
@@ -181,22 +174,46 @@ router = APIRouter(prefix="/iot", tags=["IoT"])
 # --- ENDPOINTS ---
 @router.get("/sensor_history")
 async def get_sensor_history(limit: int = Query(20, description="Number of recent readings to fetch")):
-    """Retrieves the history of GSR, Temperature, HR, and Status."""
-    try:
-        with open(JSON_FILE, "r") as f:
-            logs = json.load(f)
-        return logs[-limit:] # Return the most recent entries
-    except (FileNotFoundError, json.JSONDecodeError):
-        return []
+    """Retrieves the history of GSR, Temperature, HR, and Status from DB."""
+    with Session(engine) as session:
+        stmt = select(IOTReading).order_by(IOTReading.timestamp.desc()).limit(limit)
+        readings = session.exec(stmt).all()
+        # Format for frontend compatibility
+        return [
+            {
+                "timestamp": r.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                "gsr": r.gsr,
+                "temperature": r.temperature,
+                "hr": r.heart_rate,
+                "status": r.status
+            }
+            for r in reversed(readings)
+        ]
 
 @router.get("/current_status")
-async def get_current_status():
-    """Returns the single latest state of everything."""
-    return {
-        "status": state["last_known_status"],
-        "latest_reading": state["latest_sensor_reading"],
-        "device_states": state["control_state"]
-    }
+async def get_current_status(student_id: int = Query(1)):
+    """Returns the single latest state of everything from DB."""
+    with Session(engine) as session:
+        stmt = select(IOTReading).where(IOTReading.student_id == student_id).order_by(IOTReading.timestamp.desc())
+        latest = session.exec(stmt).first()
+        
+        if latest:
+            return {
+                "status": latest.status,
+                "latest_reading": {
+                    "hr": latest.heart_rate,
+                    "gsr": latest.gsr,
+                    "temperature": latest.temperature,
+                    "timestamp": latest.timestamp.isoformat()
+                },
+                "device_states": state["control_state"]
+            }
+        
+        return {
+            "status": "Offline",
+            "latest_reading": None,
+            "device_states": state["control_state"]
+        }
 
 # --- CONTROL ENDPOINT ---
 class ControlModel(BaseModel):

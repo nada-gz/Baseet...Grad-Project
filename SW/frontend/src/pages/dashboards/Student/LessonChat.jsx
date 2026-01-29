@@ -169,33 +169,36 @@ export default function LessonChat() {
   return (
     <div className="lesson-chat">
       <img
+        src={require("../../../assets/hi_baseet.png")}
+        alt="Baseet"
+        className="chat-floating-baseet"
+      />
+
+      <img
         src={require("../../../assets/eyes_baseet.png")}
         alt="Eyes on border"
         className="eyes-border-chat"
       />
 
-      <img
-        src={require("../../../assets/crazy_baseet.png")}
-        alt="falling Baseet"
-        className="floating-asset right-side"
-      />
-
       {/* Header */}
-      <div className="lesson-chat-header">
-        <div className="header-top">
-          <h1>
-            <span className="lesson-number">{lesson?.number}</span>{" "}
-            {lesson?.title}
-          </h1>
-          <div className="lesson-progress-container">
-            <div className="progress-text">تقدّم الدرس: {lessonProgress}%</div>
-            <div className="progress-bar-bg">
-              <div className="progress-bar-fill" style={{ width: `${lessonProgress}%` }}></div>
+      <div className="hero-blob-container compact" style={{ marginBottom: '20px' }}>
+        <div className="hero-blob-bg" style={{ background: 'linear-gradient(135deg, #F5F4FF 0%, #E5E0FF 100%)' }}></div>
+        <div className="hero-blob-content">
+          <div className="hero-blob-text">
+            <h1 style={{ fontSize: '2.2rem', marginBottom: '10px' }}>
+              <span className="lesson-number">{lesson?.number}</span>{" "}
+              {lesson?.title}
+            </h1>
+            <div className="lesson-progress-container" style={{ alignItems: 'flex-start' }}>
+              <div className="progress-text" style={{ color: 'var(--highlight)' }}>تقدّم الدرس: {lessonProgress}%</div>
+              <div className="progress-bar-bg" style={{ width: '200px', height: '10px' }}>
+                <div className="progress-bar-fill" style={{ width: `${lessonProgress}%` }}></div>
+              </div>
             </div>
           </div>
         </div>
-        <span className="chat-helper">Baseet is here to help 💜</span>
       </div>
+      <span className="chat-helper">بسيط موجود هنا عشان يساعدك</span>
 
       {/* Messages */}
       <div className="chat-messages">
@@ -204,6 +207,11 @@ export default function LessonChat() {
             key={idx}
             className={`chat-bubble ${msg.role === "ai" ? "ai" : "user"}`}
           >
+            {msg.role === "ai" && (
+              <div className="ai-avatar-msg">
+                <img src={require("../../../assets/BASEET-smiling.png")} alt="Baseet" />
+              </div>
+            )}
             {msg.role === "ai" ? (
               <div className="ai-message-content" dir="rtl">
                 <div className="ai-actions">
@@ -243,6 +251,9 @@ export default function LessonChat() {
         {/* ✅ SHOW THINKING EVEN BEFORE FIRST MESSAGE */}
         {loadingAI && (
           <div className="chat-bubble ai typing">
+            <div className="ai-avatar-msg">
+              <img src={require("../../../assets/ask_baseet.png")} alt="Baseet thinking" className="animate-bounce" />
+            </div>
             Baseet is thinking...
           </div>
         )}
@@ -251,37 +262,39 @@ export default function LessonChat() {
       </div>
 
       {/* Input */}
-      <div className="chat-input">
-        <textarea
-          dir="rtl"
-          style={{ textAlign: "right" }}
-          placeholder="اكتب إجابتك أو سؤالك هنا ✨"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              sendMessage();
-            }
-          }}
-        />
+      <div className="chat-input-wrapper">
+        <div className="chat-input">
+          <textarea
+            dir="rtl"
+            style={{ textAlign: "right" }}
+            placeholder="اكتب إجابتك أو سؤالك هنا ✨"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
+          />
 
-        <button
-          className={`btn btn-record ${isRecording ? 'recording' : ''}`}
-          onClick={handleRecord}
-          disabled={loadingAI || isRecording}
-          title="سجل صوتك"
-        >
-          {isRecording ? <Loader2 size={18} className="animate-spin" /> : <Mic size={18} />}
-        </button>
+          <button
+            className={`btn btn-record ${isRecording ? 'recording' : ''}`}
+            onClick={handleRecord}
+            disabled={loadingAI || isRecording}
+            title="سجل صوتك"
+          >
+            {isRecording ? <Loader2 size={18} className="animate-spin" /> : <Mic size={18} />}
+          </button>
 
-        <button
-          className="btn btn-primary"
-          onClick={sendMessage}
-          disabled={loadingAI || isRecording}
-        >
-          <Send size={18} />
-        </button>
+          <button
+            className="btn btn-primary"
+            onClick={sendMessage}
+            disabled={loadingAI || isRecording || !input.trim()}
+          >
+            <Send size={18} />
+          </button>
+        </div>
       </div>
     </div >
   );

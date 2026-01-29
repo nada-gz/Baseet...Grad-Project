@@ -46,7 +46,7 @@ except Exception as e:
 
 # Import audio modules
 try:
-    from services.ai.TTS import TextPostProcessor, voice
+    from services.ai.TTS import TextPostProcessor, TTSGenerator
     TTS_AVAILABLE = True
 except Exception as e:
     print(f"⚠️ Warning: TTS.py not available: {e}")
@@ -126,7 +126,7 @@ class SmartOrchestrator:
         
         if TTS_AVAILABLE:
             self.text_processor = TextPostProcessor()
-            self.voice = voice()
+            self.voice = TTSGenerator()
         else:
             self.text_processor = None
             self.voice = None
