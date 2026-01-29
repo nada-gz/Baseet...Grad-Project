@@ -10,3 +10,12 @@ moviepy
 # Image retrieval
 google-search-results
 requests
+
+# Image processing
+Pillow
+
+# Streamlit UI
+streamlit
+
+# Color output
+colorama
