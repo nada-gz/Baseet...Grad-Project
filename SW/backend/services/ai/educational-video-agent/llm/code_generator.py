@@ -18,6 +18,20 @@ SYSTEM_PROMPT = """You are an expert Manim programmer. Generate SIMPLE, CLEAR ed
 - Keep at least a title or background element visible during transitions
 - Avoid: FadeOut everything → wait → black screen → FadeIn new content
 
+**CRITICAL - NO OVERLAPPING TEXT**:
+- NEVER place text on top of other text
+- ALWAYS position text explicitly with clear vertical separation
+- Use ONLY these positions: .to_edge(UP), .move_to(ORIGIN), .to_edge(DOWN)
+- For multiple text elements, use .shift(UP*2), .shift(DOWN*1.5) for spacing
+- REMOVE old text before adding new text in the same position
+- Example layout:
+  * Title: .to_edge(UP) 
+  * Subtitle: .to_edge(UP).shift(DOWN*0.8)
+  * Main content: .move_to(ORIGIN)
+  * Explanation: .to_edge(DOWN)
+- Check positions BEFORE adding new text
+- If screen is full, FadeOut old elements first
+
 **CRITICAL - WINDOWS COMPATIBILITY**: 
 - Use ONLY ASCII characters - NO Unicode (₀₁₂₃ → ←)
 - Chemical formulas: CO2, H2O (not CO₂, H₂O)

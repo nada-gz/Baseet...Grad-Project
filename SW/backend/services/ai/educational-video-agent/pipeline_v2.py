@@ -145,34 +145,53 @@ class EducationalVideoPipeline:
         )
         
         # Add Arabic narration scripts to each segment
-        self._log("🌍 Generating Arabic narration scripts...")
+        self._log("🌍 Generating Arabic narration scripts and titles...")
         
         for seg in plan:
             english_script = seg.get("script", seg.get("concept", ""))
+            english_title = seg.get("title", "")
             
-            # Generate Arabic translation - simple and clear
-            arabic_prompt = f"""Translate this educational narration to simple, clear Modern Standard Arabic (العربية الفصحى المبسطة).
+            # Generate Arabic translation + title
+            arabic_prompt = f"""Translate this educational content to academic Modern Standard Arabic (الفصحى الأكاديمية).
 
-Keep it:
-- Simple and easy to understand
-- Clear and professional
-- Suitable for students
-- Use simple vocabulary, avoid complex or archaic words
+Title (English): {english_title}
+Narration (English): {english_script}
 
-English: {english_script}
+Requirements:
+- Use ACADEMIC ARABIC with proper educational terminology
+- Use formal, scholarly language appropriate for educational settings
+- Translate scientific/technical terms accurately using standard Arabic academic vocabulary
+- Create a SHORT Arabic title (3-5 words maximum) using formal academic style
+- Maintain clarity while using proper academic register
+- Use standard Arabic educational terminology (e.g., التمثيل الضوئي for photosynthesis)
 
-Respond with ONLY the Arabic text, nothing else."""
+Respond in JSON format:
+{{
+    "arabic_title": "العنوان الأكاديمي",
+    "arabic_script": "النص الأكاديمي الكامل"
+}}"""
             
             try:
-                arabic_script = await self.qwen_client.call(
-                    system_prompt="You are a translator. Translate to simple, clear Modern Standard Arabic for educational content.",
+                response = await self.qwen_client.call(
+                    system_prompt="You are an academic translator specializing in educational content. Translate to formal, academic Modern Standard Arabic using proper scientific and educational terminology. Always respond in valid JSON format.",
                     user_prompt=arabic_prompt,
                     temperature=0.3
                 )
-                seg["arabic_script"] = arabic_script.strip()
-                self._log(f"  ✅ Segment {seg.get('segment_id')}: Arabic script ready")
+                
+                # Parse JSON response
+                import json
+                import re
+                # Clean markdown code blocks if present
+                response_clean = re.sub(r'```json\n?|```\n?', '', response.strip())
+                arabic_data = json.loads(response_clean)
+                
+                seg["arabic_script"] = arabic_data.get("arabic_script", "").strip()
+                seg["arabic_title"] = arabic_data.get("arabic_title", "").strip()
+                self._log(f"  ✅ Segment {seg.get('segment_id')}: Arabic script & title ready")
             except Exception as e:
                 seg["arabic_script"] = ""
+                seg["arabic_title"] = ""
+                self._log(f"  ⚠️ Segment {seg.get('segment_id')}: Arabic translation failed - {e}")
                 self._log(f"  ⚠️ Segment {seg.get('segment_id')}: Arabic translation failed")
         
         self._log(f"📋 Plan ready: {len(plan)} segments")
@@ -212,12 +231,23 @@ Respond with ONLY the Arabic text, nothing else."""
             else:
                 self._log(f"  ⚠️ No image found")
         
+        # Get Arabic title if available
+        arabic_title = segment.get("arabic_title", "")
+        
         # Generate Manim code
         prompt = f"""Generate a Manim scene for: {title}
 Concept: {concept}
 Visual type: {visual_type}
 
 The narration says: "{english_script}"
+
+**ARABIC TITLE SUPPORT**:
+- Arabic title: "{arabic_title}"
+- Display BOTH English and Arabic titles
+- English title at TOP: Text("{title}", font_size=40).to_edge(UP)
+- Arabic title BELOW English: Text("{arabic_title}", font="Arial", font_size=32).next_to(english_title, DOWN, buff=0.3)
+- Use FadeIn() for Arabic text (NOT Write() - RTL issues)
+- Keep both titles visible throughout the segment
 
 **CRITICAL - NO BLACK SCREENS**:
 - ALWAYS have something visible on screen
