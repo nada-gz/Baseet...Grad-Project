@@ -19,7 +19,7 @@ from config import (
 )
 from llm import QwenClient, plan_lesson, generate_code, fix_code
 from tools.manim_executor import execute_manim_code
-from tools.arabic_tts import generate_arabic_narration_async
+from tools.enhanced_arabic_tts import generate_arabic_narration_async  # ElevenLabs + Edge-TTS fallback
 from tools.image_processor import search_and_download_image
 from tools.video_merger import merge_video_segments
 from tools.code_validator import validate_manim_code, get_validation_summary
@@ -219,8 +219,16 @@ Visual type: {visual_type}
 
 The narration says: "{english_script}"
 
+**CRITICAL - NO BLACK SCREENS**:
+- ALWAYS have something visible on screen
+- When transitioning, fade out old content WHILE fading in new content
+- Use overlapping animations: self.play(FadeOut(old), FadeIn(new))
+- Keep a title or background text visible during transitions
+- NO empty self.wait() with black screen
+
 Requirements:
-- Create clear, educational animations
+- **PREFER SIMPLE VISUALS**: Use text labels and basic shapes
+- For science topics: Let the IMAGE be the main visual, add only simple text labels
 - Use self.wait(2-3) between major elements
 - Match visuals to what the narration describes
 - Keep text in English, clean and readable
@@ -230,8 +238,16 @@ Requirements:
             # Use forward slashes for Manim
             safe_image_path = str(Path(image_path).absolute()).replace("\\", "/")
             prompt += f"""
-- Include this image: ImageMobject("{safe_image_path}").scale_to_fit_width(4)
-- Position the image appropriately (use .to_edge(LEFT) or similar)"""
+
+**IMPORTANT - IMAGE PROVIDED**:
+- This is a SCIENCE topic with a real image - use it as the PRIMARY visual
+- Include: ImageMobject("{safe_image_path}").scale_to_fit_width(5.5)
+- **IMAGE SIZE**: Keep width between 5-7 (not too small, not too large)
+- Position the image prominently (center or slightly to one side)
+- Add ONLY simple text labels pointing to parts of the image
+- DO NOT create complex animations - the image explains the concept
+- Keep it simple: Show image → Add 1-2 text labels → Done
+- Keep the image visible for most of the segment duration"""
         
         try:
             code = await generate_code(self.qwen_client, prompt)
