@@ -79,9 +79,9 @@ def search_and_download_image(concept: str, session_dir: Path = None) -> dict:
         return {"success": True, "path": str(cache_path), "error": None, "cached": True}
     
     try:
-        # Search with SerpAPI
+        # Search with SerpAPI - optimized for elementary school content
         search = GoogleSearch({
-            "q": f"{concept} educational diagram high quality",
+            "q": f"{concept} for elementary school kids simple diagram colorful",
             "tbm": "isch",
             "tbs": "il:cl,isz:l",  # Creative Commons + Large size
             "api_key": SERPAPI_KEY
