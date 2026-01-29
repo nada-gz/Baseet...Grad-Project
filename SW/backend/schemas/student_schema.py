@@ -21,7 +21,7 @@ class StudentRead(BaseModel):
     baseline_engagement: Optional[float] = None
 
     class Config:
-        orm_mode = True  # Allows returning SQLModel objects directly
+        from_attributes = True  # Allows returning SQLModel objects directly
 
 
 class StudentUpdate(BaseModel):

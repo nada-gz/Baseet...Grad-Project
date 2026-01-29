@@ -21,7 +21,7 @@ class LessonRead(BaseModel):
     materials: List[MaterialRead] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # used for resetting / updating lesson progress

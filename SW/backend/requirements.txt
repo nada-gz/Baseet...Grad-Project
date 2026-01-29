@@ -9,6 +9,7 @@ email-validator
 psycopg2-binary
 google-generativeai
 numpy
+gmqtt
 
 # OCR dependencies
 pillow
