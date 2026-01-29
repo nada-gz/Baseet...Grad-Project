@@ -1,48 +1,46 @@
-"""Text-to-Speech generator using ElevenLabs API."""
-from elevenlabs.client import ElevenLabs
-from dotenv import load_dotenv
+"""Text-to-Speech generator using Edge-TTS (Free Microsoft TTS)."""
+import asyncio
 import os
+from dotenv import load_dotenv
 
 load_dotenv()
 
 
-def generate_audio(text: str, output_path: str, voice_id: str = "JBFqnCBsd6RMkjVDRZzb") -> dict:
+async def _generate_audio_async(text: str, output_path: str, voice: str) -> dict:
+    """Async helper to generate audio."""
+    try:
+        import edge_tts
+        
+        communicate = edge_tts.Communicate(text, voice)
+        await communicate.save(output_path)
+        
+        return {"success": True, "audio_path": output_path, "error": None}
+    except Exception as e:
+        return {"success": False, "audio_path": None, "error": str(e)}
+
+
+def generate_audio(text: str, output_path: str, voice: str = None) -> dict:
     """
-    Generate audio from text using ElevenLabs API with slower, clearer speech.
+    Generate audio from text using Edge-TTS (Free Microsoft TTS).
     
     Args:
         text: Text to convert to speech
         output_path: Path where audio file will be saved
-        voice_id: Voice ID (default: "JBFqnCBsd6RMkjVDRZzb" - Rachel-like voice)
-                  Get voice IDs from: client.voices.search() or https://elevenlabs.io/app/voice-lab
+        voice: Voice name (default: ar-EG-SalmaNeural for Egyptian Arabic)
+               Other options: ar-SA-HamedNeural, ar-EG-ShakirNeural
     
     Returns:
         Dictionary with success status, audio path, and error message
     """
     try:
-        api_key = os.getenv("ELEVENLABS_API_KEY")
-        if not api_key:
-            return {"success": False, "audio_path": None, "error": "ELEVENLABS_API_KEY not found in .env"}
-        
-        client = ElevenLabs(api_key=api_key)
-        audio_generator = client.text_to_speech.convert(
-            text=text,
-            voice_id=voice_id,
-            model_id="eleven_multilingual_v2",
-            output_format="mp3_44100_128",
-            voice_settings={
-                "stability": 0.75,        # Higher stability for clearer speech
-                "similarity_boost": 0.8,  # Maintain voice consistency
-                "style": 0.0,            # No exaggerated emotion
-                "use_speaker_boost": True
-            }
-        )
-        
-        # Consume the generator and write audio bytes
-        with open(output_path, "wb") as f:
-            for chunk in audio_generator:
-                f.write(chunk)
-        
-        return {"success": True, "audio_path": output_path, "error": None}
-    except Exception as e:
-        return {"success": False, "audio_path": None, "error": str(e)}
+        import edge_tts
+    except ImportError:
+        return {"success": False, "audio_path": None, "error": "edge-tts not installed. Run: pip install edge-tts"}
+    
+    # Use voice from parameter, env, or default
+    if voice is None:
+        voice = os.getenv("EDGE_VOICE", "ar-EG-SalmaNeural")
+    
+    # Run async function synchronously
+    result = asyncio.run(_generate_audio_async(text, output_path, voice))
+    return result
