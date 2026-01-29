@@ -146,7 +146,7 @@ export default function LessonVoice() {
     const finishPulseEarly = (chunks, index, text = "") => {
         // Calculate reading time per chunk
         const readingTime = Math.max(3000, (text.length / 15) * 1000 + 1500);
-        console.log(`Baseet Voice: Finishing pulse early, reading time: ${readingTime}ms`);
+        setTimeout(() => {
             playNextPulse(chunks, index + 1);
         }, readingTime);
     };
@@ -175,13 +175,13 @@ export default function LessonVoice() {
                 handleAIResponse(res.data);
             } else {
                 // If silent or no transcription, just restart the loop quietly
-                console.log("Baseet Voice: Silence detected, listening again...");
-                
+                setTimeout(startListeningLoop, 500);
+            }
         } catch (err) {
-            console.error("Baseet Voice: Listening error:", err);
-            // Handle 400 (Silence) gracefully
             // Handle 400 (Silence) gracefully
             if (err.response && err.response.status === 400) {
+                setTimeout(startListeningLoop, 1000);
+            } else {
                 setStatus("idle");
             }
         }
