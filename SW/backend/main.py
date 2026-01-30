@@ -15,7 +15,7 @@ from routers.auth_router import router as auth_router
 from routers.dashboard_router import router as dashboard_router
 from routers.ai_router import router as ai_router
 from routers.iot_router import router as iot_router
-from routers.iot_router import start_mqtt_connection, stop_mqtt_connection, periodic_save_task
+from routers.iot_router import start_mqtt_connection, stop_mqtt_connection
 
 # --- LIFESPAN MANAGEMENT ---
 @contextlib.asynccontextmanager
@@ -27,13 +27,12 @@ async def lifespan(app: FastAPI):
     # Start MQTT connection
     await start_mqtt_connection()
     
-    # Start periodic save task
-    save_task = asyncio.create_task(periodic_save_task())
+    # periodic_save_task removed
     
     yield
     
     # Shutdown
-    save_task.cancel()
+    # save_task.cancel()
     await stop_mqtt_connection()
 
 app = FastAPI(title="My Backend Project", lifespan=lifespan)

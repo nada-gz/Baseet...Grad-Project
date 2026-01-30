@@ -15,7 +15,7 @@ from models.iot_reading import IOTReading
 
 # --- CONFIGURATION ---
 MQTT_CONFIG = {
-    "host": "3ae44b7f9fda4802bfc9e3e325f88463.s1.eu.hivemq.cloud",
+    "host": "3ae44b7f9fda4802bfc9e3e325f88463.s1.eu.hivemq.cloud".strip(),
     "port": 8883,
     "user": "admin_project",
     "password": "Project123!",
@@ -26,14 +26,14 @@ MQTT_CONFIG = {
 JSON_FILE = "services/ai/sensor_log.json"
 NTFY_TOPIC = "autism"
 NOTIFICATION_COOLDOWN = 300
-SAVE_INTERVAL = 20  # Save to JSON every 20 seconds
+# SAVE_INTERVAL removed
 
 # --- GLOBAL STATE ---
 state = {
-    "last_known_status": "relaxed",
+    "last_known_status": "Relaxed",
     "last_notification_time": 0,
-    "latest_sensor_reading": None,  # Store latest sensor data here
-    "last_save_time": 0,  # Track when we last saved
+    "latest_sensor_reading": None,  # Store latest sensor data here (moved from iot_router old state)
+    # last_save_time removed
     "control_state": {
         "orange": False, "yellow": False, "music": False, "auto": False
     }
@@ -59,7 +59,7 @@ def save_sensor_data(data: dict):
                 heart_rate=data.get("hr", 0),
                 gsr=data.get("gsr", 0),
                 temperature=data.get("temperature", 0),
-                status=data.get("status", "unknown")
+                status=str(data.get("status", "unknown")).title() # Ensure Capitalized
             )
             session.add(reading)
             session.commit()
@@ -107,21 +107,30 @@ def on_message(client, topic, payload, qos, properties):
         data = json.loads(payload.decode())
         print(f"📩 Received MQTT message on {topic}: {data}")
         
-        state["last_known_status"] = data.get('status', 'relaxed')
+        # Extract and capitalize status
+        raw_status = data.get('status', 'relaxed')
+        capitalized_status = str(raw_status).title()
+        
+        state["last_known_status"] = capitalized_status
 
-        # Store the latest sensor reading in memory (will be saved every 20 seconds)
+        # Store the latest sensor reading in memory (will be saved every 20 seconds) - NOW IMMEDIATE
         if any(key in data for key in ["gsr", "temperature", "hr", "status"]):
-            state["latest_sensor_reading"] = {
+            reading = {
                 "gsr": data.get("gsr", 0),
                 "temperature": data.get("temperature", 0),
                 "hr": data.get("hr", 0),
-                "status": data.get("status", "unknown")
+                "status": capitalized_status
             }
-            print(f"💾 Updated latest reading: HR={data.get('hr')} | Temp={data.get('temperature')}°C | GSR={data.get('gsr')}μS | Status={data.get('status')}")
+            state["latest_sensor_reading"] = reading
+            print(f"💾 Updated latest reading: HR={data.get('hr')} | Temp={data.get('temperature')}°C | GSR={data.get('gsr')}μS | Status={capitalized_status}")
+            
+            # --- IMMEDIATE SAVE ---
+            save_sensor_data(reading)
 
         # Auto-mode Logic
         if state["control_state"]["auto"]:
-            is_stressed = data.get("status") == "stressed"
+            # Check against insensitive or lowercase
+            is_stressed = capitalized_status.lower() == "stressed"
             state["control_state"].update({
                 "orange": is_stressed, 
                 "yellow": not is_stressed, 
@@ -130,7 +139,7 @@ def on_message(client, topic, payload, qos, properties):
             client.publish(MQTT_CONFIG["topic_control"], json.dumps(state["control_state"]))
 
         # Notifications
-        if data.get('status') == 'stressed':
+        if capitalized_status.lower() == 'stressed':
             current_time = time.time()
             if (current_time - state["last_notification_time"]) > NOTIFICATION_COOLDOWN:
                 requests.post(f"https://ntfy.sh/{NTFY_TOPIC}", data="⚠️ Stress Alert".encode('utf-8'))
@@ -139,31 +148,13 @@ def on_message(client, topic, payload, qos, properties):
     except Exception as e:
         print(f"❌ MQTT Message Error: {e}")
 
-# --- BACKGROUND TASK ---
-async def periodic_save_task():
-    """Background task that saves sensor data every 20 seconds."""
-    print(f"⏰ Starting periodic save task (every {SAVE_INTERVAL} seconds)...")
-    while True:
-        await asyncio.sleep(SAVE_INTERVAL)
-        
-        # Check if we have new sensor data to save
-        if state["latest_sensor_reading"] is not None:
-            current_time = time.time()
-            
-            # Only save if we haven't saved in the last interval
-            if (current_time - state["last_save_time"]) >= SAVE_INTERVAL:
-                save_sensor_data(state["latest_sensor_reading"])
-                state["last_save_time"] = current_time
-                print(f"⏱️  {SAVE_INTERVAL}-second interval reached - data saved to {JSON_FILE}")
-        else:
-            print(f"⏱️  {SAVE_INTERVAL}-second interval - no new sensor data to save")
-
 # --- MQTT RECONNECTION ---
 async def reconnect_mqtt():
     """Attempts to reconnect to MQTT broker after disconnect."""
     await asyncio.sleep(5)
     try:
         print("🔄 Attempting to reconnect to MQTT broker...")
+        # Use simpler connect call for reconnection too
         await client.connect(MQTT_CONFIG["host"], MQTT_CONFIG["port"], ssl=tls_context, keepalive=60)
         client.subscribe(MQTT_CONFIG["topic_status"])
         print("✅ Successfully reconnected to MQTT broker!")
@@ -203,23 +194,21 @@ async def start_mqtt_connection():
     tls_context.check_hostname = False
     tls_context.verify_mode = ssl.CERT_NONE
     
-    print(f"🔌 Connecting to MQTT broker: {MQTT_CONFIG['host']}:{MQTT_CONFIG['port']}")
+    print(f"🔌 Connecting to MQTT broker: '{MQTT_CONFIG['host']}':{MQTT_CONFIG['port']}")
     print("🔐 Using TLS 1.2+ encryption with keepalive=60s")
-    print("📋 MQTT Protocol Version: 4 (3.1.1)")
     
-    # Connect with explicit version (4 = MQTT 3.1.1, most compatible with HiveMQ)
+    # Connect with simpler parameters (removed version=4 explicit)
     await client.connect(
         MQTT_CONFIG["host"], 
         MQTT_CONFIG["port"], 
         ssl=tls_context, 
-        keepalive=60,
-        version=4  # MQTT 3.1.1 for better compatibility
+        keepalive=60
     )
     
     client.subscribe(MQTT_CONFIG["topic_status"])
     
     print("✅ IoT MQTT Service Ready!")
-    print(f"📝 Sensor data will be saved to JSON every {SAVE_INTERVAL} seconds")
+    print(f"📝 Sensor data will be saved immediately on receipt")
 
 async def stop_mqtt_connection():
     """Stop MQTT connection."""
