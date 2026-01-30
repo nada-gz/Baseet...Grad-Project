@@ -57,7 +57,7 @@ export default function LessonPlayer() {
                 alt="Baseet helper"
                 style={{ width: '50px' }}
               />
-              <span style={{ fontWeight: 800 }}>أهلاً! أنا بسيط 👋</span>
+              <span style={{ fontWeight: 800 }}>أهلاً! أنا بسيط</span>
             </div>
           </div>
         </div>
@@ -67,7 +67,7 @@ export default function LessonPlayer() {
       <div className="lesson-video">
         <div className="video-placeholder">
           <div className="animate-bounce text-4xl">🎬</div>
-          فيديو الدرس هيكون هنا يا بطل!
+          ! فيديو الدرس هيكون هنا يا بطل
         </div>
 
         <img
@@ -100,7 +100,7 @@ export default function LessonPlayer() {
             <img src={require("../../../assets/BASEET-smiling.png")} alt="Baseet" />
           </div>
           <div className="ai-text">
-            عندك أي سؤال عن الفيديو؟ أنا هنا عشان أساعدك! ✨
+            ✨ ! عندك أي سؤال عن الفيديو؟ أنا هنا عشان أساعدك
           </div>
         </div>
       </div>
