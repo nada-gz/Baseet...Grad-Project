@@ -7,6 +7,7 @@ import time
 import asyncio
 import requests
 import contextlib
+import uuid
 from gmqtt import Client as MQTTClient
 from typing import List, Optional
 from db.database import Session, get_session, engine
@@ -38,7 +39,10 @@ state = {
     }
 }
 
-client = MQTTClient("fastapi_brain")
+# Use unique client ID to prevent conflicts with other instances
+client_id = f"fastapi_brain_{uuid.uuid4().hex[:8]}"
+client = MQTTClient(client_id)
+tls_context = None  # Will be initialized in start_mqtt_connection
 
 # --- DATA PERSISTENCE ---
 def save_sensor_data(data: dict):
@@ -78,7 +82,25 @@ def on_subscribe(client, mid, qos, properties):
 
 def on_disconnect(client, packet, exc=None):
     """Called when the client disconnects."""
-    print(f"⚠️ MQTT Disconnected! Exception: {exc}")
+    print(f"⚠️ MQTT Disconnected!")
+    print(f"   Reason: {exc}")
+    print(f"   Packet: {packet}")
+    
+    # Log detailed disconnect information
+    if packet:
+        print(f"   Disconnect Reason Code: {getattr(packet, 'reason_code', 'Unknown')}")
+    
+    # Schedule auto-reconnect after 5 seconds using the event loop
+    try:
+        loop = asyncio.get_event_loop()
+        loop.create_task(reconnect_mqtt())
+    except RuntimeError:
+        # If no event loop is running, try to get the running loop
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(reconnect_mqtt())
+        except RuntimeError:
+            print("❌ Cannot schedule reconnection - no event loop available")
 
 def on_message(client, topic, payload, qos, properties):
     try:
@@ -136,10 +158,28 @@ async def periodic_save_task():
         else:
             print(f"⏱️  {SAVE_INTERVAL}-second interval - no new sensor data to save")
 
+# --- MQTT RECONNECTION ---
+async def reconnect_mqtt():
+    """Attempts to reconnect to MQTT broker after disconnect."""
+    await asyncio.sleep(5)
+    try:
+        print("🔄 Attempting to reconnect to MQTT broker...")
+        await client.connect(MQTT_CONFIG["host"], MQTT_CONFIG["port"], ssl=tls_context, keepalive=60)
+        client.subscribe(MQTT_CONFIG["topic_status"])
+        print("✅ Successfully reconnected to MQTT broker!")
+    except Exception as e:
+        print(f"❌ Reconnection failed: {e}")
+        print("🔄 Will retry in 5 seconds...")
+        await asyncio.sleep(5)
+        # Recursively retry reconnection
+        await reconnect_mqtt()
+
 # --- MQTT INITIALIZATION ---
 async def start_mqtt_connection():
     """Initialize and start MQTT connection."""
+    global tls_context
     print("🚀 Starting IoT MQTT Service...")
+    print(f"   Client ID: {client_id}")
     
     # Register all MQTT callbacks
     client.on_connect = on_connect
@@ -150,13 +190,31 @@ async def start_mqtt_connection():
     # Set credentials
     client.set_auth_credentials(MQTT_CONFIG["user"], MQTT_CONFIG["password"])
     
-    # Connect with SSL
-    ssl_context = ssl.create_default_context()
-    ssl_context.check_hostname = False
-    ssl_context.verify_mode = ssl.CERT_NONE
+    # Set will message (Last Will and Testament) - sent if client disconnects unexpectedly
+    client.set_config({"will_message": {
+        "topic": MQTT_CONFIG["topic_status"],
+        "payload": json.dumps({"status": "offline", "client": client_id}),
+        "qos": 1,
+        "retain": False
+    }})
+    
+    # Create TLS context (industry standard for secure MQTT)
+    tls_context = ssl.create_default_context()
+    tls_context.check_hostname = False
+    tls_context.verify_mode = ssl.CERT_NONE
     
     print(f"🔌 Connecting to MQTT broker: {MQTT_CONFIG['host']}:{MQTT_CONFIG['port']}")
-    await client.connect(MQTT_CONFIG["host"], MQTT_CONFIG["port"], ssl=ssl_context)
+    print("🔐 Using TLS 1.2+ encryption with keepalive=60s")
+    print("📋 MQTT Protocol Version: 4 (3.1.1)")
+    
+    # Connect with explicit version (4 = MQTT 3.1.1, most compatible with HiveMQ)
+    await client.connect(
+        MQTT_CONFIG["host"], 
+        MQTT_CONFIG["port"], 
+        ssl=tls_context, 
+        keepalive=60,
+        version=4  # MQTT 3.1.1 for better compatibility
+    )
     
     client.subscribe(MQTT_CONFIG["topic_status"])
     
