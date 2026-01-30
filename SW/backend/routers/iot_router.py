@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from sqlmodel import select
 import json
@@ -39,6 +39,27 @@ state = {
 }
 
 client = MQTTClient("fastapi_brain")
+
+# --- WEBSOCKET MANAGER ---
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except Exception as e:
+                print(f"WebSocket Error: {e}")
+
+manager = ConnectionManager() # Create instance
 
 # --- DATA PERSISTENCE ---
 def save_sensor_data(data: dict):
@@ -87,7 +108,7 @@ def on_message(client, topic, payload, qos, properties):
         
         state["last_known_status"] = data.get('status', 'relaxed')
 
-        # Store the latest sensor reading in memory (will be saved every 20 seconds)
+        # Store the latest sensor reading in memory needed for other logic
         if any(key in data for key in ["gsr", "temperature", "hr", "status"]):
             state["latest_sensor_reading"] = {
                 "gsr": data.get("gsr", 0),
@@ -95,7 +116,26 @@ def on_message(client, topic, payload, qos, properties):
                 "hr": data.get("hr", 0),
                 "status": data.get("status", "unknown")
             }
+            # Get capitalized status for broadcast
+            reading_to_broadcast = state["latest_sensor_reading"].copy()
+            reading_to_broadcast["status"] = str(reading_to_broadcast["status"]).title()
+
             print(f"💾 Updated latest reading: HR={data.get('hr')} | Temp={data.get('temperature')}°C | GSR={data.get('gsr')}μS | Status={data.get('status')}")
+            
+            # --- IMMEDIATE SAVE ---
+            save_sensor_data(state["latest_sensor_reading"])
+
+            # --- WEBSOCKET BROADCAST ---
+            # Use asyncio to schedule broadcast since we are in a sync/async boundary
+            try:
+                loop = asyncio.get_event_loop()
+                loop.create_task(manager.broadcast(json.dumps(reading_to_broadcast)))
+            except RuntimeError:
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(manager.broadcast(json.dumps(reading_to_broadcast)))
+                except RuntimeError:
+                    print("Could not broadcast: no event loop")
 
         # Auto-mode Logic
         if state["control_state"]["auto"]:
@@ -116,25 +156,6 @@ def on_message(client, topic, payload, qos, properties):
 
     except Exception as e:
         print(f"❌ MQTT Message Error: {e}")
-
-# --- BACKGROUND TASK ---
-async def periodic_save_task():
-    """Background task that saves sensor data every 20 seconds."""
-    print(f"⏰ Starting periodic save task (every {SAVE_INTERVAL} seconds)...")
-    while True:
-        await asyncio.sleep(SAVE_INTERVAL)
-        
-        # Check if we have new sensor data to save
-        if state["latest_sensor_reading"] is not None:
-            current_time = time.time()
-            
-            # Only save if we haven't saved in the last interval
-            if (current_time - state["last_save_time"]) >= SAVE_INTERVAL:
-                save_sensor_data(state["latest_sensor_reading"])
-                state["last_save_time"] = current_time
-                print(f"⏱️  {SAVE_INTERVAL}-second interval reached - data saved to {JSON_FILE}")
-        else:
-            print(f"⏱️  {SAVE_INTERVAL}-second interval - no new sensor data to save")
 
 # --- MQTT INITIALIZATION ---
 async def start_mqtt_connection():
@@ -161,7 +182,7 @@ async def start_mqtt_connection():
     client.subscribe(MQTT_CONFIG["topic_status"])
     
     print("✅ IoT MQTT Service Ready!")
-    print(f"📝 Sensor data will be saved to JSON every {SAVE_INTERVAL} seconds")
+    print(f"📝 Sensor data will be saved immediately on receipt")
 
 async def stop_mqtt_connection():
     """Stop MQTT connection."""
@@ -170,6 +191,18 @@ async def stop_mqtt_connection():
 
 # --- CREATE ROUTER ---
 router = APIRouter(prefix="/iot", tags=["IoT"])
+
+# --- WEBSOCKET ENDPOINT ---
+@router.websocket("/ws/{student_id}")
+async def websocket_endpoint(websocket: WebSocket, student_id: int):
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Keep the connection open and listen (though we mostly push)
+            data = await websocket.receive_text()
+            # Handle any messages from client if needed (e.g., pong)
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
 
 # --- ENDPOINTS ---
 @router.get("/sensor_history")

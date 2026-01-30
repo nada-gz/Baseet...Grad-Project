@@ -3029,14 +3029,41 @@ a:hover {
 }
 
 /* Status Variants */
+/* Status Variants */
 .status-stressed {
-  background: linear-gradient(120deg, #f43f5e, #be123c);
-  box-shadow: 0 15px 30px -10px rgba(244, 63, 94, 0.5);
+  background: #fca5a5;
+  /* Stronger Red (Red 300) */
+  color: #450a0a;
+  box-shadow: 0 15px 30px -10px rgba(220, 38, 38, 0.3);
+  border: 1px solid #f87171;
+}
+
+.status-stressed .status-visual {
+  background: rgba(153, 27, 27, 0.1);
 }
 
 .status-relaxed {
-  background: linear-gradient(120deg, #6366f1, #4338ca);
-  box-shadow: 0 15px 30px -10px rgba(99, 102, 241, 0.5);
+  background: #86efac;
+  /* Stronger Green (Green 300) */
+  color: #052e16;
+  box-shadow: 0 15px 30px -10px rgba(22, 163, 74, 0.3);
+  border: 1px solid #4ade80;
+}
+
+.status-relaxed .status-visual {
+  background: rgba(22, 101, 52, 0.1);
+}
+
+.status-offline {
+  background: #f1f5f9;
+  /* Soft Grey */
+  color: #475569;
+  box-shadow: 0 15px 30px -10px rgba(241, 245, 249, 0.8);
+  border: 1px solid #e2e8f0;
+}
+
+.status-offline .status-visual {
+  background: rgba(71, 85, 105, 0.1);
 }
 
 .status-bg-deco {
