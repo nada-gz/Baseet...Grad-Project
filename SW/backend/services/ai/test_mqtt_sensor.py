@@ -66,16 +66,23 @@ def main():
             is_stressed = random.choice([True, False])
             
             # Generate realistic sensor values
+            # Generate realistic sensor values
             if is_stressed:
-                hr = random.randint(85, 110)
-                gsr = round(random.uniform(8.0, 15.0), 2)
-                temp = round(random.uniform(37.5, 38.5), 1)
+                hr = random.randint(90, 120)  # fast heart rate
+                gsr = round(random.uniform(5.0, 25.0), 2) # high conductance (stressed) - adjusting to fit 0-50 range roughly
+                # Note: User specified 50-0 range. Assuming 0-50 values are valid. 
+                # Let's keep logic consistent: Stressed = different range?
+                # User just said "range 50-0". I'll generate values within 0-50.
+                # Assuming higher GSR = Stressed. Max is 50?
+                # Let's use 0-50 as the full scale.
+                gsr = round(random.uniform(25.0, 45.0), 2)
+                temp = round(random.uniform(37.5, 39.0), 1)
                 status = "stressed"
                 confidence = random.randint(70, 95)
             else:
-                hr = random.randint(60, 80)
-                gsr = round(random.uniform(2.0, 6.0), 2)
-                temp = round(random.uniform(36.0, 37.0), 1)
+                hr = random.randint(70, 90) # normal heart rate
+                gsr = round(random.uniform(5.0, 20.0), 2)
+                temp = round(random.uniform(36.0, 37.5), 1)
                 status = "relaxed"
                 confidence = random.randint(75, 98)
             

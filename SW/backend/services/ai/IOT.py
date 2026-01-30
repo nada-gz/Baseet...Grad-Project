@@ -22,14 +22,12 @@ MQTT_CONFIG = {
 JSON_FILE = "sensor_log.json"
 NTFY_TOPIC = "autism"
 NOTIFICATION_COOLDOWN = 300
-SAVE_INTERVAL = 20  # Save to JSON every 60 seconds (1 minute)
 
 # --- GLOBAL STATE ---
 state = {
     "last_known_status": "relaxed",
     "last_notification_time": 0,
     "latest_sensor_reading": None,  # Store latest sensor data here
-    "last_save_time": 0,  # Track when we last saved
     "control_state": {
         "orange": False, "yellow": False, "music": False, "auto": False
     }
@@ -96,13 +94,17 @@ def on_message(client, topic, payload, qos, properties):
 
         # Store the latest sensor reading in memory (will be saved every 1 minute)
         if any(key in data for key in ["gsr", "temperature", "hr", "status"]):
-            state["latest_sensor_reading"] = {
+            reading = {
                 "gsr": data.get("gsr", 0),
                 "temperature": data.get("temperature", 0),
                 "hr": data.get("hr", 0),
                 "status": data.get("status", "unknown")
             }
+            state["latest_sensor_reading"] = reading
             print(f"💾 Updated latest reading: HR={data.get('hr')} | Temp={data.get('temperature')}°C | GSR={data.get('gsr')}μS | Status={data.get('status')}")
+            
+            # --- IMMEDIATE SAVE ---
+            save_sensor_data(reading)
 
         # Auto-mode Logic
         if state["control_state"]["auto"]:
@@ -123,25 +125,6 @@ def on_message(client, topic, payload, qos, properties):
 
     except Exception as e:
         print(f"❌ MQTT Message Error: {e}")
-
-# --- BACKGROUND TASK ---
-async def periodic_save_task():
-    """Background task that saves sensor data every 60 seconds."""
-    print("⏰ Starting periodic save task (every 60 seconds)...")
-    while True:
-        await asyncio.sleep(SAVE_INTERVAL)
-        
-        # Check if we have new sensor data to save
-        if state["latest_sensor_reading"] is not None:
-            current_time = time.time()
-            
-            # Only save if we haven't saved in the last 60 seconds
-            if (current_time - state["last_save_time"]) >= SAVE_INTERVAL:
-                save_sensor_data(state["latest_sensor_reading"])
-                state["last_save_time"] = current_time
-                print(f"⏱️  1-minute interval reached - data saved to {JSON_FILE}")
-        else:
-            print("⏱️  1-minute interval - no new sensor data to save")
 
 # --- LIFESPAN ---
 @contextlib.asynccontextmanager
@@ -167,15 +150,11 @@ async def lifespan(app: FastAPI):
     
     client.subscribe(MQTT_CONFIG["topic_status"])
     
-    # Start the periodic save background task
-    save_task = asyncio.create_task(periodic_save_task())
-    
     print("✅ FastAPI IOT Service Ready!")
-    print(f"📝 Sensor data will be saved to JSON every {SAVE_INTERVAL} seconds")
+    print(f"📝 Sensor data will be saved immediately on receipt")
     yield
     
     print("🛑 Shutting down...")
-    save_task.cancel()  # Stop the background task
     await client.disconnect()
 
 app = FastAPI(title="Autism IoT Backend", lifespan=lifespan)
