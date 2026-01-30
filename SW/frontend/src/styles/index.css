@@ -1624,7 +1624,7 @@ a:hover {
 .lesson-player {
   position: relative;
   width: calc(75vw - 60px);
-  margin-left: 100px;
+  margin-left: 50px;
   background: var(--secondary-bg);
   border-radius: var(--radius-xl);
   padding: 40px;
@@ -1734,7 +1734,6 @@ a:hover {
   background: var(--highlight);
   color: white;
   border: none;
-  box-shadow: 0 6px 0 #5851DB;
 }
 
 .lesson-btn.primary:hover {
@@ -1748,10 +1747,9 @@ a:hover {
 }
 
 .lesson-btn.secondary {
-  background: var(--secondary-color);
+  background: #E64A19;
   color: white;
   border: none;
-  box-shadow: 0 6px 0 #E64A19;
 }
 
 .lesson-btn.secondary:hover {
@@ -1786,11 +1784,7 @@ a:hover {
   opacity: 0.9;
 }
 
-.lesson-btn.secondary {
-  background: var(--success-bg);
-  color: white;
-  border: none;
-}
+
 
 .lesson-btn.outline {
   background: var(--secondary-bg);
