@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, FileResponse
 from pydantic import BaseModel
 from typing import Optional
 import datetime
+from pathlib import Path
 
 from services.ai.ai_service import (
     sessions,
@@ -11,6 +12,7 @@ from services.ai.ai_service import (
     process_voice_input,
     speak_text
 )
+from services.ai.educational_video_service import get_video_service
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
@@ -32,6 +34,68 @@ class BotResponse(BaseModel):
     message: str
     state: str
     progress: Optional[int] = 0
+
+
+# =========================
+# VIDEO GENERATION MODELS
+# =========================
+class GenerateVideoRequest(BaseModel):
+    """Request model for video generation."""
+    topic: Optional[str] = None          # User's video topic (optional, falls back to prompt.txt)
+    duration: Optional[float] = None     # Duration in minutes (optional, falls back to duration.txt)
+    student_id: Optional[int] = None     # Student ID for tracking (optional)
+    session_id: Optional[str] = None     # Custom session ID (optional)
+
+
+class GenerateVideoResponse(BaseModel):
+    """Response model for video generation."""
+    success: bool
+    video_path: Optional[str] = None     # Local path to final video
+    video_url: Optional[str] = None      # HTTP URL to download video
+    session_id: Optional[str] = None     # Session ID for reference
+    message: str
+    generation_time_seconds: Optional[float] = None
+    error: Optional[str] = None
+
+
+class GenerateVideoAsyncRequest(BaseModel):
+    """Request model for asynchronous video generation."""
+    topic: Optional[str] = None
+    duration: Optional[float] = None
+    student_id: Optional[int] = None
+    session_id: Optional[str] = None
+
+
+class GenerateVideoAsyncResponse(BaseModel):
+    """Response model for async video generation."""
+    success: bool
+    job_id: Optional[str] = None
+    status: str
+    message: str
+    poll_url: Optional[str] = None
+    error: Optional[str] = None
+
+
+class VideoStatusResponse(BaseModel):
+    """Response model for video job status."""
+    job_id: str
+    status: str  # "queued", "processing", "completed", "failed"
+    progress: Optional[int] = None
+    topic: Optional[str] = None
+    duration: Optional[float] = None
+    video_path: Optional[str] = None
+    session_id: Optional[str] = None
+    error: Optional[str] = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+
+
+class VideoListResponse(BaseModel):
+    """Response model for listing videos."""
+    success: bool
+    videos: list
+    count: int
+    message: str
 
 
 # =========================
@@ -226,3 +290,191 @@ async def interactive_lesson_endpoint(request: InteractiveLessonRequest):
             status_code=500, 
             detail=f"Interactive lesson error: {str(e)}"
         )
+
+
+# =========================
+# VIDEO GENERATION ENDPOINTS
+# =========================
+
+@router.post("/video/generate", response_model=GenerateVideoResponse)
+async def generate_video_endpoint(request: GenerateVideoRequest):
+    """
+    Generate an educational video synchronously.
+    
+    - If topic not provided, falls back to prompt.txt
+    - If duration not provided, falls back to duration.txt
+    - Returns only the final video path (no intermediate assets)
+    """
+    try:
+        video_service = get_video_service()
+        
+        result = await video_service.generate_video_sync(
+            topic=request.topic,
+            duration=request.duration
+        )
+        
+        if not result["success"]:
+            raise HTTPException(
+                status_code=400,
+                detail=result["error"]
+            )
+        
+        return GenerateVideoResponse(**result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Video generation error: {str(e)}"
+        )
+
+
+@router.post("/video/generate-async", response_model=GenerateVideoAsyncResponse)
+async def generate_video_async_endpoint(request: GenerateVideoAsyncRequest):
+    """
+    Generate an educational video asynchronously.
+    
+    Returns a job_id that can be used to poll for progress.
+    Use GET /ai/video/status/{job_id} to check status.
+    """
+    try:
+        video_service = get_video_service()
+        
+        result = await video_service.generate_video_async(
+            topic=request.topic,
+            duration=request.duration
+        )
+        
+        if not result["success"]:
+            raise HTTPException(
+                status_code=400,
+                detail=result.get("error", "Failed to queue video generation")
+            )
+        
+        return GenerateVideoAsyncResponse(**result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Async video generation error: {str(e)}"
+        )
+
+
+@router.get("/video/status/{job_id}", response_model=VideoStatusResponse)
+async def get_video_status_endpoint(job_id: str):
+    """
+    Check the status of an async video generation job.
+    
+    Returns:
+    - status: "queued", "processing", "completed", or "failed"
+    - progress: 0-100 (only when processing)
+    - video_path: Path to video (only when completed)
+    """
+    try:
+        video_service = get_video_service()
+        
+        result = video_service.get_job_status(job_id)
+        return VideoStatusResponse(**result)
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Status check error: {str(e)}"
+        )
+
+
+@router.get("/video/download/{session_id}")
+async def download_video_endpoint(session_id: str):
+    """
+    Download the generated video file.
+    
+    Returns the final MP4 video file as a streaming response.
+    """
+    try:
+        video_service = get_video_service()
+        
+        # Get the video file path
+        video_path = video_service.get_video_file_path(session_id)
+        
+        if not video_path or not video_path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Video not found for session {session_id}"
+            )
+        
+        # Return file as streaming response
+        return FileResponse(
+            path=video_path,
+            media_type="video/mp4",
+            filename=f"educational_video_{session_id}.mp4"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Download error: {str(e)}"
+        )
+
+
+@router.get("/video/list", response_model=VideoListResponse)
+async def list_videos_endpoint(limit: int = 10):
+    """
+    List recently generated educational videos.
+    
+    Args:
+        limit: Maximum number of videos to return (default: 10)
+    """
+    try:
+        video_service = get_video_service()
+        
+        videos = video_service.list_generated_videos(limit=limit)
+        
+        return VideoListResponse(
+            success=True,
+            videos=videos,
+            count=len(videos),
+            message=f"Found {len(videos)} videos"
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"List videos error: {str(e)}"
+        )
+
+
+@router.get("/video/health")
+async def video_service_health():
+    """Health check for video generation service."""
+    try:
+        video_service = get_video_service()
+        
+        # Test if service can access config files
+        prompt = video_service._read_prompt_file()
+        duration = video_service._read_duration_file()
+        
+        return {
+            "status": "healthy",
+            "service": "video_generation",
+            "config": {
+                "prompt_available": prompt is not None,
+                "duration_available": duration is not None,
+                "default_duration": duration
+            }
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "service": "video_generation",
+            "error": str(e)
+        }
