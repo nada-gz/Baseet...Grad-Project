@@ -5,10 +5,12 @@ python-dotenv
 PyPDF2
 aiofiles
 elevenlabs
+edge-tts
 moviepy
 
 # Image retrieval
 google-search-results
+serpapi
 requests
 
 # Image processing
