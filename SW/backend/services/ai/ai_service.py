@@ -633,11 +633,32 @@ def get_db_connection():
     return psycopg2.connect(db_url)
 def fetch_lesson_by_id(lid):
     try:
-        conn = get_db_connection(); cur = conn.cursor()
-        cur.execute("SELECT id, title || ': ' || description FROM lessons WHERE id = %s", (lid,))
-        row = cur.fetchone(); cur.close(); conn.close()
-        return {"id": row[0], "content": row[1]} if row else None
-    except: return None
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # 1. Try student-specific lessons table first
+        cur.execute("SELECT id, title, description FROM lessons WHERE id = %s", (lid,))
+        row = cur.fetchone()
+        
+        if row:
+            content = f"{row[1]}: {row[2]}" if row[2] else row[1]
+            cur.close(); conn.close()
+            return {"id": row[0], "content": content}
+        
+        # 2. Try master content_lessons table
+        cur.execute("SELECT id, title, description FROM content_lessons WHERE id = %s", (lid,))
+        row = cur.fetchone()
+        
+        cur.close(); conn.close()
+        
+        if row:
+            content = f"{row[1]}: {row[2]}" if row[2] else row[1]
+            return {"id": row[0], "content": content}
+            
+        return None
+    except Exception as e:
+        print(f"❌ Error fetching lesson {lid}: {e}")
+        return None
 def log_interaction_db(d):
     try:
         conn = get_db_connection(); cur = conn.cursor()

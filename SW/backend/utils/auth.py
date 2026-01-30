@@ -3,6 +3,7 @@ from typing import Optional
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 from fastapi import HTTPException, status, Depends
+from fastapi.security import APIKeyHeader
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 from db.database import get_session
@@ -15,6 +16,9 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# --- Auth scheme ---
+oauth2_scheme = APIKeyHeader(name="Authorization", scheme_name="JWT")
 
 # ----------------------------
 # Password utils
@@ -51,17 +55,24 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 # ----------------------------
 # Get current user from token
 # ----------------------------
-def get_current_user(token: str = Depends(lambda: None), db: Session = Depends(get_session)) -> User:
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_session)) -> User:
     """
     Decode JWT token, fetch user from DB, attach current role from token.
+    Expects format: "Bearer <token>"
     """
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token missing")
+    
+    if not token.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token format. Expected: Bearer <token>")
+    
+    jwt_token = token.split(" ")[1]
+    
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(jwt_token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         role: str = payload.get("role")
-        if not email or not role:
+        if not email:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
@@ -69,8 +80,5 @@ def get_current_user(token: str = Depends(lambda: None), db: Session = Depends(g
     user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
-    # Attach token role for this request only
-    user.current_role = role
 
     return user

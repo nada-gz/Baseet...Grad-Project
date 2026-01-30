@@ -9,11 +9,10 @@ def require_role(allowed_roles: list[str]):
     Uses user.current_role (from token) instead of DB role.
     """
     def role_checker(user: User = Depends(get_current_user)):
-        role_to_check = getattr(user, "current_role", user.role.value)
-        if role_to_check not in allowed_roles:
+        if user.role.value not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access forbidden for role '{role_to_check}'. Allowed roles: {allowed_roles}"
+                detail=f"Access forbidden for role '{user.role.value}'. Allowed roles: {allowed_roles}"
             )
         return user
     return role_checker

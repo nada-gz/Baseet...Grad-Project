@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from datetime import timedelta
-from utils.auth import hash_password, verify_password, create_access_token, SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES
+from utils.auth import (
+    hash_password, verify_password, create_access_token, 
+    SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
+)
 from db.database import get_session
 from sqlmodel import Session
 from models.user import User, RoleEnum
-from fastapi.security import APIKeyHeader
 from jose import jwt, JWTError
 from schemas.user_schema import UserCreate, UserLogin, UserRead
 from typing import List
@@ -34,25 +36,7 @@ def user_response(user: User, db: Session = None) -> dict:
     
     return response
 
-# --- Auth scheme ---
-oauth2_scheme = APIKeyHeader(name="Authorization", scheme_name="JWT")
-
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_session)):
-    if not token.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid format. Expected: Bearer <token>")
-    jwt_token = token.split(" ")[1]
-    try:
-        payload = jwt.decode(jwt_token, SECRET_KEY, algorithms=["HS256"])
-        email = payload.get("sub")
-        if not email:
-            raise HTTPException(status_code=401, detail="Invalid token payload")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-
-    user = db.query(User).filter(User.email == email).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
+# Note: get_current_user and oauth2_scheme are now imported from utils.auth
 
 # --- Role decorator ---
 def role_required(allowed_roles: List[str]):
@@ -99,7 +83,7 @@ def register(user: UserCreate, db: Session = Depends(get_session)):
         student_id = student.id
 
     token = create_access_token(
-        {"sub": new_user.email},
+        {"sub": new_user.email, "role": new_user.role.value},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
@@ -117,7 +101,7 @@ def login(user: UserLogin, db: Session = Depends(get_session)):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     token = create_access_token(
-        {"sub": db_user.email},
+        {"sub": db_user.email, "role": db_user.role.value},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 

@@ -447,6 +447,28 @@ export default function LessonPreparation() {
     );
   };
 
+  const handleLessonDescriptionChange = (courseNumber, milestoneNumber, lessonNumber, value) => {
+    setCourses((prev) =>
+      prev.map((c) =>
+        c.course_number === courseNumber
+          ? {
+            ...c,
+            milestones: c.milestones.map((m) =>
+              m.milestone_number === milestoneNumber
+                ? {
+                  ...m,
+                  lessons: m.lessons.map((l) =>
+                    l.lesson_number === lessonNumber ? { ...l, description: value } : l
+                  ),
+                }
+                : m
+            ),
+          }
+          : c
+      )
+    );
+  };
+
   const deleteFile = async (courseNumber, milestoneNumber, lessonNumber, fileIndex, fileId, lessonId) => {
     if (fileId && lessonId) {
       if (!window.confirm("Delete this file permanently?")) return;
@@ -838,6 +860,7 @@ export default function LessonPreparation() {
                     type="text"
                     value={l.title}
                     placeholder="Lesson Title"
+                    className="lesson-title-input"
                     onChange={(e) =>
                       handleLessonTitleChange(
                         course.course_number,
@@ -914,7 +937,7 @@ export default function LessonPreparation() {
                 </div>
 
                 {/* --- ASSIGNMENTS --- */}
-                <div className="lesson-assignments-section">
+                < div className="lesson-assignments-section" >
                   <div className="items-center justify-between mb-2">
                     <p className="section-subtitle">Assignments</p>
                     <label className="btn btn-primary btn-xs cursor-pointer gap-1">
