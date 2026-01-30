@@ -20,6 +20,7 @@ class Classroom(SQLModel, table=True):
     name: str # e.g. "Class A"
     
     level_id: int = Field(foreign_key="class_levels.id")
+    teacher_id: Optional[int] = Field(default=None, foreign_key="users.id", index=True)
     
     level: "ClassLevel" = Relationship(back_populates="classrooms")
     students: List["Student"] = Relationship(back_populates="classroom")
