@@ -3,6 +3,7 @@ from typing import Optional, List
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlmodel import Session, select, func
 from sqlalchemy.orm import selectinload
+from sqlalchemy import or_
 from pathlib import Path
 
 from db.database import get_session
@@ -21,6 +22,7 @@ from models.feedback import Feedback
 from models.submission_file import SubmissionFile
 from models.content_assignment import ContentAssignment
 from models.content_assignment_file import ContentAssignmentFile
+from utils.dependencies import require_role
 
 from schemas.content_schema import (
     ContentLessonRead, ContentCourseRead, ContentCourseCreate, StudentReadWithUser,
@@ -43,8 +45,11 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 # Get all courses
 # -----------------------
 @router.get("/courses", response_model=list[ContentCourseRead])
-def get_content_courses(session: Session = Depends(get_session)):
-    return session.exec(select(ContentCourse)).all()
+def get_content_courses(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["teacher"]))
+):
+    return session.exec(select(ContentCourse).where(or_(ContentCourse.teacher_id == current_user.id, ContentCourse.teacher_id == None))).all()
 
 
 # -----------------------
@@ -53,21 +58,27 @@ def get_content_courses(session: Session = Depends(get_session)):
 @router.post("/courses", response_model=ContentCourseRead)
 def create_content_course(
     course_data: ContentCourseCreate,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["teacher"]))
 ):
-    statement = select(ContentCourse).where(ContentCourse.course_number == course_data.course_number)
+    statement = select(ContentCourse).where(
+        ContentCourse.course_number == course_data.course_number,
+        or_(ContentCourse.teacher_id == current_user.id, ContentCourse.teacher_id == None)
+    )
     existing_course = session.exec(statement).first()
-
+ 
     if existing_course:
         existing_course.description = course_data.description
+        existing_course.teacher_id = current_user.id # Claim it
         session.add(existing_course)
         session.commit()
         session.refresh(existing_course)
         return existing_course
-
+ 
     new_course = ContentCourse(
         course_number=course_data.course_number,
-        description=course_data.description
+        description=course_data.description,
+        teacher_id=current_user.id
     )
     session.add(new_course)
     session.commit()
@@ -149,13 +160,15 @@ def create_content_lesson(
     lesson_number: int = Form(...),
     title: str = Form(...),
     description: str = Form(""),
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["teacher"]))
 ):
-    # Check if lesson exists
+    # Check if lesson exists for THIS teacher OR is unassigned
     statement = select(ContentLesson).where(
         ContentLesson.course_number == course_number,
         ContentLesson.milestone_number == milestone_number,
-        ContentLesson.lesson_number == lesson_number
+        ContentLesson.lesson_number == lesson_number,
+        or_(ContentLesson.teacher_id == current_user.id, ContentLesson.teacher_id == None)
     )
     existing_lesson = session.exec(statement).first()
 
@@ -163,6 +176,7 @@ def create_content_lesson(
         # Update existing
         existing_lesson.title = title
         existing_lesson.description = description
+        existing_lesson.teacher_id = current_user.id # Claim it
         session.add(existing_lesson)
         session.commit()
         session.refresh(existing_lesson)
@@ -170,6 +184,7 @@ def create_content_lesson(
 
     # Create new
     lesson = ContentLesson(
+        teacher_id=current_user.id,
         course_number=course_number,
         milestone_number=milestone_number,
         lesson_number=lesson_number,
@@ -188,9 +203,13 @@ def create_content_lesson(
 # Get all content lessons
 # -----------------------
 @router.get("/lessons", response_model=list[ContentLessonRead])
-def get_content_lessons(session: Session = Depends(get_session)):
+def get_content_lessons(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["teacher"]))
+):
     stmt = (
         select(ContentLesson)
+        .where(or_(ContentLesson.teacher_id == current_user.id, ContentLesson.teacher_id == None))
         .options(
             selectinload(ContentLesson.materials),
             selectinload(ContentLesson.assignments).selectinload(ContentAssignment.files)
@@ -470,8 +489,11 @@ def delete_content_course(
 # --------------------------
 
 @router.get("/class-management/levels", response_model=List[ClassLevelRead])
-def get_levels(session: Session = Depends(get_session)):
-    levels = session.exec(select(ClassLevel)).all()
+def get_levels(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["teacher"]))
+):
+    levels = session.exec(select(ClassLevel).where(or_(ClassLevel.teacher_id == current_user.id, ClassLevel.teacher_id == None))).all()
     # Populate student_count for each classroom manually or via query
     # For simplicity, rely on relationship lazy loading but student_count needs logic
     result = []
@@ -494,8 +516,12 @@ def get_levels(session: Session = Depends(get_session)):
     return result
 
 @router.post("/class-management/levels", response_model=ClassLevelRead)
-def create_level(level_data: ClassLevelCreate, session: Session = Depends(get_session)):
-    level = ClassLevel(name=level_data.name)
+def create_level(
+    level_data: ClassLevelCreate,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["teacher"]))
+):
+    level = ClassLevel(name=level_data.name, teacher_id=current_user.id)
     session.add(level)
     session.commit()
     session.refresh(level)
@@ -503,11 +529,16 @@ def create_level(level_data: ClassLevelCreate, session: Session = Depends(get_se
 
 
 @router.post("/class-management/levels/{level_id}/classrooms", response_model=ClassroomRead)
-def create_classroom(level_id: int, classroom_data: ClassroomCreate, session: Session = Depends(get_session)):
+def create_classroom(
+    level_id: int,
+    classroom_data: ClassroomCreate,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["teacher"]))
+):
     if classroom_data.level_id != level_id:
         raise HTTPException(400, "Level ID mismatch")
     
-    classroom = Classroom(name=classroom_data.name, level_id=level_id)
+    classroom = Classroom(name=classroom_data.name, level_id=level_id, teacher_id=current_user.id)
     session.add(classroom)
     session.commit()
     session.refresh(classroom)
