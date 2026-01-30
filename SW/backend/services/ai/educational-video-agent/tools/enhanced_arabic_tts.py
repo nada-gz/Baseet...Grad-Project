@@ -1,6 +1,6 @@
 """
-Enhanced Arabic TTS with ElevenLabs (primary) and Edge-TTS (fallback).
-Uses Egyptian dialect processing for natural speech.
+Enhanced Arabic TTS with Edge-TTS only.
+Uses Standard Arabic with Edge-TTS.
 """
 import os
 import asyncio
@@ -10,22 +10,51 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Import ElevenLabs
-try:
-    from elevenlabs import VoiceSettings
-    from elevenlabs.client import ElevenLabs
-    ELEVENLABS_AVAILABLE = True
-except ImportError:
-    ELEVENLABS_AVAILABLE = False
-    print("⚠️  ElevenLabs not installed. Will use Edge-TTS only.")
-
 # Import Edge-TTS
 try:
     import edge_tts
     EDGE_TTS_AVAILABLE = True
 except ImportError:
     EDGE_TTS_AVAILABLE = False
-    print("⚠️  Edge-TTS not installed. Will use ElevenLabs only.")
+    print("⚠️  Edge-TTS not installed. Please install it with: pip install edge-tts")
+
+
+class EdgeTTS:
+    """Edge-TTS with Standard Arabic."""
+    
+    def __init__(self):
+        self.voice = os.getenv("EDGE_VOICE", "ar-SA-ZariyahNeural")
+        if EDGE_TTS_AVAILABLE:
+            print(f"✅ Edge-TTS initialized (Voice: {self.voice})")
+        else:
+            print(f"❌ Edge-TTS not available")
+    
+    async def generate_audio_async(self, text: str, output_path: str) -> dict:
+        """Generate audio using Edge-TTS."""
+        if not EDGE_TTS_AVAILABLE:
+            return {"success": False, "error": "Edge-TTS not available"}
+        
+        try:
+            print(f"  🎤 Edge-TTS: Generating audio...")
+            
+            # Generate audio
+            communicate = edge_tts.Communicate(text, self.voice)
+            await communicate.save(output_path)
+            
+            return {
+                "success": True,
+                "audio_path": output_path,
+                "error": None,
+                "provider": "Edge-TTS"
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "audio_path": None,
+                "error": str(e),
+                "provider": "Edge-TTS"
+            }
 
 
 class ElevenLabsTTS:
@@ -125,18 +154,16 @@ class EdgeTTSFallback:
 
 class EnhancedArabicTTS:
     """
-    Enhanced Arabic TTS with automatic fallback.
-    Primary: ElevenLabs (better quality, Egyptian dialect)
-    Fallback: Edge-TTS (free, Standard Arabic)
+    Enhanced Arabic TTS with Edge-TTS only.
+    No ElevenLabs fallback - uses Edge-TTS for all generation.
     """
     
     def __init__(self):
-        self.elevenlabs = ElevenLabsTTS()
-        self.edge_tts = EdgeTTSFallback()
+        self.edge_tts = EdgeTTS()
     
     async def generate_arabic_audio_async(self, arabic_text: str, output_path: str) -> dict:
         """
-        Generate Arabic audio with automatic fallback.
+        Generate Arabic audio using Edge-TTS.
         
         Args:
             arabic_text: Arabic text to narrate
@@ -147,22 +174,12 @@ class EnhancedArabicTTS:
         """
         print(f"  ✨ Text: {arabic_text[:80]}...")
         
-        # Try ElevenLabs first
-        if self.elevenlabs.client:
-            result = await self.elevenlabs.generate_audio_async(arabic_text, output_path)
-            if result["success"]:
-                print(f"  ✅ Audio generated via {result['provider']}")
-                return result
-            else:
-                print(f"  ⚠️  ElevenLabs failed: {result['error']}")
-                print(f"  🔄 Falling back to Edge-TTS...")
-        
-        # Fallback to Edge-TTS
+        # Use Edge-TTS directly (no fallback)
         result = await self.edge_tts.generate_audio_async(arabic_text, output_path)
         if result["success"]:
             print(f"  ✅ Audio generated via {result['provider']}")
         else:
-            print(f"  ❌ Both TTS providers failed!")
+            print(f"  ❌ Edge-TTS failed: {result['error']}")
         
         return result
 
