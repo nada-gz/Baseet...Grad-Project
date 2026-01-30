@@ -128,9 +128,12 @@ export default function StudentLiveMonitoring() {
     });
 
     // Real Data Fetching
+    // Real Data Fetching (WebSocket + Initial Fetch)
     useEffect(() => {
-        const fetchData = async () => {
-            if (!studentId) return;
+        if (!studentId) return;
+
+        // 1. Initial REST fetch (to populate data immediately)
+        const fetchInitialData = async () => {
             try {
                 const res = await api.get(`/iot/current_status`, {
                     params: { student_id: studentId }
@@ -144,21 +147,53 @@ export default function StudentLiveMonitoring() {
                         status: res.data.status
                     });
                 } else if (res.data) {
-                    // Just status
                     setData(prev => ({
                         ...prev,
                         status: res.data.status || "Offline"
                     }));
                 }
             } catch (err) {
-                console.error("Failed to fetch IoT status:", err);
-                setData(prev => ({ ...prev, status: "Offline" }));
+                console.error("Failed to fetch initial IoT status:", err);
+            }
+        };
+        fetchInitialData();
+
+        // 2. WebSocket Connection for Real-time Updates
+        // Assuming backend is at 127.0.0.1:8000. 
+        const wsUrl = `ws://127.0.0.1:8000/iot/ws/${studentId}`;
+        const ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+            console.log("✅ WebSocket Connected");
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const message = JSON.parse(event.data);
+                console.log("📩 LIVE Update:", message);
+                // Update state immediately
+                setData({
+                    temp: message.temperature,
+                    hr: message.hr,
+                    gsr: message.gsr,
+                    status: message.status
+                });
+            } catch (e) {
+                console.error("WS Parse Error:", e);
             }
         };
 
-        const interval = setInterval(fetchData, 5000); // Fetch every 5 seconds
-        fetchData(); // Initial fetch
-        return () => clearInterval(interval);
+        ws.onclose = () => {
+            console.log("⚠️ WebSocket Disconnected");
+        };
+
+        ws.onerror = (error) => {
+            console.error("WebSocket Error:", error);
+        };
+
+        return () => {
+            ws.close();
+        };
     }, [studentId]);
 
     // Helper for status class
@@ -217,7 +252,10 @@ export default function StudentLiveMonitoring() {
                             <Heart className="metric-icon heart" size={24} />
                             <span>Heart Rate</span>
                         </div>
-                        <Gauge value={data.hr} min={70} max={120} unit="BPM" color="#f43f5e" />
+                        <Gauge
+                            value={(data.status || "").toLowerCase() === 'offline' ? 0 : data.hr}
+                            min={70} max={130} unit="BPM" color="#f43f5e"
+                        />
                     </div>
 
                     <div className="metric-card glass-panel">
@@ -225,7 +263,10 @@ export default function StudentLiveMonitoring() {
                             <Droplets className="metric-icon droplet" size={24} />
                             <span>GSR</span>
                         </div>
-                        <Gauge value={data.gsr} min={50} max={0} unit="µS" color="#0ea5e9" />
+                        <Gauge
+                            value={(data.status || "").toLowerCase() === 'offline' ? 0 : data.gsr}
+                            min={52} max={0} unit="µS" color="#0ea5e9"
+                        />
                     </div>
 
                     <div className="metric-card glass-panel">
@@ -233,7 +274,10 @@ export default function StudentLiveMonitoring() {
                             <Thermometer className="metric-icon temp" size={24} />
                             <span>Temperature</span>
                         </div>
-                        <Gauge value={data.temp} min={36} max={39} unit="°C" color="#f97316" />
+                        <Gauge
+                            value={(data.status || "").toLowerCase() === 'offline' ? 0 : data.temp}
+                            min={36} max={39} unit="°C" color="#f97316"
+                        />
                     </div>
                 </div>
 
