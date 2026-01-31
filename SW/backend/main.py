@@ -1,4 +1,5 @@
 import os
+import requests
 import asyncio
 import contextlib
 from dotenv import load_dotenv
@@ -73,3 +74,15 @@ def read_root():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+# AI Test Endpoint
+AI_BASE_URL = os.getenv("AI_BASE_URL")
+@app.get("/ai-test")
+def ai_test():
+    if not AI_BASE_URL:
+        return {"error": "AI_BASE_URL not set"}
+
+    r = requests.get(f"{AI_BASE_URL}/health", timeout=10)
+    return {
+        "modal_response": r.json()
+    }
