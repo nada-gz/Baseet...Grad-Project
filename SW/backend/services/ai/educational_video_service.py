@@ -106,13 +106,16 @@ class VideoGenerationService:
         
         return topic, duration
     
-    async def generate_video_sync(self, topic: Optional[str], duration: Optional[float]) -> Dict[str, Any]:
+    async def generate_video_sync(self, topic: Optional[str], duration: Optional[float],
+                              lesson_id: Optional[int] = None, student_id: Optional[int] = None) -> Dict[str, Any]:
         """
         Generate video synchronously.
         
         Args:
             topic: Video topic (optional, falls back to prompt.txt)
             duration: Video duration in minutes (optional, falls back to duration.txt)
+            lesson_id: Associated lesson ID (optional)
+            student_id: Associated student ID (optional)
             
         Returns:
             Dict with:
@@ -140,7 +143,7 @@ class VideoGenerationService:
             # Extract only the final video path from outputs
             if result.get("success") and result.get("video_path"):
                 video_path = result.get("video_path")
-                session_id = result.get("session_dir", "").split("\\")[-1] if result.get("session_dir") else "unknown"
+                session_id = result.get("session_dir", "").replace("\\", "/").split("/")[-1] if result.get("session_dir") else "unknown"
                 
                 return {
                     "success": True,
@@ -183,13 +186,16 @@ class VideoGenerationService:
                 "error": str(e)
             }
     
-    async def generate_video_async(self, topic: Optional[str], duration: Optional[float]) -> Dict[str, Any]:
+    async def generate_video_async(self, topic: Optional[str], duration: Optional[float], 
+                             lesson_id: Optional[int] = None, student_id: Optional[int] = None) -> Dict[str, Any]:
         """
         Generate video asynchronously and return job_id for polling.
         
         Args:
             topic: Video topic (optional)
             duration: Video duration in minutes (optional)
+            lesson_id: Associated lesson ID (optional)
+            student_id: Associated student ID (optional)
             
         Returns:
             Dict with:
@@ -211,6 +217,8 @@ class VideoGenerationService:
                 "status": "queued",
                 "topic": topic,
                 "duration": duration,
+                "lesson_id": lesson_id,
+                "student_id": student_id,
                 "progress": 0,
                 "started_at": datetime.datetime.now().isoformat(),
                 "video_path": None,
@@ -316,6 +324,8 @@ class VideoGenerationService:
             "progress": job.get("progress", 0),
             "topic": job.get("topic"),
             "duration": job.get("duration"),
+            "lesson_id": job.get("lesson_id"),
+            "student_id": job.get("student_id"),
             "video_path": job.get("video_path"),
             "session_id": job.get("session_id"),
             "error": job.get("error"),

@@ -1,0 +1,44 @@
+{
+  "topic": "النجوم",
+  "session_id": "20260130_224005_2d93",
+  "target_duration_minutes": 1.0,
+  "segments": [
+    {
+      "segment_id": "intro",
+      "title": "Introduction",
+      "video_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224005_2d93/videos/videos/tmpbq4844pt/480p15/TitleSlide.mp4",
+      "audio_path": null,
+      "status": "success"
+    },
+    {
+      "segment_id": 1,
+      "title": "مقدمة عن النجوم",
+      "video_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224005_2d93/videos/videos/tmpzzjq1pt1/480p15/IntroductionToStars.mp4",
+      "audio_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224005_2d93/audio/segment_1.mp3",
+      "status": "success"
+    },
+    {
+      "segment_id": 2,
+      "title": "مراحل تكوين النجوم",
+      "video_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224005_2d93/videos/videos/tmpovw_ps_z/480p15/StellarFormation.mp4",
+      "audio_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224005_2d93/audio/segment_2.mp3",
+      "status": "success"
+    },
+    {
+      "segment_id": 3,
+      "title": "أنواع النجوم وخصائصها",
+      "video_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224005_2d93/videos/videos/tmp239p4eq3/480p15/StarsClassification.mp4",
+      "audio_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224005_2d93/audio/segment_3.mp3",
+      "status": "success"
+    },
+    {
+      "segment_id": 4,
+      "title": "حياة النجوم ونهايتها",
+      "video_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224005_2d93/videos/videos/tmpymw11s7f/480p15/StellarLifeCycle.mp4",
+      "audio_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224005_2d93/audio/segment_4.mp3",
+      "status": "success"
+    }
+  ],
+  "final_video": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224005_2d93/final_النجوم.mp4",
+  "generation_time_seconds": 134.71104216575623
+}

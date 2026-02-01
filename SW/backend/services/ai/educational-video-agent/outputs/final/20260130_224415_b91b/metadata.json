@@ -1,0 +1,44 @@
+{
+  "topic": "النجوم",
+  "session_id": "20260130_224415_b91b",
+  "target_duration_minutes": 1.0,
+  "segments": [
+    {
+      "segment_id": "intro",
+      "title": "Introduction",
+      "video_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224415_b91b/videos/videos/tmp1x_6pdeq/480p15/TitleSlide.mp4",
+      "audio_path": null,
+      "status": "success"
+    },
+    {
+      "segment_id": 1,
+      "title": "مقدمة عن النجوم",
+      "video_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224415_b91b/videos/videos/tmp9amuipuo/480p15/StarsIntroduction.mp4",
+      "audio_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224415_b91b/audio/segment_1.mp3",
+      "status": "success"
+    },
+    {
+      "segment_id": 2,
+      "title": "مراحل تكوين النجوم",
+      "video_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224415_b91b/videos/videos/tmptau_llax/480p15/StellarFormation.mp4",
+      "audio_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224415_b91b/audio/segment_2.mp3",
+      "status": "success"
+    },
+    {
+      "segment_id": 3,
+      "title": "أنواع النجوم ودرجات حرارتها",
+      "video_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224415_b91b/videos/videos/tmpuejzd4mz/480p15/StarsAndTemperatures.mp4",
+      "audio_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224415_b91b/audio/segment_3.mp3",
+      "status": "success"
+    },
+    {
+      "segment_id": 4,
+      "title": "نهاية حياة النجم",
+      "video_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224415_b91b/videos/videos/tmpf84v528x/480p15/StellarLifeEnd.mp4",
+      "audio_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224415_b91b/audio/segment_4.mp3",
+      "status": "success"
+    }
+  ],
+  "final_video": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224415_b91b/final_النجوم.mp4",
+  "generation_time_seconds": 201.81033205986023
+}

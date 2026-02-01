@@ -10,15 +10,54 @@ export default function LessonPlayer() {
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Video State
+  const [videoUrl, setVideoUrl] = useState(null);
+  const [isLoadingVideo, setIsLoadingVideo] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("بسيط بيفكر...");
+  const videoRef = useState(null)[1] || require("react").useRef(null); // Simple useRef since we are inside a function component
+
+  const loadingMessages = [
+    "بسيط بيفكر...",
+    "بسيط بيجهز الفيديو...",
+    "بسيط قرب يوصل...",
+    "ثواني ويكون جاهز..."
+  ];
+
+  // Fetch Lesson & Generate Video
   useEffect(() => {
-    const loadLesson = async () => {
-      if (!student) return; // wait until student info is loaded
+    const loadLessonAndVideo = async () => {
+      if (!student) return;
 
       try {
-        // Call backend to get a single lesson for this student
+        // 1. Load Lesson Details
         const res = await api.get(`/students/${student.id}/lessons/${lessonId}`);
         console.log("Lesson loaded:", res.data);
         setLesson(res.data);
+
+        // 2. Generate Video (Unlocks sync generation)
+        setIsLoadingVideo(true);
+        try {
+          // This endpoint now waits for generation to complete (~1 min)
+          const videoRes = await api.post("/ai/video/generate", {
+            lesson_id: parseInt(lessonId),
+            student_id: student.id,
+            duration: 1.0 // Default duration
+          });
+
+          if (videoRes.data && videoRes.data.video_url) {
+            // Prepend base URL if it's a relative path
+            const url = videoRes.data.video_url.startsWith("http")
+              ? videoRes.data.video_url
+              : `http://127.0.0.1:8000${videoRes.data.video_url}`;
+            setVideoUrl(url);
+          }
+        } catch (videoError) {
+          console.error("Video generation failed:", videoError);
+          // Optional: Set an error state or keeping placeholder
+        } finally {
+          setIsLoadingVideo(false);
+        }
+
       } catch (error) {
         console.error("Failed to load lesson:", error);
         setLesson(null);
@@ -27,8 +66,30 @@ export default function LessonPlayer() {
       }
     };
 
-    loadLesson();
+    loadLessonAndVideo();
   }, [lessonId, student]);
+
+  // Cycle Loading Messages
+  useEffect(() => {
+    if (!isLoadingVideo) return;
+
+    let msgIndex = 0;
+    const interval = setInterval(() => {
+      msgIndex = (msgIndex + 1) % loadingMessages.length;
+      setLoadingMessage(loadingMessages[msgIndex]);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isLoadingVideo]);
+
+  // Video Controls
+  const handlePlay = () => {
+    if (videoRef.current) videoRef.current.play();
+  };
+
+  const handlePause = () => {
+    if (videoRef.current) videoRef.current.pause();
+  };
 
   if (authLoading || loading) return <div>Loading lesson...</div>;
   if (!lesson) return <div>Lesson not found.</div>;
@@ -64,11 +125,28 @@ export default function LessonPlayer() {
       </div>
 
       {/* ================= VIDEO ================= */}
+      {/* ================= VIDEO ================= */}
       <div className="lesson-video">
-        <div className="video-placeholder">
-          <div className="animate-bounce text-4xl">🎬</div>
-          ! فيديو الدرس هيكون هنا يا بطل
-        </div>
+        {isLoadingVideo ? (
+          <div className="video-placeholder" style={{ flexDirection: 'column', gap: '1rem' }}>
+            <div className="animate-spin text-4xl">⏳</div>
+            <p style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{loadingMessage}</p>
+          </div>
+        ) : videoUrl ? (
+          <video
+            ref={videoRef}
+            src={videoUrl}
+            controls={false} // We typically use custom controls, but can enable native ones too
+            className="video-element"
+            style={{ width: '100%', height: '100%', borderRadius: '20px', objectFit: 'cover' }}
+            autoPlay
+          />
+        ) : (
+          <div className="video-placeholder">
+            <div className="text-4xl">⚠️</div>
+            <p>عفواً، لم نتمكن من تحميل الفيديو</p>
+          </div>
+        )}
 
         <img
           src={require("../../../assets/eyes_baseet.png")}
@@ -80,11 +158,11 @@ export default function LessonPlayer() {
 
       {/* ================= CONTROLS ================= */}
       <div className="lesson-controls">
-        <button className="lesson-btn primary">
+        <button className="lesson-btn primary" onClick={handlePlay}>
           <Play size={24} /> تشغيل
         </button>
 
-        <button className="lesson-btn secondary">
+        <button className="lesson-btn secondary" onClick={handlePause}>
           <Pause size={24} /> إيقاف مؤقت
         </button>
 
