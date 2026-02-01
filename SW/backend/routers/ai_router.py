@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, FileResponse
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional
 import datetime
@@ -41,7 +42,8 @@ class BotResponse(BaseModel):
 # =========================
 class GenerateVideoRequest(BaseModel):
     """Unified video generation request (async by default)."""
-    topic: Optional[str] = None
+    lesson_id: int
+    student_id: int
     duration: Optional[float] = None
 
 
@@ -52,6 +54,7 @@ class VideoResponse(BaseModel):
     status: Optional[str] = None
     progress: Optional[int] = None
     video_path: Optional[str] = None
+    video_url: Optional[str] = None
     session_id: Optional[str] = None
     message: str
     error: Optional[str] = None
@@ -258,18 +261,29 @@ async def interactive_lesson_endpoint(request: InteractiveLessonRequest):
 @router.post("/video/generate", response_model=VideoResponse)
 async def generate_video(request: GenerateVideoRequest):
     """
-    Generate an educational video asynchronously.
+    Generate an educational video synchronously.
     
-    - Falls back to prompt.txt and duration.txt if not provided
-    - Returns job_id for polling progress
-    - Poll with GET /ai/video/status/{job_id}
+    - Fetches lesson topic and student context automatically
+    - WAITS for generation to complete (synchronous)
+    - Returns video_path and video_url directly in the response
     - Download with GET /ai/video/download/{session_id}
     """
     try:
+        # 1. Fetch lesson content to use as topic
+        lesson_data = fetch_lesson_by_id(request.lesson_id)
+        if not lesson_data:
+            raise HTTPException(status_code=404, detail=f"Lesson {request.lesson_id} not found")
+        
+        # Use simple content (usually Title: Description) as the topic for generation
+        topic = lesson_data.get("content", "Educational Topic")
+        
+        # 2. Call video service synchronously
         video_service = get_video_service()
-        result = await video_service.generate_video_async(
-            topic=request.topic,
-            duration=request.duration
+        result = await video_service.generate_video_sync(
+            topic=topic,
+            duration=request.duration,
+            lesson_id=request.lesson_id,
+            student_id=request.student_id
         )
         
         if not result["success"]:
@@ -282,17 +296,6 @@ async def generate_video(request: GenerateVideoRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/video/status/{job_id}", response_model=VideoResponse)
-async def get_video_status(job_id: str):
-    """Check async job status. Returns progress (0-100) and video_path when complete."""
-    try:
-        video_service = get_video_service()
-        result = video_service.get_job_status(job_id)
-        return VideoResponse(**result)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/video/download/{session_id}")

@@ -1,0 +1,45 @@
+{
+  "topic": "النجوم",
+  "session_id": "20260130_224006_607b",
+  "target_duration_minutes": 1.0,
+  "segments": [
+    {
+      "segment_id": "intro",
+      "title": "Introduction",
+      "video_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224006_607b/videos/videos/tmpu__kqp8f/480p15/TitleSlide.mp4",
+      "audio_path": null,
+      "status": "success"
+    },
+    {
+      "segment_id": 1,
+      "title": "ما هي النجوم؟",
+      "video_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224006_607b/videos/videos/tmp7awmelq9/480p15/StarsDefinition.mp4",
+      "audio_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224006_607b/audio/segment_1.mp3",
+      "status": "success"
+    },
+    {
+      "segment_id": 2,
+      "title": "مراحل حياة النجم",
+      "video_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224006_607b/videos/videos/tmpev6vskzk/480p15/StellarEvolution.mp4",
+      "audio_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224006_607b/audio/segment_2.mp3",
+      "status": "success"
+    },
+    {
+      "segment_id": 3,
+      "title": "أنواع النجوم حسب اللون والدرجة الحرارية",
+      "video_path": null,
+      "audio_path": null,
+      "status": "failed",
+      "error": "Video rendering failed after 3 attempts"
+    },
+    {
+      "segment_id": 4,
+      "title": "دور النجوم في الكون",
+      "video_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224006_607b/videos/videos/tmp3cg54jo4/480p15/StarsRoleInUniverse.mp4",
+      "audio_path": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224006_607b/audio/segment_4.mp3",
+      "status": "success"
+    }
+  ],
+  "final_video": "/Users/Nada/nada/GRAD/Grad-Project/SW/backend/services/ai/educational-video-agent/outputs/final/20260130_224006_607b/final_النجوم.mp4",
+  "generation_time_seconds": 160.27836799621582
+}
