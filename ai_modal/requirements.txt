@@ -1,0 +1,44 @@
+# Baseet AI Modal Service - Complete Dependencies
+# All services: RAG, TTS, STT, Text Splitting, Lesson Orchestration
+
+# Web Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# Core AI/ML
+google-genai>=1.0.0
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
+
+# Deep Learning
+torch>=2.0.0
+transformers>=4.30.0
+librosa>=0.10.0
+
+# Audio & Speech
+elevenlabs>=1.0.0
+sounddevice>=0.4.6
+scipy>=1.10.0
+
+# NLP & Text Processing
+scikit-learn>=1.3.0
+arabic-reshaper>=3.0.0
+python-bidi>=0.4.2
+
+# Database
+psycopg2-binary>=2.9.0
+
+# Document Processing
+pytesseract>=0.3.10
+Pillow>=10.0.0
+PyMuPDF>=1.23.0
+
+# Utilities
+python-dotenv>=1.0.0
+colorama>=0.4.6
+numpy>=1.24.0
+pydantic>=2.0.0
+
+# Modal
+modal>=0.55.0
+
