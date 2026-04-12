@@ -17,6 +17,7 @@ class ContentLesson(SQLModel, table=True):
 
     title: str
     description: Optional[str] = None
+    duration_minutes: Optional[int] = Field(default=20)
     teacher_id: Optional[int] = Field(default=None, foreign_key="users.id", index=True)
 
     materials: List["ContentMaterial"] = Relationship(back_populates="lesson")

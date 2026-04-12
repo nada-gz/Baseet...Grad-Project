@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Logo from "../components/ui/logo";
 import HiBaseet from "../assets/hii_baseet.png";
+import VisualTimeStrip from "../components/ui/VisualTimeStrip";
 
 export default function MainLayout() {
   const { role, user, logout } = useAuth();
@@ -253,6 +254,7 @@ export default function MainLayout() {
         </header>
 
         <div className="content">
+          {role === "student" && <VisualTimeStrip initialMinutes={20} />}
           <Outlet />
         </div>
       </main>

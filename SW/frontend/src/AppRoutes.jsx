@@ -30,6 +30,7 @@ import StudentMaterials from "./pages/dashboards/Student/StudentMaterials";
 import StudentAssignments from "./pages/dashboards/Student/StudentAssignments";
 import StudentQuizzes from "./pages/dashboards/Student/StudentQuizzes";
 import StudentAnalytics from "./pages/dashboards/Student/StudentAnalytics";
+import BreakPage from "./pages/dashboards/Student/BreakPage";
 
 import ParentDashboard from "./pages/dashboards/ParentDashboard";
 import SupervisorDashboard from "./pages/dashboards/SupervisorDashboard";
@@ -80,6 +81,7 @@ const router = createBrowserRouter([
           { path: "/dashboard/student/analytics", element: <StudentAnalytics /> },
         ],
       },
+      { path: "/dashboard/student/break", element: <BreakPage /> },
     ],
   },
 
