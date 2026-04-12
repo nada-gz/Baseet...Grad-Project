@@ -109,6 +109,7 @@ class ContentLessonRead(BaseModel):
     lesson_number: int
     title: str
     description: Optional[str] = None
+    duration_minutes: Optional[int] = None
     materials: List[ContentMaterialRead] = []
     assignments: List[ContentAssignmentRead] = []
 
@@ -121,3 +122,4 @@ class ContentLessonCreate(BaseModel):
     milestone_number: int
     lesson_number: int
     title: str
+    duration_minutes: Optional[int] = 20
