@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from "react"; 
 import api from "../../../services/api";
 import { Trash2, FileText, Plus, File } from "lucide-react";
 
@@ -92,6 +92,7 @@ export default function LessonPreparation() {
           id: a.id,
           title: a.title,
           description: a.description || "",
+          assignment_type: a.assignment_type || "unknown",
           deadline: a.deadline ? a.deadline.split('.')[0] : "", // format for datetime-local
           files: a.files ? a.files.map(f => ({
             id: f.id,
@@ -237,6 +238,7 @@ export default function LessonPreparation() {
                           ...files.map((f) => ({
                             title: f.name, // Use filename as title
                             description: "",
+                            assignment_type: "unknown",
                             deadline: "",
                             files: [{
                               file: f,
@@ -372,6 +374,35 @@ export default function LessonPreparation() {
                         ...lsn,
                         assignments: lsn.assignments.map((asg, idx) =>
                           idx === assignmentIndex ? { ...asg, deadline: value } : asg
+                        ),
+                      }
+                      : lsn
+                  ),
+                }
+                : m
+            ),
+          }
+          : c
+      )
+    );
+  };
+
+  const handleAssignmentTypeChange = (courseNumber, milestoneNumber, lessonNumber, assignmentIndex, value) => {
+    setCourses((prev) =>
+      prev.map((c) =>
+        c.course_number === courseNumber
+          ? {
+            ...c,
+            milestones: c.milestones.map((m) =>
+              m.milestone_number === milestoneNumber
+                ? {
+                  ...m,
+                  lessons: m.lessons.map((lsn) =>
+                    lsn.lesson_number === lessonNumber
+                      ? {
+                        ...lsn,
+                        assignments: lsn.assignments.map((asg, idx) =>
+                          idx === assignmentIndex ? { ...asg, assignment_type: value } : asg
                         ),
                       }
                       : lsn
@@ -693,6 +724,7 @@ export default function LessonPreparation() {
                 const asgFormData = new FormData();
                 asgFormData.append("title", asg.title);
                 asgFormData.append("description", asg.description || "");
+                asgFormData.append("assignment_type", asg.assignment_type || "unknown");
                 if (asg.deadline) {
                   asgFormData.append("deadline", asg.deadline);
                 }
@@ -953,27 +985,27 @@ export default function LessonPreparation() {
 
                   <div className="assignments-list mt-2">
                     {l.assignments && l.assignments.map((asg, aIdx) => (
-                      <div key={aIdx} className="assignment-file-row flex items-center justify-between mb-2 p-2 border rounded w-full">
-                        <div className="flex items-center gap-2 flex-grow min-w-0">
-                          <File size={18} className="text-primary shrink-0" />
-                          <a
-                            href={asg.files[0]?.file ? asg.files[0]?.url : `http://127.0.0.1:8000${asg.files[0]?.url}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="clickable-file-link text-sm truncate"
-                          >
-                            {asg.title}
-                          </a>
-                        </div>
-                        <div className="dead flex items-center gap-2">
-                          <input
-                            type="datetime-local"
-                            className="p-1 border rounded text-xs text-red-500"
-                            value={asg.deadline || ""}
-                            onChange={(e) => handleAssignmentDeadlineChange(course.course_number, m.milestone_number, l.lesson_number, aIdx, e.target.value)}
-                          />
+                      <div key={aIdx} className="assignment-card-premium">
+                        {/* Row 1: File Info & Delete Icon */}
+                        <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-50">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-indigo-50 p-2 rounded-xl">
+                              <File size={20} className="text-indigo-600" />
+                            </div>
+                            <div className="flex flex-col">
+                              <a
+                                href={asg.files[0]?.file ? asg.files[0]?.url : `http://127.0.0.1:8000${asg.files[0]?.url}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="clickable-file-link text-sm font-black text-slate-700"
+                              >
+                                {asg.title}
+                              </a>
+                              <span className="text-[10px] text-slate-400 font-bold uppercase">Assignment File</span>
+                            </div>
+                          </div>
                           <button
-                            className="delete-btn-well-styled shrink-0"
+                            className="trash-icon-btn"
                             title="Delete Assignment"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -981,8 +1013,39 @@ export default function LessonPreparation() {
                               deleteAssignment(course.course_number, m.milestone_number, l.lesson_number, aIdx, asg.id);
                             }}
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={18} />
                           </button>
+                        </div>
+
+                        {/* Row 2: Type Toggle & Deadline */}
+                        <div className="flex flex-wrap items-end gap-6">
+                          <div>
+                            <p className="text-[10px] font-black uppercase text-slate-400 mb-2 ml-1">Submission Type</p>
+                            <div className="type-toggle-container">
+                              <button
+                                className={`type-toggle-btn ${asg.assignment_type !== 'narrative' ? 'active-standard' : ''}`}
+                                onClick={() => handleAssignmentTypeChange(course.course_number, m.milestone_number, l.lesson_number, aIdx, "unknown")}
+                              >
+                                STANDARD
+                              </button>
+                              <button
+                                className={`type-toggle-btn ${asg.assignment_type === 'narrative' ? 'active-narrative' : ''}`}
+                                onClick={() => handleAssignmentTypeChange(course.course_number, m.milestone_number, l.lesson_number, aIdx, "narrative")}
+                              >
+                                NARRATIVE
+                              </button>
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="text-[10px] font-black uppercase text-slate-400 mb-2 ml-1">Deadline Date</p>
+                            <input
+                              type="datetime-local"
+                              className="deadline-input-compact"
+                              value={asg.deadline || ""}
+                              onChange={(e) => handleAssignmentDeadlineChange(course.course_number, m.milestone_number, l.lesson_number, aIdx, e.target.value)}
+                            />
+                          </div>
                         </div>
                       </div>
                     ))}

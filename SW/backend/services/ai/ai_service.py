@@ -608,19 +608,99 @@ class SmartOrchestrator:
                     "needs_input": session["state"] != "COMPLETED",
                     "progress": session.get("progress", 0)
                 }
-            
+
             return {"success": False, "state": "ERROR", "message": f"Unknown State: {session['state']}"}
-        
+
         except Exception as e:
             import traceback
             print(f"❌ Error in run_interactive_lesson: {e}")
             traceback.print_exc()
-            # Return a friendly error message to the user, hide technical details
             return {
                 "success": False, 
                 "state": "ERROR", 
                 "message": "يا بطل، حصلت مشكلة صغيرة عندي. ممكن تحاول تاني؟ 😅",
-                "technical_error": str(e) # Still return it in a field that might be logged but not shown as content
+                "technical_error": str(e)
+            }
+
+    # ==========================================
+    # NARRATIVE SCAFFOLD (NEW)
+    # ==========================================
+    def analyze_narrative_scaffold(self, text: str) -> Dict[str, Any]:
+        """
+        Analyzes text for Story Grammar (C/S/P/E/R) and Causal Connectives.
+        Uses a robust prompt to minimize false positives and capture subtle child narratives.
+        """
+        if not text or not text.strip():
+            return {"success": False, "error": "Empty text"}
+
+        # 1. Count Causal Connectives (Expanded Arabic list)
+        causal_words = [
+            "عشان", "علشان", "لأن", "بسبب", "فـ", "وبالتالي", "لذلك", "وبعدين", 
+            "فجأة", "عشان كدة", "في الآخر", "لما", "وقت ما"
+        ]
+        connective_count = 0
+        text_lower = text.lower()
+        for word in causal_words:
+            connective_count += text_lower.count(word)
+
+        # 2. Use Gemini with a high-accuracy narrative analysis prompt
+        prompt = f"""
+        You are an expert Speech-Language Pathologist specialized in Narrative Analysis for children (Story Grammar).
+        Analyze the following Arabic story transcript (transcribed from speech) for these 5 elements:
+        
+        ELEMENTS CRITERIA:
+        - Character (C): Any person, animal, or living robot mentioned. (e.g. "أنا", "بسيط", "صاحبي")
+        - Setting (S): Explicit location or time mention. Be conservative; don't assume a setting unless mentioned (e.g. "في المدرسة", "يوم الجمعة", "على البحر").
+        - Problem (P): A specific challenge, conflict, or something going wrong. (e.g. "العجلة اتكسرت", "ضاعت مني اللعبة", "كنت زعلان")
+        - Event (E): Action taken to solve the problem or a core activity. (e.g. "رحت أصلحها", "فضلت أدور عليها", "لعبنا بالكورة")
+        - Resolution (R): The outcome or how things ended. (e.g. "لقيتها في الآخر", "بقينا مبسوطين", "روحت البيت")
+
+        INSTRUCTIONS:
+        1. Identify which elements are TRULY present. Do not guess.
+        2. If the child mentions a problem like "I lost my toy", that IS a Problem (P).
+        3. If the child describes an action like "I started looking", that IS an Event (E).
+        4. Generate a very friendly follow-up question in Arabic (Egyptian dialect preferred) to ask about ONE missing element to help them complete the story.
+
+        OUTPUT FORMAT (JSON):
+        {{
+          "found": "C,P,E", // String of found elements
+          "missing": ["Setting", "Resolution"], // Array of full names
+          "prompt": "شاطر أوي! وايه اللي حصل في الآخر؟", // Friendly follow-up
+          "is_complete": false // true if all 5 are present
+        }}
+
+        STORY TRANSCRIPT: "{text}"
+        """
+        
+        try:
+            response = self.gemini_client.models.generate_content(
+                model=GENERATION_MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.1 # Low temperature for more consistent analysis
+                )
+            )
+            analysis = json.loads(response.text)
+            
+            # Final sanity check: ensure 'found' matches 'missing' logic
+            found_list = analysis.get("found", "").split(',')
+            found_list = [f.strip() for f in found_list if f.strip()]
+            
+            return {
+                "success": True,
+                "found": ",".join(found_list),
+                "missing": analysis.get("missing", []),
+                "next_prompt": analysis.get("prompt", "كمل حكايتك يا بطل وايه حصل تاني؟"),
+                "is_complete": analysis.get("is_complete", False),
+                "connective_count": connective_count
+            }
+        except Exception as e:
+            print(f"❌ Scaffold Error: {e}")
+            return {
+                "success": False, 
+                "error": str(e),
+                "connective_count": connective_count
             }
 
 # ==========================================

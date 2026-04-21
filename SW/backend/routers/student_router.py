@@ -812,7 +812,8 @@ def get_submission(
         "feedback": {
             "comment": submission.feedback.comment,
             "rating": submission.feedback.rating
-        } if submission.feedback else None
+        } if submission.feedback else None,
+        "audio_url": submission.audio_url
     }
 
 
@@ -821,7 +822,11 @@ async def submit_assignment(
     student_id: int,
     assignment_id: int,
     description: str = Form(""),
-    files: list[UploadFile] = File(...),
+    submission_method: str = Form("typed"),
+    story_grammar_score: Optional[str] = Form(None),
+    causal_connective_count: int = Form(0),
+    files: Optional[list[UploadFile]] = File(None),
+    audio: Optional[UploadFile] = File(None),
     session: Session = Depends(get_session)
 ):
     try:
@@ -843,6 +848,9 @@ async def submit_assignment(
                 assignment_id=assignment_id,
                 student_id=student_id,
                 description=description,
+                submission_method=submission_method,
+                story_grammar_score=story_grammar_score,
+                causal_connective_count=causal_connective_count,
                 submitted_at=datetime.utcnow()
             )
             session.add(submission)
@@ -858,32 +866,46 @@ async def submit_assignment(
                 session.delete(existing_feedback)
             
             # 2. Delete old SubmissionFile records from DB
-            # Actual files on disk could be cleaned up too, but for now we replace in DB
             for old_file in submission.files:
                 session.delete(old_file)
             
             submission.description = description
+            submission.submission_method = submission_method
+            submission.story_grammar_score = story_grammar_score
+            submission.causal_connective_count = causal_connective_count
             submission.updated_at = datetime.utcnow()
             session.add(submission)
             session.commit()
             session.refresh(submission)
 
         # Process Files
-        for file in files:
-            safe_filename = f"{submission.id}_{file.filename.replace(' ', '_')}"
-            file_path = SUBMISSION_UPLOAD_DIR / safe_filename
-            
-            content = await file.read()
-            with open(file_path, "wb") as f:
-                f.write(content)
+        if files:
+            for file in files:
+                safe_filename = f"{submission.id}_{file.filename.replace(' ', '_')}"
+                file_path = SUBMISSION_UPLOAD_DIR / safe_filename
                 
-            sub_file = SubmissionFile(
-                submission_id=submission.id,
-                file_name=file.filename,
-                file_url=f"/uploads/submissions/{safe_filename}",
-                file_type=file.filename.split('.')[-1]
-            )
-            session.add(sub_file)
+                content = await file.read()
+                with open(file_path, "wb") as f:
+                    f.write(content)
+                    
+                sub_file = SubmissionFile(
+                    submission_id=submission.id,
+                    file_name=file.filename,
+                    file_url=f"/uploads/submissions/{safe_filename}",
+                    file_type=file.filename.split('.')[-1]
+                )
+                session.add(sub_file)
+        
+        # Process Audio recording
+        if audio:
+            safe_audio_name = f"audio_{submission.id}_{audio.filename.replace(' ', '_')}"
+            audio_path = SUBMISSION_UPLOAD_DIR / safe_audio_name
+            
+            with open(audio_path, "wb") as f:
+                f.write(await audio.read())
+            
+            submission.audio_url = f"/uploads/submissions/{safe_audio_name}"
+            session.add(submission)
         
         session.commit()
         
@@ -917,7 +939,8 @@ async def submit_assignment(
             "feedback": {
                 "comment": submission_refreshed.feedback.comment,
                 "rating": submission_refreshed.feedback.rating
-            } if submission_refreshed.feedback else None
+            } if submission_refreshed.feedback else None,
+            "audio_url": submission_refreshed.audio_url
         }
 
     except HTTPException as he:
