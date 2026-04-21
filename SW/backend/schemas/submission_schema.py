@@ -23,3 +23,4 @@ class SubmissionRead(SQLModel):
 
     files: List[SubmissionFileRead]
     feedback: Optional[FeedbackRead]
+    audio_url: Optional[str] = None

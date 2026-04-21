@@ -57,6 +57,10 @@ class StudentProgressAssignment(BaseModel):
     timing: Optional[datetime] = None # Relevant timestamp for the current status
     feedback: Optional[str] = None
     rating: Optional[int] = None
+    submission_method: Optional[str] = None
+    story_grammar_score: Optional[str] = None
+    causal_connective_count: Optional[int] = None
+    audio_url: Optional[str] = None
     file_url: Optional[str] = None
     assignment_file_url: Optional[str] = None
     deadline: Optional[datetime] = None

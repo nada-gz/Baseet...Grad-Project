@@ -61,6 +61,22 @@ class VideoResponse(BaseModel):
 
 
 # =========================
+# SCAFFOLD MODELS
+# =========================
+class ScaffoldRequest(BaseModel):
+    text: str
+
+class ScaffoldResponse(BaseModel):
+    success: bool
+    found: Optional[str] = ""
+    missing: Optional[list] = []
+    next_prompt: Optional[str] = ""
+    is_complete: bool = False
+    connective_count: int = 0
+    error: Optional[str] = None
+
+
+# =========================
 # START LESSON (Updated to use Orchestrator)
 # =========================
 @router.post("/lesson/start", response_model=BotResponse)
@@ -335,3 +351,11 @@ async def video_health():
         }
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
+@router.post("/scaffold/narrative", response_model=ScaffoldResponse)
+async def analyze_narrative(request: ScaffoldRequest):
+    """Analyze a story narrative for C/S/P/E/R elements."""
+    try:
+        result = orchestrator.analyze_narrative_scaffold(request.text)
+        return ScaffoldResponse(**result)
+    except Exception as e:
+        return ScaffoldResponse(success=False, error=str(e))

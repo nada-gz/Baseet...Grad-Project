@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react"; 
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../../services/api";
 import {
@@ -11,7 +11,8 @@ import {
     Star,
     MessageCircle,
     Download,
-    Eye
+    Eye,
+    Mic
 } from "lucide-react";
 
 export default function StudentEducationalProgress() {
@@ -255,6 +256,42 @@ export default function StudentEducationalProgress() {
                                                                     )}
                                                                 </div>
                                                             </div>
+
+                                                            {/* Narrative Discovery Metrics (Using fixed CSS classes) */}
+                                                            {assign.submission_method === 'voice' && (
+                                                                <div className="narrative-analysis-card-fixed">
+                                                                    <div className="flex flex-col gap-4">
+                                                                        {/* Top Row: Info & AI Badge */}
+                                                                        <div className="flex items-center justify-between">
+                                                                            <span className="flex items-center gap-1.5 text-[11px] font-extrabold text-indigo-700 bg-white px-3 py-1.5 rounded-full border border-indigo-100 shadow-sm">
+                                                                                <Mic size={14} className="text-indigo-500" /> Voice Submission
+                                                                            </span>
+                                                                            <div className="ai-badge flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-md">
+                                                                                <Star size={12} className="fill-amber-400 text-amber-400" /> AI Assisted Analysis
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {/* Story Grammar Discovery removed as per request */}
+
+                                                                        {/* Bottom Row: Audio Player (Narrowed via class) */}
+                                                                        {assign.audio_url && (
+                                                                            <div className="audio-review-section pt-3 border-t border-indigo-50/50">
+                                                                                <span className="text-[10px] uppercase font-black text-slate-400 block mb-2 text-center">Oral Submission Recording</span>
+                                                                                <div className="audio-player-narrow-container">
+                                                                                    <div className="shrink-0 bg-indigo-600 p-2 rounded-full shadow-lg">
+                                                                                        <Mic size={14} className="text-white" />
+                                                                                    </div>
+                                                                                    <audio 
+                                                                                        src={`${api.defaults.baseURL}${assign.audio_url}`} 
+                                                                                        controls 
+                                                                                        className="w-full h-8 custom-audio-player"
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            )}
 
                                                             {/* 2. Evaluation Part (Underneath) */}
                                                             <div className="evaluation-row">

@@ -784,6 +784,9 @@ def get_student_educational_progress(student_id: int, session: Session = Depends
                 rating_val = None
                 file_url_val = None
                 submission = None
+                sub_method_val = None
+                sg_score_val = None
+                cc_count_val = None
                 
                 if student_assign:
                     # Fetch submission
@@ -803,15 +806,15 @@ def get_student_educational_progress(student_id: int, session: Session = Depends
                             sub_status = "resubmitted"
                             timing_val = submission.updated_at
                         
-                        # Check for evaluation
                         if submission.feedback:
-                            sub_status = "evaluated"
                             feedback_text = submission.feedback.comment
                             rating_val = submission.feedback.rating
-                            # timing_val remains submission.updated_at or submission.submitted_at
-                            # as per user request: "even if the state is evaluated, show state then submitted at date"
                         
-                        if submission.files:
+                        sub_method_val = submission.submission_method
+                        sg_score_val = submission.story_grammar_score
+                        cc_count_val = submission.causal_connective_count
+                        
+                        if submission.files and len(submission.files) > 0:
                             file_url_val = submission.files[0].file_url
 
                 assign_progress_list.append(StudentProgressAssignment(
@@ -823,6 +826,10 @@ def get_student_educational_progress(student_id: int, session: Session = Depends
                     timing=timing_val,
                     feedback=feedback_text,
                     rating=rating_val,
+                    submission_method=sub_method_val,
+                    story_grammar_score=sg_score_val,
+                    causal_connective_count=cc_count_val,
+                    audio_url=submission.audio_url if (student_assign and submission) else None,
                     deadline=ca.deadline,
                     file_url=file_url_val,
                     assignment_file_url=ca.file_url
