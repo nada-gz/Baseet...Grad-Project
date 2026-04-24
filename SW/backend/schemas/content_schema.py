@@ -8,6 +8,7 @@ class ContentCourseRead(BaseModel):
     id: int
     course_number: int
     title: Optional[str] = None
+    subject: Optional[str] = "Generic"
     description: Optional[str] = None
 
     class Config:
@@ -16,6 +17,7 @@ class ContentCourseRead(BaseModel):
 class ContentCourseCreate(BaseModel):
     course_number: int
     title: Optional[str] = None
+    subject: Optional[str] = "Generic"
     description: Optional[str] = None
 
 

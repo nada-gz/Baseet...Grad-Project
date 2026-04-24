@@ -68,6 +68,8 @@ def create_content_course(
     existing_course = session.exec(statement).first()
  
     if existing_course:
+        existing_course.title = course_data.title
+        existing_course.subject = course_data.subject
         existing_course.description = course_data.description
         existing_course.teacher_id = current_user.id # Claim it
         session.add(existing_course)
@@ -77,6 +79,8 @@ def create_content_course(
  
     new_course = ContentCourse(
         course_number=course_data.course_number,
+        title=course_data.title,
+        subject=course_data.subject,
         description=course_data.description,
         teacher_id=current_user.id
     )

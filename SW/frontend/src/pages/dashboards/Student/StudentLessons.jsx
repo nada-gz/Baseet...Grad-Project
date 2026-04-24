@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { motion } from "framer-motion";
 import api from "../../../services/api";
 import useAuth from "../../../hooks/useAuth";
-import { Lock, RotateCcw, Play } from "lucide-react";
+import { Lock, RotateCcw, Play, Brain, Sparkles } from "lucide-react";
 
 export default function StudentLessons() {
   const { user: student } = useAuth();
@@ -10,6 +11,7 @@ export default function StudentLessons() {
   const navigate = useNavigate();
 
   const [milestones, setMilestones] = useState({});
+  const [courseSubject, setCourseSubject] = useState("Generic");
   const [confirmLesson, setConfirmLesson] = useState(null);
   const [selectionModal, setSelectionModal] = useState(null); // { lessonId: ... }
 
@@ -34,6 +36,13 @@ export default function StudentLessons() {
       });
       const grouped = groupByMilestone(res.data);
       setMilestones(grouped);
+
+      // Fetch course subject
+      const coursesRes = await api.get(`/students/${student.id}/assigned-courses`);
+      const currentCourse = coursesRes.data.find(c => c.id === parseInt(courseId));
+      if (currentCourse) {
+        setCourseSubject(currentCourse.subject || 'Generic');
+      }
     } catch (err) {
       console.error("Failed to load lessons:", err);
     }
@@ -76,6 +85,108 @@ export default function StudentLessons() {
           </div>
         </div>
       </div>
+
+      {/* Math Tutor Card - Immersive & Animated */}
+      {courseSubject?.toLowerCase() === 'math' && (
+        <motion.div 
+          className="math-adventure-promo" 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          style={{ 
+            width: '100%', 
+            margin: '0.5rem 0 2rem 0', 
+            padding: '0 1rem' 
+          }}
+        >
+          <div style={{
+            background: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)',
+            borderRadius: '30px',
+            padding: '2.5rem',
+            color: 'white',
+            display: 'flex',
+            flexDirection: 'row-reverse', // Arabic friendly layout
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 20px 40px rgba(99, 102, 241, 0.25)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            {/* Decorative Background Elements */}
+            <motion.div 
+              animate={{ rotate: 360 }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              style={{
+                position: 'absolute',
+                top: '-50px',
+                right: '-50px',
+                width: '150px',
+                height: '150px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '40% 60% 70% 30% / 40% 50% 60% 50%',
+                filter: 'blur(20px)'
+              }}
+            />
+            
+            <div style={{ flex: 1, textAlign: 'right', position: 'relative', zIndex: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '15px', marginBottom: '1.2rem' }}>
+                <h2 style={{ fontSize: '2.2rem', fontWeight: '900', textShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
+                 ✨ ! مغامرة الحساب مع بسيط 
+                </h2>
+                <motion.div 
+                  animate={{ y: [0, -8, 0], rotate: [0, 5, -5, 0] }}
+                  transition={{ duration: 4, repeat: Infinity }}
+                  style={{ background: 'rgba(255,255,255,0.25)', padding: '12px', borderRadius: '18px', backdropFilter: 'blur(5px)' }}
+                >
+                  <Brain size={40} />
+                </motion.div>
+              </div>
+              
+              <p style={{ fontSize: '1.25rem', lineHeight: '1.6', opacity: 0.95, marginBottom: '2rem', maxWidth: '600px', marginLeft: 'auto' }}>
+                 بسيط مستنيك يا بطل عشان نفهم الأرقام ونلعب مع المكعبات سوا ونخلص كل تحديات الحساب بسهولة جداً 
+              </p>
+              
+              <motion.button
+                whileHover={{ scale: 1.05, boxShadow: '0 10px 20px rgba(0,0,0,0.15)' }}
+                whileTap={{ scale: 0.95 }}
+                onClick={async () => {
+                  try {
+                    await api.post(`/api/math/reset/${student.id}`);
+                    navigate("/dashboard/student/math-tutor");
+                  } catch (err) {
+                    console.error("Failed to reset math mastery:", err);
+                    navigate("/dashboard/student/math-tutor"); // Fallback navigate
+                  }
+                }}
+                className="btn"
+                style={{ 
+                  background: 'white', 
+                  color: '#6366F1', 
+                  fontWeight: '800', 
+                  padding: '16px 45px', 
+                  borderRadius: '16px',
+                  fontSize: '1.2rem',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  marginRight: '0',
+                  marginLeft: 'auto',
+                  cursor: 'pointer'
+                }}
+              >
+                <Brain size={20} />
+                يلا بينا نبدأ المغامرة
+              </motion.button>
+            </div>
+
+            <div style={{ display: 'none' }} className="promo-decorative-icon lg:block lg:flex-1">
+               {/* Space reserved for 3D illustration or character */}
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {Object.keys(milestones).length === 0 ? (
         <div className="empty-milestones">

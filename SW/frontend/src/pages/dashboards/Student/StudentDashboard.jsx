@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import api from "../../../services/api";
 import useAuth from "../../../hooks/useAuth";
 import { Link } from "react-router-dom";
-import { PlayCircle, BookOpen, FileText, Edit3, Eye } from "lucide-react";
+import { PlayCircle, BookOpen, FileText, Edit3, Eye, Brain } from "lucide-react";
 
 export default function StudentDashboard() {
   const { user: student, loading: authLoading, error: authError } = useAuth();
@@ -10,6 +10,7 @@ export default function StudentDashboard() {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentAssignments, setCurrentAssignments] = useState([]);
+  const [currentCourse, setCurrentCourse] = useState(null); // Added for subject check
   const [assignmentStatus, setAssignmentStatus] = useState("loading"); // 'none', 'not-submitted', 'submitted', 'evaluated'
   const [selectionModal, setSelectionModal] = useState(null); // { id: ... }
 
@@ -35,6 +36,7 @@ export default function StudentDashboard() {
           if (res.data.length > 0) {
             foundLessons = res.data;
             activeCourseId = course.id;
+            setCurrentCourse(course);
             // If one of these is in-progress, we are done
             if (res.data.some(l => l.status === 'in-progress')) {
               break;
@@ -281,6 +283,28 @@ export default function StudentDashboard() {
                     <button className="btn btn-primary w-full">Start Quiz</button>
                   </div>
                 </div>
+
+                {/* Math Tutor - Only shown for Math courses */}
+                {currentCourse?.subject?.toLowerCase() === 'math' && (
+                  <div className="student-card math-tutor-card" style={{ border: '2px solid #4F46E5', background: '#F5F3FF' }}>
+                    <div className="card-icon" style={{ color: '#4F46E5' }}>
+                      <Brain size={36} />
+                    </div>
+                    <h2 className="card-title">Math Adventure</h2>
+                    <p className="card-description" style={{ fontSize: '0.8rem', color: '#6B7280' }}>
+                      Master numbers with visual blocks and fun challenges! ✨
+                    </p>
+                    <div className="card-buttons mt-auto">
+                      <Link
+                        to="/dashboard/student/math-tutor"
+                        className="btn btn-primary w-full text-center"
+                        style={{ background: '#4F46E5' }}
+                      >
+                        Start Learning
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="dashboard-studying-footer">

@@ -3,6 +3,7 @@ from sqlmodel import SQLModel
 
 class CourseBase(SQLModel):
     title: str
+    subject: Optional[str] = "Generic"
     description: Optional[str] = None
     image_url: Optional[str] = None
 

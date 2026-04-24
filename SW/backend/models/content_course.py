@@ -7,5 +7,6 @@ class ContentCourse(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     course_number: int = Field(index=True, unique=True)
     title: Optional[str] = None
+    subject: str = Field(default="Generic")
     description: Optional[str] = None
     teacher_id: Optional[int] = Field(default=None, foreign_key="users.id", index=True)
