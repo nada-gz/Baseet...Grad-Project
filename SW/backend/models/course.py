@@ -6,5 +6,6 @@ class Course(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str
+    subject: str = Field(default="Generic")
     description: Optional[str] = None
     image_url: Optional[str] = None

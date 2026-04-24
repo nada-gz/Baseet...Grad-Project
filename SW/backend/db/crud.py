@@ -14,6 +14,7 @@ from models.feedback import Feedback
 from models.quiz import Quiz
 from models.ask_baseet import AskBaseet
 from models.log import Log
+from models.student_math_mastery import StudentMathMastery
 from models.content_lesson import ContentLesson
 from models.content_material import ContentMaterial
 from models.content_course import ContentCourse
@@ -24,8 +25,19 @@ from models.classroom import Classroom, ClassroomCourseLink
 from utils.auth import hash_password
 from datetime import datetime
 
+from sqlmodel import select, SQLModel, Session, update, text
+
 def create_tables():
     SQLModel.metadata.create_all(engine)
+    with Session(engine) as session:
+        # Simple migration for 'subject' column
+        for table in ["courses", "content_courses"]:
+            try:
+                session.exec(text(f"SELECT subject FROM {table} LIMIT 1"))
+            except Exception:
+                session.rollback()
+                session.exec(text(f"ALTER TABLE {table} ADD COLUMN subject VARCHAR DEFAULT 'Generic'"))
+                session.commit()
     print("✅ PostgreSQL tables ready!")
 
 

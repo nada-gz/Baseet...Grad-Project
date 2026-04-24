@@ -5,6 +5,8 @@ import { Trash2, FileText, Plus, File } from "lucide-react";
 export default function LessonPreparation() {
   const [courses, setCourses] = useState([]);
   const [courseDescriptions, setCourseDescriptions] = useState({}); // { course_number: "desc" }
+  const [courseTitles, setCourseTitles] = useState({}); // { course_number: "title" }
+  const [courseSubjects, setCourseSubjects] = useState({}); // { course_number: "subject" }
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("dashboard"); // "dashboard" | "detail"
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -40,12 +42,18 @@ export default function LessonPreparation() {
 
       setCourses(mergedCourses);
 
-      // 4. Map descriptions
+      // 4. Map descriptions, titles, and subjects
       const descMap = {};
+      const titleMap = {};
+      const subjectMap = {};
       (coursesRes.data || []).forEach(c => {
         descMap[c.course_number] = c.description || "";
+        titleMap[c.course_number] = c.title || `Course ${c.course_number}`;
+        subjectMap[c.course_number] = c.subject || "Generic";
       });
       setCourseDescriptions(descMap);
+      setCourseTitles(titleMap);
+      setCourseSubjects(subjectMap);
 
     } catch (err) {
       console.error("Fetch content lessons error:", err);
@@ -116,6 +124,8 @@ export default function LessonPreparation() {
 
     setCourses([...courses, { course_number: next, milestones: [] }]);
     setCourseDescriptions(prev => ({ ...prev, [next]: "" }));
+    setCourseTitles(prev => ({ ...prev, [next]: `Course ${next}` }));
+    setCourseSubjects(prev => ({ ...prev, [next]: "Generic" }));
   };
 
   const deleteCourse = async (num, e) => {
@@ -124,10 +134,18 @@ export default function LessonPreparation() {
       setCourses(courses.filter((c) => c.course_number !== num));
       try {
         await api.delete(`/teacher/courses/${num}`);
-        // Remove description local
+        // Remove local states
         const newDescs = { ...courseDescriptions };
         delete newDescs[num];
         setCourseDescriptions(newDescs);
+
+        const newTitles = { ...courseTitles };
+        delete newTitles[num];
+        setCourseTitles(newTitles);
+
+        const newSubjects = { ...courseSubjects };
+        delete newSubjects[num];
+        setCourseSubjects(newSubjects);
       } catch (err) {
         console.error("Delete Course Error:", err);
         fetchLessons(true);
@@ -672,6 +690,8 @@ export default function LessonPreparation() {
       for (const course of courses) {
         await api.post("/teacher/courses", {
           course_number: course.course_number,
+          title: courseTitles[course.course_number] || `Course ${course.course_number}`,
+          subject: courseSubjects[course.course_number] || "Generic",
           description: courseDescriptions[course.course_number] || ""
         });
       }
@@ -781,7 +801,54 @@ export default function LessonPreparation() {
               }}
             >
               <div className="level-card-header">
-                <h2 className="level-card-title">Course {course.course_number}</h2>
+                <div className="flex-1 mr-4">
+                  <input
+                    type="text"
+                    className="level-card-title-input"
+                    value={courseTitles[course.course_number] || ""}
+                    onChange={(e) => setCourseTitles({ ...courseTitles, [course.course_number]: e.target.value })}
+                    onClick={(e) => e.stopPropagation()}
+                    placeholder={`Course ${course.course_number}`}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      borderBottom: '2px solid transparent',
+                      fontSize: '1.25rem',
+                      fontWeight: 'bold',
+                      color: 'var(--primary-text, #2D3436)', // Use primary-text from index.css
+                      width: '100%',
+                      padding: '4px 0',
+                      outline: 'none',
+                      cursor: 'text'
+                    }}
+                    onFocus={(e) => e.target.style.borderBottom = '2px solid rgba(255,255,255,0.5)'}
+                    onBlur={(e) => e.target.style.borderBottom = '2px solid transparent'}
+                  />
+                  <div className="mt-1" onClick={(e) => e.stopPropagation()}>
+                    <select
+                      className="subject-select"
+                      value={courseSubjects[course.course_number] || "Generic"}
+                      onChange={(e) => setCourseSubjects({ ...courseSubjects, [course.course_number]: e.target.value })}
+                      style={{
+                        background: 'var(--neutral, rgba(0,0,0,0.05))',
+                        color: 'var(--primary-text, #2D3436)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: '4px',
+                        fontSize: '0.75rem',
+                        padding: '2px 8px',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="Generic" style={{ color: 'black' }}>Field: Generic</option>
+                      <option value="Math" style={{ color: 'black' }}>Field: Math</option>
+                      <option value="Science" style={{ color: 'black' }}>Field: Science</option>
+                      <option value="Arabic" style={{ color: 'black' }}>Field: Arabic</option>
+                      <option value="History" style={{ color: 'black' }}>Field: History</option>
+                      <option value="English" style={{ color: 'black' }}>Field: English</option>
+                    </select>
+                  </div>
+                </div>
                 <button
                   className="delete-btn-well-styled"
                   title="Delete Course"
