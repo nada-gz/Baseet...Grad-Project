@@ -22,6 +22,8 @@ from models.feedback import Feedback
 from models.submission_file import SubmissionFile
 from models.content_assignment import ContentAssignment
 from models.content_assignment_file import ContentAssignmentFile
+from models.parent import Parent
+from models.parent_notification import ParentNotification
 from utils.dependencies import require_role
 
 from schemas.content_schema import (
@@ -900,3 +902,34 @@ def evaluate_submission(
     except Exception as e:
         logger.error(f"Error evaluating submission: {e}")
         raise e
+
+# -----------------------
+# Messaging Parent
+# -----------------------
+@router.post("/students/{student_id}/note-to-parent")
+def send_note_to_parent(
+    student_id: int,
+    title: str = Form(...),
+    message: str = Form(...),
+    is_urgent: bool = Form(False),
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["teacher"]))
+):
+    student = session.get(Student, student_id)
+    if not student:
+        raise HTTPException(404, "Student not found")
+    
+    if not student.parent_id:
+        raise HTTPException(400, "This student does not have a linked parent yet")
+    
+    notification = ParentNotification(
+        parent_id=student.parent_id,
+        title=title,
+        message=message,
+        type="feedback",
+        is_urgent=is_urgent
+    )
+    session.add(notification)
+    session.commit()
+    
+    return {"message": "Notification sent to parent"}
