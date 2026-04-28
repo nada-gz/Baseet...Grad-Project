@@ -21,6 +21,9 @@ from models.content_course import ContentCourse
 from models.content_assignment import ContentAssignment
 from models.content_assignment_file import ContentAssignmentFile
 from models.class_level import ClassLevel
+from models.parent import Parent
+from models.parent_notification import ParentNotification
+from models.parent_extensions import LinkingCode, StudentReport
 from models.classroom import Classroom, ClassroomCourseLink
 from utils.auth import hash_password
 from datetime import datetime

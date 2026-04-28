@@ -5,7 +5,9 @@ from sqlmodel import Session, select, update
 from pathlib import Path
 from fastapi.responses import FileResponse
 from services.ocr import process_image_for_ocr, process_pdf_for_ocr
-from datetime import datetime
+from models.parent_extensions import LinkingCode
+from datetime import datetime, timedelta
+import random
 from db.database import engine, get_session
 from db.crud import (
     create_student, get_all_students, get_student_by_id, update_student, delete_student,
@@ -33,6 +35,8 @@ from schemas.material_schema import MaterialRead
 from schemas.assignment_schema import AssignmentRead
 from schemas.course_schema import CourseRead
 from schemas.content_schema import ContentCourseRead, ContentLessonRead
+from models.user import User, RoleEnum
+from utils.auth import get_current_user
 
 import traceback
 
@@ -41,6 +45,41 @@ import traceback
 # ---------------------------
 
 router = APIRouter(prefix="/students", tags=["Students"])
+
+@router.post("/linking-code")
+def generate_linking_code(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    if current_user.role != RoleEnum.student:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    student = session.exec(select(Student).where(Student.user_id == current_user.id)).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student record not found")
+    
+    # Generate 6-digit code
+    code = "".join([str(random.randint(0, 9)) for _ in range(6)])
+    
+    # Create or update existing code for this student
+    existing = session.exec(select(LinkingCode).where(LinkingCode.student_id == student.id, LinkingCode.is_used == False)).first()
+    if existing:
+        existing.code = code
+        existing.expires_at = datetime.utcnow() + timedelta(minutes=15)
+        session.add(existing)
+        db_obj = existing
+    else:
+        db_obj = LinkingCode(
+            student_id=student.id,
+            code=code,
+            expires_at=datetime.utcnow() + timedelta(minutes=15)
+        )
+        session.add(db_obj)
+    
+    session.commit()
+    session.refresh(db_obj)
+    
+    return {"code": code, "expires_at": db_obj.expires_at}
 
 SUBMISSION_UPLOAD_DIR = Path("uploads/submissions")
 SUBMISSION_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)

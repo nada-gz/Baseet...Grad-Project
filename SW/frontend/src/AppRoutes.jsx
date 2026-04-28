@@ -33,7 +33,11 @@ import StudentAnalytics from "./pages/dashboards/Student/StudentAnalytics";
 import BreakPage from "./pages/dashboards/Student/BreakPage";
 import MathTutor from "./pages/dashboards/Student/MathTutor/MathTutor";
 
-import ParentDashboard from "./pages/dashboards/ParentDashboard";
+import ParentHome from "./pages/dashboards/Parent/ParentHome";
+import ParentNotifications from "./pages/dashboards/Parent/ParentNotifications";
+import ChildInsights from "./pages/dashboards/Parent/ChildInsights";
+import ChildSettings from "./pages/dashboards/Parent/ChildSettings";
+import ChildList from "./pages/dashboards/Parent/ChildList";
 import SupervisorDashboard from "./pages/dashboards/SupervisorDashboard";
 import AllStudents from "./pages/dashboards/Common/AllStudents";
 
@@ -93,7 +97,14 @@ const router = createBrowserRouter([
     children: [
       {
         element: <MainLayout />,
-        children: [{ path: "/dashboard/parent", element: <ParentDashboard /> }],
+        children: [
+          { path: "/dashboard/parent", element: <ParentHome /> },
+          { path: "/dashboard/parent/notifications", element: <ParentNotifications /> },
+          { path: "/dashboard/parent/students", element: <ChildList /> },
+          { path: "/dashboard/parent/students/:studentId/insights", element: <ChildInsights /> },
+          { path: "/dashboard/parent/settings", element: <ChildSettings /> },
+          { path: "/dashboard/parent/child/:studentId/settings", element: <ChildSettings /> },
+        ],
       },
     ],
   },

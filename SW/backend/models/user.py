@@ -21,5 +21,7 @@ class User(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     student: Optional["Student"] = Relationship(back_populates="user")
+    parent: Optional["Parent"] = Relationship(back_populates="user")
 
 from .student import Student
+from .parent import Parent

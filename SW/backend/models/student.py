@@ -20,6 +20,14 @@ class Student(SQLModel, table=True):
     classroom_id: Optional[int] = Field(default=None, foreign_key="classrooms.id")
     classroom: Optional["Classroom"] = Relationship(back_populates="students")
 
+    # Parent relationship
+    parent_id: Optional[int] = Field(default=None, foreign_key="parents.id")
+    parent: Optional["Parent"] = Relationship(back_populates="students")
+
+    # Preferences
+    difficulty_level: int = Field(default=5)  # 1-10
+    sensory_settings: Optional[str] = Field(default="{}") # JSON string for now
+
     # Relationship to User
     user: "User" = Relationship(back_populates="student")
 
@@ -28,3 +36,4 @@ class Student(SQLModel, table=True):
 from .user import User
 if TYPE_CHECKING:
     from models.classroom import Classroom
+    from models.parent import Parent

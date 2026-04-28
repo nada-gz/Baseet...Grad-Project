@@ -1,13 +1,30 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import api from "../../../services/api";
-import { Search, User as UserIcon, BookOpen, Activity } from "lucide-react";
+import { 
+  Search, 
+  User as UserIcon, 
+  BookOpen, 
+  Activity, 
+  MessageSquare, 
+  X, 
+  Send,
+  AlertTriangle,
+  CheckCircle2
+} from "lucide-react";
 
 export default function StudentMonitoring() {
     const navigate = useNavigate();
     const [allStudents, setAllStudents] = useState([]);
     const [filteredStudents, setFilteredStudents] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Modal state
+    const [showNoteModal, setShowNoteModal] = useState(false);
+    const [selectedStudent, setSelectedStudent] = useState(null);
+    const [noteData, setNoteData] = useState({ title: "", message: "", is_urgent: false });
+    const [noteStatus, setNoteStatus] = useState({ loading: false, error: null, success: false });
 
     // Filters state
     const [searchTerm, setSearchTerm] = useState("");
@@ -32,6 +49,33 @@ export default function StudentMonitoring() {
             console.error("Error fetching students:", err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSendNote = async (e) => {
+        e.preventDefault();
+        if (!selectedStudent) return;
+        setNoteStatus({ loading: true, error: null, success: false });
+        
+        try {
+            const formData = new FormData();
+            formData.append("title", noteData.title);
+            formData.append("message", noteData.message);
+            formData.append("is_urgent", noteData.is_urgent);
+
+            await api.post(`/teacher/students/${selectedStudent.id}/note-to-parent`, formData);
+            setNoteStatus({ loading: false, error: null, success: true });
+            setTimeout(() => {
+                setShowNoteModal(false);
+                setNoteData({ title: "", message: "", is_urgent: false });
+                setNoteStatus({ loading: false, error: null, success: false });
+            }, 2000);
+        } catch (err) {
+            setNoteStatus({ 
+                loading: false, 
+                error: err.response?.data?.detail || "Could not send note. Is the parent linked?", 
+                success: false 
+            });
         }
     };
 
@@ -151,7 +195,16 @@ export default function StudentMonitoring() {
                                     {student.username ? student.username[0].toUpperCase() : "?"}
                                 </div>
                                 <div className="card-student-info">
-                                    <h3>{student.username}</h3>
+                                    <h3 style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                        {student.username}
+                                        <button 
+                                          title="Message Parent"
+                                          onClick={() => { setSelectedStudent(student); setShowNoteModal(true); }}
+                                          style={{ background: "var(--primary-bg)", border: "none", borderRadius: "10px", padding: "8px", color: "var(--highlight)", cursor: "pointer" }}
+                                        >
+                                          <MessageSquare size={18} />
+                                        </button>
+                                    </h3>
                                     <p>{student.email}</p>
                                 </div>
                             </div>
@@ -221,8 +274,102 @@ export default function StudentMonitoring() {
                     ))
                 )}
             </div>
+
+            {/* Note Modal */}
+            <AnimatePresence>
+                {showNoteModal && (
+                    <div style={{ 
+                        position: "fixed", top: 0, left: 0, width: "100%", height: "100%", 
+                        background: "rgba(0,0,0,0.6)", zIndex: 1000, display: "flex", 
+                        alignItems: "center", justifyContent: "center", padding: "20px",
+                        backdropFilter: "blur(5px)"
+                    }}>
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="teacher-card" 
+                            style={{ width: "100%", maxWidth: "600px", padding: "40px", position: "relative", background: "white", borderRadius: "30px", border: "4px solid var(--neutral)" }}
+                        >
+                            <button 
+                                onClick={() => setShowNoteModal(false)}
+                                style={{ position: "absolute", right: "20px", top: "20px", background: "none", border: "none", cursor: "pointer", color: "var(--secondary-text)" }}
+                            >
+                                <X size={24} />
+                            </button>
+
+                            <div style={{ marginBottom: "30px" }}>
+                                <h2 style={{ fontSize: "1.8rem", fontWeight: "900", color: "var(--highlight)" }}>Note to Parent</h2>
+                                <p style={{ color: "var(--secondary-text)" }}>
+                                    Sending a message to <strong>{selectedStudent?.username}</strong>'s parent.
+                                </p>
+                            </div>
+
+                            {noteStatus.success ? (
+                                <div style={{ textAlign: "center", padding: "40px 0" }}>
+                                    <CheckCircle2 size={64} color="var(--success-bg)" style={{ margin: "0 auto 20px" }} />
+                                    <h3 style={{ color: "var(--success-bg)", fontSize: "1.5rem" }}>Message Sent!</h3>
+                                    <p>The parent will receive this notification immediately.</p>
+                                </div>
+                            ) : (
+                                <form onSubmit={handleSendNote}>
+                                    <div style={{ marginBottom: "20px" }}>
+                                        <label style={{ fontWeight: "700", display: "block", marginBottom: "8px" }}>Subject</label>
+                                        <input 
+                                            type="text" 
+                                            placeholder="e.g. Great progress today!" 
+                                            value={noteData.title}
+                                            onChange={(e) => setNoteData({ ...noteData, title: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div style={{ marginBottom: "20px" }}>
+                                        <label style={{ fontWeight: "700", display: "block", marginBottom: "8px" }}>Message</label>
+                                        <textarea 
+                                            placeholder="Enter your feedback or comments here..." 
+                                            rows={5}
+                                            value={noteData.message}
+                                            onChange={(e) => setNoteData({ ...noteData, message: e.target.value })}
+                                            style={{ width: "100%", padding: "15px", borderRadius: "15px", border: "3px solid var(--neutral)", fontFamily: "inherit" }}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div style={{ marginBottom: "30px", display: "flex", alignItems: "center", gap: "10px", background: noteData.is_urgent ? "#fff5f5" : "var(--primary-bg)", padding: "15px", borderRadius: "15px", transition: "all 0.2s" }}>
+                                        <input 
+                                            type="checkbox" 
+                                            id="urgent" 
+                                            checked={noteData.is_urgent}
+                                            onChange={(e) => setNoteData({ ...noteData, is_urgent: e.target.checked })}
+                                            style={{ width: "20px", height: "20px", margin: 0 }}
+                                        />
+                                        <label htmlFor="urgent" style={{ fontWeight: "800", color: noteData.is_urgent ? "var(--error-bg)" : "inherit", display: "flex", alignItems: "center", gap: "8px" }}>
+                                            {noteData.is_urgent && <AlertTriangle size={16} />}
+                                            Mark as Urgent Alert
+                                        </label>
+                                    </div>
+
+                                    {noteStatus.error && (
+                                        <p style={{ color: "var(--error-bg)", fontSize: "0.9rem", fontWeight: "700", marginBottom: "20px", textAlign: "center" }}>
+                                            {noteStatus.error}
+                                        </p>
+                                    )}
+
+                                    <button 
+                                        type="submit" 
+                                        className="btn btn-primary" 
+                                        style={{ width: "100%", padding: "15px", fontSize: "1.1rem" }}
+                                        disabled={noteStatus.loading}
+                                    >
+                                        {noteStatus.loading ? "Sending..." : <><Send size={18} style={{ marginRight: "10px" }} /> Send to Parent</>}
+                                    </button>
+                                </form>
+                            )}
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
-
-

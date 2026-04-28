@@ -10,7 +10,10 @@ import {
   Users,
   School,
   Moon,
-  Sun
+  Sun,
+  LayoutDashboard,
+  Bell,
+  Settings
 } from "lucide-react";
 import Logo from "../components/ui/logo";
 import HiBaseet from "../assets/hii_baseet.png";
@@ -67,8 +70,26 @@ export default function MainLayout() {
 
       case "parent":
         return [
-          { label: "Child Progress", path: "/dashboard/parent/progress", icon: "📊" },
-          { label: "Reports", path: "/dashboard/parent/reports", icon: "📄" }
+          {
+            label: "Dashboard",
+            path: "/dashboard/parent",
+            icon: <LayoutDashboard size={20} />,
+          },
+          {
+            label: "Notifications",
+            path: "/dashboard/parent/notifications",
+            icon: <Bell size={20} />,
+          },
+          {
+            label: "Child Insights",
+            path: "/dashboard/parent/students",
+            icon: <Users size={20} />,
+          },
+          {
+            label: "Preferences",
+            path: "/dashboard/parent/settings",
+            icon: <Settings size={20} />,
+          },
         ];
 
       case "student":
@@ -127,21 +148,31 @@ export default function MainLayout() {
   const renderTopbarExtras = () => {
     if (!user) return null;
 
-    if (role === "student") {
+    if (role === "student" || role === "parent") {
       return (
         <>
-          <Link to="/dashboard/student" className="topbar-continue">
-            <PlayCircle size={20} />
-            <span>Continue</span>
-          </Link>
+          {role === "student" && (
+            <Link to="/dashboard/student" className="topbar-continue">
+              <PlayCircle size={20} />
+              <span>Continue</span>
+            </Link>
+          )}
 
           <div className="topbar-actions">
-            <Link to="/dashboard/student/analytics" className="topbar-link">
-              Analytics
-            </Link>
-            <Link to={`/students/${user.id}/profile`} className="topbar-link">
-              My Profile
-            </Link>
+            {role === "student" ? (
+              <>
+                <Link to="/dashboard/student/analytics" className="topbar-link">
+                  Analytics
+                </Link>
+                <Link to={`/students/${user.id}/profile`} className="topbar-link">
+                  My Profile
+                </Link>
+              </>
+            ) : (
+              <Link to="/dashboard/parent/notifications" className="topbar-link">
+                Alerts Center
+              </Link>
+            )}
           </div>
         </>
       );
@@ -232,8 +263,8 @@ export default function MainLayout() {
               );
               return activeItem ? (activeItem.topbarLabel || activeItem.label) : (
                 <span className="topbar-greeting">
-                  Hi, {user?.username || "there"}
-                  {role === "student" && (
+                  Hello, {user?.username || "there"}
+                  {(role === "student" || role === "parent") && (
                     <img
                       src={HiBaseet}
                       alt="Hi Baseet"
