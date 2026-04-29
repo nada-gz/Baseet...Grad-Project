@@ -58,12 +58,13 @@ export default function StudentMonitoring() {
         setNoteStatus({ loading: true, error: null, success: false });
         
         try {
-            const formData = new FormData();
-            formData.append("title", noteData.title);
-            formData.append("message", noteData.message);
-            formData.append("is_urgent", noteData.is_urgent);
+            // Send as JSON instead of FormData
+            await api.post(`/teacher/students/${selectedStudent.id}/note-to-parent`, {
+                title: noteData.title,
+                message: noteData.message,
+                is_urgent: noteData.is_urgent
+            });
 
-            await api.post(`/teacher/students/${selectedStudent.id}/note-to-parent`, formData);
             setNoteStatus({ loading: false, error: null, success: true });
             setTimeout(() => {
                 setShowNoteModal(false);
@@ -78,6 +79,8 @@ export default function StudentMonitoring() {
             });
         }
     };
+
+    // ... (keep filterOptions as is)
 
     // Unique filter options
     const filterOptions = {
@@ -185,9 +188,34 @@ export default function StudentMonitoring() {
                     filteredStudents.map(student => (
                         <div key={student.id} className="student-monitoring-card">
                             {/* Online Badge */}
-                            <div className={`online-status-badge ${student.online ? 'status-online' : 'status-offline'}`}>
-                                <div className="status-dot" />
-                                {student.online ? 'Online' : 'Offline'}
+                            <div className="status-container" style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "10px", marginBottom: "15px" }}>
+                                <div className={`online-status-badge ${student.online ? 'status-online' : 'status-offline'}`} style={{ margin: 0 }}>
+                                    <div className="status-dot" />
+                                    {student.online ? 'Online' : 'Offline'}
+                                </div>
+                                <button 
+                                    title="Message Parent"
+                                    onClick={() => { setSelectedStudent(student); setShowNoteModal(true); }}
+                                    className="parent-msg-btn"
+                                    style={{ 
+                                        background: "var(--primary-bg)", 
+                                        border: "2px solid var(--neutral)", 
+                                        borderRadius: "12px", 
+                                        padding: "6px 14px", 
+                                        color: "var(--highlight)", 
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "8px",
+                                        fontSize: "0.75rem",
+                                        fontWeight: "800",
+                                        transition: "all 0.3s ease",
+                                        width: "fit-content"
+                                    }}
+                                >
+                                    <MessageSquare size={14} />
+                                    <span>Message Parent...</span>
+                                </button>
                             </div>
 
                             <div className="card-student-header">
@@ -195,15 +223,8 @@ export default function StudentMonitoring() {
                                     {student.username ? student.username[0].toUpperCase() : "?"}
                                 </div>
                                 <div className="card-student-info">
-                                    <h3 style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                        {student.username}
-                                        <button 
-                                          title="Message Parent"
-                                          onClick={() => { setSelectedStudent(student); setShowNoteModal(true); }}
-                                          style={{ background: "var(--primary-bg)", border: "none", borderRadius: "10px", padding: "8px", color: "var(--highlight)", cursor: "pointer" }}
-                                        >
-                                          <MessageSquare size={18} />
-                                        </button>
+                                    <h3 style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+                                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{student.username}</span>
                                     </h3>
                                     <p>{student.email}</p>
                                 </div>
@@ -276,82 +297,102 @@ export default function StudentMonitoring() {
             </div>
 
             {/* Note Modal */}
-            <AnimatePresence>
-                {showNoteModal && (
-                    <div style={{ 
+            {showNoteModal && (
+                <div 
+                    style={{ 
                         position: "fixed", top: 0, left: 0, width: "100%", height: "100%", 
-                        background: "rgba(0,0,0,0.6)", zIndex: 1000, display: "flex", 
+                        background: "rgba(0,0,0,0.7)", zIndex: 1000, display: "flex", 
                         alignItems: "center", justifyContent: "center", padding: "20px",
-                        backdropFilter: "blur(5px)"
-                    }}>
-                        <motion.div 
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="teacher-card" 
-                            style={{ width: "100%", maxWidth: "600px", padding: "40px", position: "relative", background: "white", borderRadius: "30px", border: "4px solid var(--neutral)" }}
+                        backdropFilter: "blur(12px)"
+                    }}
+                >
+                    <div 
+                            className="teacher-modal-box" 
+                            style={{ 
+                                width: "100%", 
+                                maxWidth: "700px", 
+                                minHeight: "500px",
+                                padding: "60px", 
+                                position: "relative", 
+                                background: "white", 
+                                borderRadius: "40px", 
+                                border: "10px solid var(--neutral)",
+                                boxShadow: "0 40px 80px rgba(0,0,0,0.3)",
+                                textAlign: "left", // Override teacher-card center
+                                display: "flex",
+                                flexDirection: "column"
+                            }}
                         >
                             <button 
                                 onClick={() => setShowNoteModal(false)}
-                                style={{ position: "absolute", right: "20px", top: "20px", background: "none", border: "none", cursor: "pointer", color: "var(--secondary-text)" }}
+                                style={{ position: "absolute", right: "25px", top: "25px", background: "var(--primary-bg)", border: "none", borderRadius: "15px", padding: "12px", cursor: "pointer", color: "var(--secondary-text)", transition: "all 0.2s" }}
                             >
                                 <X size={24} />
                             </button>
 
-                            <div style={{ marginBottom: "30px" }}>
-                                <h2 style={{ fontSize: "1.8rem", fontWeight: "900", color: "var(--highlight)" }}>Note to Parent</h2>
-                                <p style={{ color: "var(--secondary-text)" }}>
-                                    Sending a message to <strong>{selectedStudent?.username}</strong>'s parent.
+                            <div style={{ marginBottom: "40px" }}>
+                                <h2 style={{ fontSize: "2.2rem", fontWeight: "950", color: "var(--highlight)", margin: "0 0 10px 0" }}>Message Parent</h2>
+                                <p style={{ color: "var(--secondary-text)", fontSize: "1.1rem" }}>
+                                    Direct feedback for <strong>{selectedStudent?.username}</strong>'s guardian.
                                 </p>
                             </div>
 
-                            {noteStatus.success ? (
-                                <div style={{ textAlign: "center", padding: "40px 0" }}>
-                                    <CheckCircle2 size={64} color="var(--success-bg)" style={{ margin: "0 auto 20px" }} />
-                                    <h3 style={{ color: "var(--success-bg)", fontSize: "1.5rem" }}>Message Sent!</h3>
-                                    <p>The parent will receive this notification immediately.</p>
-                                </div>
-                            ) : (
-                                <form onSubmit={handleSendNote}>
-                                    <div style={{ marginBottom: "20px" }}>
-                                        <label style={{ fontWeight: "700", display: "block", marginBottom: "8px" }}>Subject</label>
+                            {/* Static DOM structure to prevent removeChild crashes */}
+                            <div style={{ display: noteStatus.success ? 'none' : 'block', flex: 1 }}>
+                                <form 
+                                    onSubmit={handleSendNote}
+                                    style={{ flex: 1 }}
+                                >
+                                    <div style={{ marginBottom: "25px" }}>
+                                        <label style={{ fontWeight: "800", display: "block", marginBottom: "12px", fontSize: "1rem", color: "var(--primary-text)" }}>Subject / Title</label>
                                         <input 
                                             type="text" 
-                                            placeholder="e.g. Great progress today!" 
+                                            placeholder="e.g. Excellent participation today" 
                                             value={noteData.title}
                                             onChange={(e) => setNoteData({ ...noteData, title: e.target.value })}
                                             required
+                                            style={{ width: "100%", padding: "18px", borderRadius: "18px", border: "4px solid var(--neutral)", fontSize: "1.1rem", outline: "none" }}
                                         />
                                     </div>
 
-                                    <div style={{ marginBottom: "20px" }}>
-                                        <label style={{ fontWeight: "700", display: "block", marginBottom: "8px" }}>Message</label>
+                                    <div style={{ marginBottom: "25px" }}>
+                                        <label style={{ fontWeight: "800", display: "block", marginBottom: "12px", fontSize: "1rem", color: "var(--primary-text)" }}>Detailed Message</label>
                                         <textarea 
-                                            placeholder="Enter your feedback or comments here..." 
-                                            rows={5}
+                                            placeholder="Write your feedback here..." 
+                                            rows={6}
                                             value={noteData.message}
                                             onChange={(e) => setNoteData({ ...noteData, message: e.target.value })}
-                                            style={{ width: "100%", padding: "15px", borderRadius: "15px", border: "3px solid var(--neutral)", fontFamily: "inherit" }}
+                                            style={{ width: "100%", padding: "20px", borderRadius: "20px", border: "4px solid var(--neutral)", fontFamily: "inherit", fontSize: "1.1rem", outline: "none", resize: "none" }}
                                             required
                                         />
                                     </div>
 
-                                    <div style={{ marginBottom: "30px", display: "flex", alignItems: "center", gap: "10px", background: noteData.is_urgent ? "#fff5f5" : "var(--primary-bg)", padding: "15px", borderRadius: "15px", transition: "all 0.2s" }}>
+                                    <div style={{ 
+                                        marginBottom: "35px", 
+                                        display: "flex", 
+                                        alignItems: "center", 
+                                        gap: "15px", 
+                                        background: noteData.is_urgent ? "rgba(255, 71, 87, 0.05)" : "var(--primary-bg)", 
+                                        padding: "20px", 
+                                        borderRadius: "20px", 
+                                        border: `2px solid ${noteData.is_urgent ? 'rgba(255, 71, 87, 0.2)' : 'transparent'}`,
+                                        transition: "all 0.3s" 
+                                    }}>
                                         <input 
                                             type="checkbox" 
                                             id="urgent" 
                                             checked={noteData.is_urgent}
                                             onChange={(e) => setNoteData({ ...noteData, is_urgent: e.target.checked })}
-                                            style={{ width: "20px", height: "20px", margin: 0 }}
+                                            style={{ width: "24px", height: "24px", margin: 0, cursor: "pointer" }}
                                         />
-                                        <label htmlFor="urgent" style={{ fontWeight: "800", color: noteData.is_urgent ? "var(--error-bg)" : "inherit", display: "flex", alignItems: "center", gap: "8px" }}>
-                                            {noteData.is_urgent && <AlertTriangle size={16} />}
-                                            Mark as Urgent Alert
+                                        <label htmlFor="urgent" style={{ fontWeight: "900", color: noteData.is_urgent ? "#FF4757" : "var(--primary-text)", display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "1rem" }}>
+                                            {noteData.is_urgent && <AlertTriangle size={20} />}
+                                            Mark as Urgent Priority
                                         </label>
                                     </div>
 
                                     {noteStatus.error && (
-                                        <p style={{ color: "var(--error-bg)", fontSize: "0.9rem", fontWeight: "700", marginBottom: "20px", textAlign: "center" }}>
+                                        <p style={{ color: "#FF4757", fontSize: "0.95rem", fontWeight: "800", marginBottom: "25px", textAlign: "center", padding: "10px", background: "rgba(255, 71, 87, 0.1)", borderRadius: "10px" }}>
                                             {noteStatus.error}
                                         </p>
                                     )}
@@ -359,17 +400,22 @@ export default function StudentMonitoring() {
                                     <button 
                                         type="submit" 
                                         className="btn btn-primary" 
-                                        style={{ width: "100%", padding: "15px", fontSize: "1.1rem" }}
+                                        style={{ width: "100%", padding: "20px", fontSize: "1.2rem", borderRadius: "20px", boxShadow: "0 10px 20px rgba(108, 99, 255, 0.3)" }}
                                         disabled={noteStatus.loading}
                                     >
-                                        {noteStatus.loading ? "Sending..." : <><Send size={18} style={{ marginRight: "10px" }} /> Send to Parent</>}
+                                        {noteStatus.loading ? "Processing..." : <><Send size={22} style={{ marginRight: "12px" }} /> Send to Parent</>}
                                     </button>
                                 </form>
-                            )}
-                        </motion.div>
+                            </div>
+
+                            <div style={{ display: noteStatus.success ? 'flex' : 'none', textAlign: "center", padding: "60px 0", flex: 1, flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+                                <CheckCircle2 size={80} color="#00F5D4" style={{ marginBottom: "25px" }} />
+                                <h3 style={{ color: "var(--primary-text)", fontSize: "2rem", fontWeight: "900" }}>Sent Successfully!</h3>
+                                <p style={{ color: "var(--secondary-text)", fontSize: "1.1rem", marginTop: "10px" }}>The parent has been notified.</p>
+                            </div>
                     </div>
-                )}
-            </AnimatePresence>
+                </div>
+            )}
         </div>
     );
 }

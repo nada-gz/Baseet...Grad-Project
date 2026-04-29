@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional, List
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlmodel import Session, select, func
 from sqlalchemy.orm import selectinload
@@ -906,12 +907,15 @@ def evaluate_submission(
 # -----------------------
 # Messaging Parent
 # -----------------------
+class NoteToParentRequest(BaseModel):
+    title: str
+    message: str
+    is_urgent: bool = False
+
 @router.post("/students/{student_id}/note-to-parent")
 def send_note_to_parent(
     student_id: int,
-    title: str = Form(...),
-    message: str = Form(...),
-    is_urgent: bool = Form(False),
+    note: NoteToParentRequest,
     session: Session = Depends(get_session),
     current_user: User = Depends(require_role(["teacher"]))
 ):
@@ -924,12 +928,48 @@ def send_note_to_parent(
     
     notification = ParentNotification(
         parent_id=student.parent_id,
-        title=title,
-        message=message,
-        type="feedback",
-        is_urgent=is_urgent
+        title=note.title,
+        message=note.message,
+        type="urgent" if note.is_urgent else "comment",
+        is_urgent=note.is_urgent
     )
     session.add(notification)
     session.commit()
     
     return {"message": "Notification sent to parent"}
+
+@router.post("/students/{student_id}/lessons/{lesson_id}/comment")
+def send_lesson_comment_to_parent(
+    student_id: int,
+    lesson_id: int,
+    note: NoteToParentRequest,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["teacher"]))
+):
+    student = session.get(Student, student_id)
+    if not student:
+        raise HTTPException(404, "Student not found")
+    
+    if not student.parent_id:
+        raise HTTPException(400, "This student does not have a linked parent yet")
+    
+    # Get lesson title for context
+    lesson = session.get(ContentLesson, lesson_id)
+    lesson_title = lesson.title if lesson else f"Lesson #{lesson_id}"
+    
+    full_title = f"Comment on {lesson_title}: {note.title}"
+    
+    notification = ParentNotification(
+        parent_id=student.parent_id,
+        title=full_title,
+        message=note.message,
+        type="feedback", # FEEDBACK for lesson-specific
+        is_urgent=note.is_urgent
+    )
+    session.add(notification)
+    session.commit()
+    
+    return {"message": "Lesson comment sent to parent"}
+
+
+

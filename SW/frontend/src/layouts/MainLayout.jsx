@@ -261,7 +261,23 @@ export default function MainLayout() {
                   location.pathname === item.path ||
                   location.pathname.startsWith(item.path + "/")
               );
-              return activeItem ? (activeItem.topbarLabel || activeItem.label) : (
+              const isHome = location.pathname === "/dashboard/parent" || location.pathname === "/dashboard/student" || location.pathname === "/dashboard/teacher";
+              
+              // For parents, show greeting on all pages but style it differently
+              if (role === "parent") {
+                if (isHome) {
+                  return (
+                    <span className="topbar-greeting">
+                      Hello, {user?.username || "there"}
+                      <img src={HiBaseet} alt="Hi Baseet" className="topbar-hi-icon" />
+                    </span>
+                  );
+                } else {
+                  return <span style={{ fontWeight: 600, color: "var(--secondary-text)" }}>Hello, {user?.username || "there"}</span>;
+                }
+              }
+
+              return (activeItem && !isHome) ? (activeItem.topbarLabel || activeItem.label) : (
                 <span className="topbar-greeting">
                   Hello, {user?.username || "there"}
                   {(role === "student" || role === "parent") && (
@@ -284,7 +300,7 @@ export default function MainLayout() {
           </div>
         </header>
 
-        <div className="content">
+        <div className="content" style={{ marginTop: "20px" }}>
           {role === "student" && <VisualTimeStrip initialMinutes={20} />}
           <Outlet />
         </div>
