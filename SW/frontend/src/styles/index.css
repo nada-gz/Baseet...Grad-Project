@@ -295,6 +295,18 @@ select:focus {
   transform: scale(1.05);
 }
 
+.btn-calm {
+  background-color: var(--highlight);
+  color: white !important;
+  transition: background-color 0.5s ease;
+}
+
+.btn-calm:hover {
+  background-color: #5851DB;
+  color: white !important;
+  transform: none;
+}
+
 .btn-secondary {
   background-color: var(--secondary-color);
   color: white;
@@ -7572,4 +7584,163 @@ a:hover {
   .parent-card[style*="background: #2D3436"] p {
     color: black !important;
   }
+}
+
+/* -------------------------------------
+   Final PDF & Topbar Refinements
+-------------------------------------- */
+@media print {
+  body, html {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+  }
+
+  .report-container {
+    background: #ffffff !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .parent-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+
+  .parent-card {
+    width: 100% !important;
+    background: #ffffff !important;
+    border: 1px solid #eee !important;
+    page-break-inside: avoid !important;
+  }
+
+  .logo-fixed {
+    position: static !important;
+    display: flex !important;
+    justify-content: center !important;
+    margin-bottom: 20px !important;
+  }
+
+  .logo-fixed img {
+    width: 150px !important;
+    height: auto !important;
+  }
+
+  /* Force every section to be white and clean */
+  section, div, aside, main {
+    background-color: transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+}
+
+.topbar-greeting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-title);
+  font-weight: 800;
+  color: var(--highlight);
+}
+
+/* -------------------------------------
+   High-Fidelity PDF Print System
+-------------------------------------- */
+@media print {
+  @page {
+    margin: 1cm; /* Minimal margins for maximum content width */
+    size: A4 portrait;
+  }
+
+  body, html {
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Expand all layout containers to full width */
+  .layout-container, 
+  .main, 
+  .content, 
+  .parent-dashboard-wrapper,
+  .report-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block !important;
+    position: static !important;
+  }
+
+  /* Hide UI elements */
+  .sidebar, 
+  .topbar, 
+  .no-print, 
+  .parent-tabs,
+  nav {
+    display: none !important;
+  }
+
+  /* Reveal all tabs during print */
+  .no-print-tab {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    position: static !important;
+  }
+
+  /* Layout adjustments for print width */
+  .parent-grid-print {
+    display: block !important; /* Stack columns on print for better width */
+    width: 100% !important;
+  }
+
+  .parent-card {
+    width: 100% !important;
+    margin-bottom: 40px !important;
+    border: 1px solid #eee !important;
+    padding: 30px !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+
+  /* Typography & Charts */
+  h1, h2, h3, h4 {
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .recharts-responsive-container {
+    width: 100% !important;
+    height: 400px !important;
+  }
+
+  /* Force every piece of content to be visible */
+  section {
+    display: block !important;
+    width: 100% !important;
+    clear: both !important;
+  }
+}
+
+/* Screen utility */
+@media screen {
+  .no-print-tab {
+    display: none;
+  }
+}
+
+.parent-msg-btn:hover {
+    background: var(--neutral) !important;
+    border-color: var(--highlight) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.feedback-btn:hover {
+    background: #F1F2F6 !important;
+    border-color: var(--highlight) !important;
+    transform: translateY(-1px);
 }

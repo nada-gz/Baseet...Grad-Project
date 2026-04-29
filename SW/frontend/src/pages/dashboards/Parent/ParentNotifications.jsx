@@ -89,7 +89,7 @@ export default function ParentNotifications() {
                   <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
                     <Link 
                       to={`/dashboard/parent/students`} 
-                      className="btn btn-primary"
+                      className="btn btn-calm"
                       style={{ padding: "8px 15px", fontSize: "0.8rem" }}
                     >
                       View Child Insights <ChevronRight size={14} />

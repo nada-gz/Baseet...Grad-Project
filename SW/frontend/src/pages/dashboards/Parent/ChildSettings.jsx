@@ -37,14 +37,6 @@ export default function ChildSettings() {
         
         const targetId = paramId || (response.data.length > 0 ? response.data[0].id.toString() : "");
         setSelectedChildId(targetId);
-
-        const child = response.data.find(c => c.id.toString() === targetId);
-        if (child) {
-          setDifficulty(child.difficulty_level || 5);
-          if (child.sensory_settings) {
-            setSensorySettings(child.sensory_settings);
-          }
-        }
       } catch (err) {
         console.error("Error fetching settings data:", err);
       } finally {
@@ -54,6 +46,27 @@ export default function ChildSettings() {
     fetchData();
   }, [paramId]);
 
+  // Sync form values when selected child changes
+  useEffect(() => {
+    if (children.length > 0 && selectedChildId) {
+      const child = children.find(c => c.id.toString() === selectedChildId);
+      if (child) {
+        setDifficulty(child.difficulty_level || 5);
+        if (child.sensory_settings) {
+          setSensorySettings(child.sensory_settings);
+        } else {
+          // Default if none set
+          setSensorySettings({
+            reducedBrightness: false,
+            simplifiedAudio: false,
+            highContrast: false,
+            extraResponseTime: true,
+          });
+        }
+      }
+    }
+  }, [selectedChildId, children]);
+
   const handleSave = async () => {
     if (!selectedChildId) return;
     setSaving(true);
@@ -62,6 +75,14 @@ export default function ChildSettings() {
         difficulty_level: difficulty,
         sensory_settings: sensorySettings
       });
+      
+      // Update local children list so the state is preserved if we switch back and forth
+      setChildren(prev => prev.map(c => 
+        c.id.toString() === selectedChildId 
+          ? { ...c, difficulty_level: difficulty, sensory_settings: sensorySettings }
+          : c
+      ));
+
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (err) {
@@ -111,11 +132,20 @@ export default function ChildSettings() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="status connected"
-            style={{ marginBottom: "25px", padding: "15px" }}
+            style={{ 
+              marginBottom: "25px", 
+              padding: "15px 25px", 
+              background: "var(--highlight)", 
+              color: "white", 
+              borderRadius: "15px",
+              display: "flex",
+              alignItems: "center",
+              fontWeight: "700",
+              boxShadow: "0 10px 20px rgba(108, 99, 255, 0.2)"
+            }}
           >
-            <CheckCircle2 size={18} style={{ marginRight: "10px", verticalAlign: "middle" }} />
-            Settings updated for {selectedChild?.name}!
+            <CheckCircle2 size={20} style={{ marginRight: "12px" }} />
+            Settings updated successfully for {selectedChild?.name}!
           </motion.div>
         )}
       </AnimatePresence>

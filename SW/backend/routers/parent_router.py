@@ -165,11 +165,16 @@ def get_child_insights(
     }
     return insights
 
+from pydantic import BaseModel
+
+class PreferencesUpdate(BaseModel):
+    difficulty_level: Optional[int] = None
+    sensory_settings: Optional[dict] = None
+
 @router.patch("/child/{student_id}/preferences")
 def update_child_preferences(
     student_id: int,
-    difficulty_level: Optional[int] = None,
-    sensory_settings: Optional[dict] = None,
+    prefs: PreferencesUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_session)
 ):
@@ -179,11 +184,11 @@ def update_child_preferences(
     if not student or (parent and student.parent_id != parent.id):
         raise HTTPException(status_code=403, detail="Unauthorized")
     
-    if difficulty_level is not None:
-        student.difficulty_level = difficulty_level
+    if prefs.difficulty_level is not None:
+        student.difficulty_level = prefs.difficulty_level
     
-    if sensory_settings is not None:
-        student.sensory_settings = json.dumps(sensory_settings)
+    if prefs.sensory_settings is not None:
+        student.sensory_settings = json.dumps(prefs.sensory_settings)
     
     db.add(student)
     db.commit()
