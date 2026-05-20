@@ -18,7 +18,7 @@ class ClassroomRead(ClassroomBase):
     student_count: int = 0 
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ClassLevelBase(BaseModel):
     name: str
@@ -31,7 +31,7 @@ class ClassLevelRead(ClassLevelBase):
     classrooms: List[ClassroomRead] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class AssignStudentsRequest(BaseModel):
     student_ids: List[int]

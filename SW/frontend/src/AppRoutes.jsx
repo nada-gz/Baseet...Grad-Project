@@ -38,7 +38,11 @@ import ParentNotifications from "./pages/dashboards/Parent/ParentNotifications";
 import ChildInsights from "./pages/dashboards/Parent/ChildInsights";
 import ChildSettings from "./pages/dashboards/Parent/ChildSettings";
 import ChildList from "./pages/dashboards/Parent/ChildList";
-import SupervisorDashboard from "./pages/dashboards/SupervisorDashboard";
+
+import SupervisorHome from "./pages/dashboards/Supervisor/SupervisorHome";
+import SupervisorMonitoring from "./pages/dashboards/Supervisor/SupervisorMonitoring";
+import TeachersManagement from "./pages/dashboards/Supervisor/TeachersManagement";
+import StudentInvestigation from "./pages/dashboards/Supervisor/StudentInvestigation"; // To be created
 import AllStudents from "./pages/dashboards/Common/AllStudents";
 
 const router = createBrowserRouter([
@@ -101,7 +105,6 @@ const router = createBrowserRouter([
           { path: "/dashboard/parent", element: <ParentHome /> },
           { path: "/dashboard/parent/notifications", element: <ParentNotifications /> },
           { path: "/dashboard/parent/students", element: <ChildList /> },
-          { path: "/dashboard/parent/students/:studentId/insights", element: <ChildInsights /> },
           { path: "/dashboard/parent/settings", element: <ChildSettings /> },
           { path: "/dashboard/parent/child/:studentId/settings", element: <ChildSettings /> },
         ],
@@ -115,25 +118,35 @@ const router = createBrowserRouter([
     children: [
       {
         element: <MainLayout />,
-        children: [{ path: "/dashboard/supervisor", element: <SupervisorDashboard /> }],
+        children: [
+          { path: "/dashboard/supervisor", element: <SupervisorHome /> },
+          { path: "/dashboard/supervisor/monitoring", element: <SupervisorMonitoring /> },
+          { path: "/dashboard/supervisor/teachers", element: <TeachersManagement /> },
+          { path: "/dashboard/supervisor/investigation/:studentId", element: <StudentInvestigation /> },
+        ],
       },
     ],
   },
 
-  // Protected routes - all students
+  // Protected routes - all students (and insights)
   {
     element: <ProtectedRoute allowedRoles={["teacher", "parent", "supervisor"]} />,
     children: [
       {
         element: <MainLayout />,
-        children: [{ path: "/students", element: <AllStudents /> }],
+        children: [
+          { path: "/students", element: <AllStudents /> },
+          { path: "/students/:studentId/insights", element: <ChildInsights /> },
+          // Keep the old route for parent compatibility if needed
+          { path: "/dashboard/parent/students/:studentId/insights", element: <ChildInsights /> }
+        ],
       },
     ],
   },
 
   // Protected routes - Profile (student / parent / teacher)
   {
-    element: <ProtectedRoute allowedRoles={["student", "parent", "teacher"]} />,
+    element: <ProtectedRoute allowedRoles={["student", "parent", "teacher", "supervisor"]} />,
     children: [
       {
         element: <MainLayout />,

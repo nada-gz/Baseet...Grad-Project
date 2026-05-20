@@ -43,6 +43,7 @@ class StudentReadWithUser(BaseModel):
     level_name: Optional[str] = None
     status: Optional[str] = "Active"
     online: bool = False
+    is_flagged: bool = False
     last_access: Optional[datetime] = None
     state: Optional[str] = "Relaxed"
     progress: Optional[int] = 0

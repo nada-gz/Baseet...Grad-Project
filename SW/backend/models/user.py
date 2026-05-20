@@ -1,7 +1,9 @@
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from enum import Enum
 from sqlmodel import SQLModel, Field, Relationship
+from .teacher_student_link import TeacherStudentLink
+
 
 class RoleEnum(str, Enum):
     teacher = "teacher"
@@ -22,6 +24,9 @@ class User(SQLModel, table=True):
 
     student: Optional["Student"] = Relationship(back_populates="user")
     parent: Optional["Parent"] = Relationship(back_populates="user")
+
+    # For Teachers: list of assigned students
+    assigned_students: List["Student"] = Relationship(back_populates="teachers", link_model=TeacherStudentLink)
 
 from .student import Student
 from .parent import Parent

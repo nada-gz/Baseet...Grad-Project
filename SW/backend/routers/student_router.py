@@ -28,7 +28,8 @@ from models.content_material import ContentMaterial
 from models.content_assignment import ContentAssignment
 from models.content_assignment_file import ContentAssignmentFile
 from models.classroom import Classroom, ClassroomCourseLink
-from schemas.student_schema import StudentCreate, StudentRead, StudentUpdate
+from schemas.student_schema import StudentCreate, StudentRead, StudentUpdate, StudentProfileDetail
+from models.class_level import ClassLevel
 from schemas.lesson_schema import LessonRead, LessonUpdate
 from schemas.milestone_schema import MilestoneRead, MilestoneCreate
 from schemas.material_schema import MaterialRead
@@ -127,6 +128,38 @@ def get_student_route(student_id: int):
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     return student
+
+@router.get("/{student_id}/profile", response_model=StudentProfileDetail)
+def get_student_profile(student_id: int, session: Session = Depends(get_session)):
+    statement = (
+        select(Student, User, Classroom, ClassLevel)
+        .join(User, Student.user_id == User.id)
+        .outerjoin(Classroom, Student.classroom_id == Classroom.id)
+        .outerjoin(ClassLevel, Classroom.level_id == ClassLevel.id)
+        .where(Student.id == student_id)
+    )
+    result = session.exec(statement).first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Student not found")
+        
+    student_obj, user_obj, classroom_obj, level_obj = result
+    
+    return StudentProfileDetail(
+        id=student_obj.id,
+        user_id=student_obj.user_id,
+        username=user_obj.username,
+        email=user_obj.email,
+        role=user_obj.role.value,
+        age=student_obj.age,
+        autism_type=student_obj.autism_type,
+        sensitivities=student_obj.sensitivities,
+        learning_style=student_obj.learning_style,
+        baseline_engagement=student_obj.baseline_engagement,
+        classroom_name=classroom_obj.name if classroom_obj else None,
+        level_name=level_obj.name if level_obj else None,
+        is_flagged=student_obj.is_flagged,
+        online=(student_obj.id % 2 == 0) # Simulation for demo
+    )
 
 
 @router.put("/{student_id}", response_model=StudentRead)

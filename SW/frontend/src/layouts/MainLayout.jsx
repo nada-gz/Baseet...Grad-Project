@@ -13,7 +13,8 @@ import {
   Sun,
   LayoutDashboard,
   Bell,
-  Settings
+  Settings,
+  Activity
 } from "lucide-react";
 import Logo from "../components/ui/logo";
 import HiBaseet from "../assets/hii_baseet.png";
@@ -129,8 +130,26 @@ export default function MainLayout() {
 
       case "supervisor":
         return [
-          { label: "Analytics", path: "/dashboard/supervisor/analytics", icon: "📈" },
-          { label: "Student List", path: "/dashboard/supervisor/students", icon: "👨‍🎓" }
+          {
+            label: "Dashboard",
+            path: "/dashboard/supervisor",
+            icon: <LayoutDashboard size={20} />
+          },
+          {
+            label: "Monitoring",
+            path: "/dashboard/supervisor/monitoring",
+            icon: <Activity size={20} />
+          },
+          {
+            label: "Teachers",
+            path: "/dashboard/supervisor/teachers",
+            icon: <ClipboardList size={20} />
+          },
+          {
+            label: "All Students",
+            path: "/students",
+            icon: <Users size={20} />
+          }
         ];
 
       default:
@@ -261,19 +280,22 @@ export default function MainLayout() {
                   location.pathname === item.path ||
                   location.pathname.startsWith(item.path + "/")
               );
-              const isHome = location.pathname === "/dashboard/parent" || location.pathname === "/dashboard/student" || location.pathname === "/dashboard/teacher";
+              const isHome = location.pathname === "/dashboard/parent" || 
+                             location.pathname === "/dashboard/student" || 
+                             location.pathname === "/dashboard/teacher" ||
+                             location.pathname === "/dashboard/supervisor";
               
-              // For parents, show greeting on all pages but style it differently
-              if (role === "parent") {
+              // For parents and supervisors, show greeting on all pages but style it differently
+              if (role === "parent" || role === "supervisor") {
                 if (isHome) {
                   return (
                     <span className="topbar-greeting">
                       Hello, {user?.username || "there"}
-                      <img src={HiBaseet} alt="Hi Baseet" className="topbar-hi-icon" />
+                      {role === "parent" && <img src={HiBaseet} alt="Hi Baseet" className="topbar-hi-icon" />}
                     </span>
                   );
                 } else {
-                  return <span style={{ fontWeight: 600, color: "var(--secondary-text)" }}>Hello, {user?.username || "there"}</span>;
+                  return <span style={{ fontWeight: 600, color: "var(--secondary-text)" }}>{role === "supervisor" ? "Supervisor Control" : "Parent Access"}</span>;
                 }
               }
 
@@ -300,7 +322,7 @@ export default function MainLayout() {
           </div>
         </header>
 
-        <div className="content" style={{ marginTop: "20px" }}>
+        <div className="content" style={{ marginTop: "80px" }}>
           {role === "student" && <VisualTimeStrip initialMinutes={20} />}
           <Outlet />
         </div>

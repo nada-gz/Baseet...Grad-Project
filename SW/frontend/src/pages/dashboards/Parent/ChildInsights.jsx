@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link, useLocation } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -30,6 +30,7 @@ export default function ChildInsights() {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const initialTab = queryParams.get("tab") || "academic";
+  const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState(initialTab);
   const [data, setData] = useState(null);
@@ -74,9 +75,9 @@ export default function ChildInsights() {
       {/* Header */}
       <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "40px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-          <Link to="/dashboard/parent/students" className="btn btn-outline" style={{ borderRadius: "15px", padding: "10px" }}>
+          <button onClick={() => navigate(-1)} className="btn btn-outline" style={{ borderRadius: "15px", padding: "10px", height: "fit-content" }}>
             <ChevronLeft size={24} />
-          </Link>
+          </button>
           <div>
             <h1 className="topbar-title" style={{ fontSize: "2.5rem" }}>{data.child_name}'s Journey</h1>
             <p style={{ color: "var(--secondary-text)" }}>Detailed academic and emotional breakdown.</p>

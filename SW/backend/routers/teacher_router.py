@@ -25,6 +25,9 @@ from models.content_assignment import ContentAssignment
 from models.content_assignment_file import ContentAssignmentFile
 from models.parent import Parent
 from models.parent_notification import ParentNotification
+from models.teacher_student_link import TeacherStudentLink
+from models.student_flag import StudentFlag
+from models.supervisor_message import SupervisorMessage
 from utils.dependencies import require_role
 
 from schemas.content_schema import (
@@ -97,13 +100,18 @@ def create_content_course(
 # Get All Students (with Course)
 # -----------------------
 @router.get("/students", response_model=list[StudentReadWithUser])
-def get_all_students(session: Session = Depends(get_session)):
-    # Join Student, User, Classroom, and Level
+def get_all_students(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["teacher"]))
+):
+    # Join Student, User, Classroom, and Level, and filter by Teacher Assignment
     statement = (
         select(Student, User, Classroom, ClassLevel)
         .join(User, Student.user_id == User.id)
         .outerjoin(Classroom, Student.classroom_id == Classroom.id)
         .outerjoin(ClassLevel, Classroom.level_id == ClassLevel.id)
+        .join(TeacherStudentLink, TeacherStudentLink.student_id == Student.id)
+        .where(TeacherStudentLink.teacher_id == current_user.id)
     )
     results = session.exec(statement).all()
     
@@ -152,9 +160,36 @@ def get_all_students(session: Session = Depends(get_session)):
             online=False,
             last_access=None,
             state="Stressed" if student.id % 2 == 0 else "Relaxed",
-            progress=avg_progress
+            progress=avg_progress,
+            is_flagged=student.is_flagged
         ))
     return students_list
+
+@router.post("/students/{student_id}/flag")
+def flag_student_manually(
+    student_id: int,
+    reason: str = Form(...),
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["teacher"]))
+):
+    student = session.get(Student, student_id)
+    if not student:
+        raise HTTPException(404, "Student not found")
+    
+    # Check if already flagged
+    if not student.is_flagged:
+        student.is_flagged = True
+        flag = StudentFlag(
+            student_id=student_id,
+            source="teacher",
+            reason=reason,
+            status="active"
+        )
+        session.add(student)
+        session.add(flag)
+        session.commit()
+    
+    return {"ok": True}
 
 
 # -----------------------
@@ -970,6 +1005,19 @@ def send_lesson_comment_to_parent(
     session.commit()
     
     return {"message": "Lesson comment sent to parent"}
+
+# -----------------------
+# Supervisor Messages
+# -----------------------
+
+@router.get("/messages")
+def get_supervisor_messages(
+    session: Session = Depends(get_session), 
+    current_user: User = Depends(require_role(["teacher"]))
+):
+    statement = select(SupervisorMessage).where(SupervisorMessage.teacher_id == current_user.id).order_by(SupervisorMessage.created_at.desc())
+    messages = session.exec(statement).all()
+    return messages
 
 
 
