@@ -21,7 +21,7 @@ class StudentRead(BaseModel):
     baseline_engagement: Optional[float] = None
 
     class Config:
-        orm_mode = True  # Allows returning SQLModel objects directly
+        from_attributes = True
 
 
 class StudentUpdate(BaseModel):
@@ -30,3 +30,23 @@ class StudentUpdate(BaseModel):
     sensitivities: Optional[str] = None
     learning_style: Optional[str] = None
     baseline_engagement: Optional[float] = None
+
+
+class StudentProfileDetail(BaseModel):
+    id: int
+    user_id: int
+    username: str
+    email: str
+    role: str
+    age: Optional[int] = None
+    autism_type: Optional[str] = None
+    sensitivities: Optional[str] = None
+    learning_style: Optional[str] = None
+    baseline_engagement: Optional[float] = None
+    classroom_name: Optional[str] = None
+    level_name: Optional[str] = None
+    is_flagged: bool = False
+    online: bool = False
+
+    class Config:
+        from_attributes = True

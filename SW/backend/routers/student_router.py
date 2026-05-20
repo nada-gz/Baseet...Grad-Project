@@ -5,7 +5,9 @@ from sqlmodel import Session, select, update
 from pathlib import Path
 from fastapi.responses import FileResponse
 from services.ocr import process_image_for_ocr, process_pdf_for_ocr
-from datetime import datetime
+from models.parent_extensions import LinkingCode
+from datetime import datetime, timedelta
+import random
 from db.database import engine, get_session
 from db.crud import (
     create_student, get_all_students, get_student_by_id, update_student, delete_student,
@@ -26,13 +28,16 @@ from models.content_material import ContentMaterial
 from models.content_assignment import ContentAssignment
 from models.content_assignment_file import ContentAssignmentFile
 from models.classroom import Classroom, ClassroomCourseLink
-from schemas.student_schema import StudentCreate, StudentRead, StudentUpdate
+from schemas.student_schema import StudentCreate, StudentRead, StudentUpdate, StudentProfileDetail
+from models.class_level import ClassLevel
 from schemas.lesson_schema import LessonRead, LessonUpdate
 from schemas.milestone_schema import MilestoneRead, MilestoneCreate
 from schemas.material_schema import MaterialRead
 from schemas.assignment_schema import AssignmentRead
 from schemas.course_schema import CourseRead
 from schemas.content_schema import ContentCourseRead, ContentLessonRead
+from models.user import User, RoleEnum
+from utils.auth import get_current_user
 
 import traceback
 
@@ -41,6 +46,41 @@ import traceback
 # ---------------------------
 
 router = APIRouter(prefix="/students", tags=["Students"])
+
+@router.post("/linking-code")
+def generate_linking_code(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    if current_user.role != RoleEnum.student:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    student = session.exec(select(Student).where(Student.user_id == current_user.id)).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student record not found")
+    
+    # Generate 6-digit code
+    code = "".join([str(random.randint(0, 9)) for _ in range(6)])
+    
+    # Create or update existing code for this student
+    existing = session.exec(select(LinkingCode).where(LinkingCode.student_id == student.id, LinkingCode.is_used == False)).first()
+    if existing:
+        existing.code = code
+        existing.expires_at = datetime.utcnow() + timedelta(minutes=15)
+        session.add(existing)
+        db_obj = existing
+    else:
+        db_obj = LinkingCode(
+            student_id=student.id,
+            code=code,
+            expires_at=datetime.utcnow() + timedelta(minutes=15)
+        )
+        session.add(db_obj)
+    
+    session.commit()
+    session.refresh(db_obj)
+    
+    return {"code": code, "expires_at": db_obj.expires_at}
 
 SUBMISSION_UPLOAD_DIR = Path("uploads/submissions")
 SUBMISSION_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -88,6 +128,38 @@ def get_student_route(student_id: int):
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     return student
+
+@router.get("/{student_id}/profile", response_model=StudentProfileDetail)
+def get_student_profile(student_id: int, session: Session = Depends(get_session)):
+    statement = (
+        select(Student, User, Classroom, ClassLevel)
+        .join(User, Student.user_id == User.id)
+        .outerjoin(Classroom, Student.classroom_id == Classroom.id)
+        .outerjoin(ClassLevel, Classroom.level_id == ClassLevel.id)
+        .where(Student.id == student_id)
+    )
+    result = session.exec(statement).first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Student not found")
+        
+    student_obj, user_obj, classroom_obj, level_obj = result
+    
+    return StudentProfileDetail(
+        id=student_obj.id,
+        user_id=student_obj.user_id,
+        username=user_obj.username,
+        email=user_obj.email,
+        role=user_obj.role.value,
+        age=student_obj.age,
+        autism_type=student_obj.autism_type,
+        sensitivities=student_obj.sensitivities,
+        learning_style=student_obj.learning_style,
+        baseline_engagement=student_obj.baseline_engagement,
+        classroom_name=classroom_obj.name if classroom_obj else None,
+        level_name=level_obj.name if level_obj else None,
+        is_flagged=student_obj.is_flagged,
+        online=(student_obj.id % 2 == 0) # Simulation for demo
+    )
 
 
 @router.put("/{student_id}", response_model=StudentRead)
@@ -812,7 +884,8 @@ def get_submission(
         "feedback": {
             "comment": submission.feedback.comment,
             "rating": submission.feedback.rating
-        } if submission.feedback else None
+        } if submission.feedback else None,
+        "audio_url": submission.audio_url
     }
 
 
@@ -821,7 +894,11 @@ async def submit_assignment(
     student_id: int,
     assignment_id: int,
     description: str = Form(""),
-    files: list[UploadFile] = File(...),
+    submission_method: str = Form("typed"),
+    story_grammar_score: Optional[str] = Form(None),
+    causal_connective_count: int = Form(0),
+    files: Optional[list[UploadFile]] = File(None),
+    audio: Optional[UploadFile] = File(None),
     session: Session = Depends(get_session)
 ):
     try:
@@ -843,6 +920,9 @@ async def submit_assignment(
                 assignment_id=assignment_id,
                 student_id=student_id,
                 description=description,
+                submission_method=submission_method,
+                story_grammar_score=story_grammar_score,
+                causal_connective_count=causal_connective_count,
                 submitted_at=datetime.utcnow()
             )
             session.add(submission)
@@ -858,32 +938,46 @@ async def submit_assignment(
                 session.delete(existing_feedback)
             
             # 2. Delete old SubmissionFile records from DB
-            # Actual files on disk could be cleaned up too, but for now we replace in DB
             for old_file in submission.files:
                 session.delete(old_file)
             
             submission.description = description
+            submission.submission_method = submission_method
+            submission.story_grammar_score = story_grammar_score
+            submission.causal_connective_count = causal_connective_count
             submission.updated_at = datetime.utcnow()
             session.add(submission)
             session.commit()
             session.refresh(submission)
 
         # Process Files
-        for file in files:
-            safe_filename = f"{submission.id}_{file.filename.replace(' ', '_')}"
-            file_path = SUBMISSION_UPLOAD_DIR / safe_filename
-            
-            content = await file.read()
-            with open(file_path, "wb") as f:
-                f.write(content)
+        if files:
+            for file in files:
+                safe_filename = f"{submission.id}_{file.filename.replace(' ', '_')}"
+                file_path = SUBMISSION_UPLOAD_DIR / safe_filename
                 
-            sub_file = SubmissionFile(
-                submission_id=submission.id,
-                file_name=file.filename,
-                file_url=f"/uploads/submissions/{safe_filename}",
-                file_type=file.filename.split('.')[-1]
-            )
-            session.add(sub_file)
+                content = await file.read()
+                with open(file_path, "wb") as f:
+                    f.write(content)
+                    
+                sub_file = SubmissionFile(
+                    submission_id=submission.id,
+                    file_name=file.filename,
+                    file_url=f"/uploads/submissions/{safe_filename}",
+                    file_type=file.filename.split('.')[-1]
+                )
+                session.add(sub_file)
+        
+        # Process Audio recording
+        if audio:
+            safe_audio_name = f"audio_{submission.id}_{audio.filename.replace(' ', '_')}"
+            audio_path = SUBMISSION_UPLOAD_DIR / safe_audio_name
+            
+            with open(audio_path, "wb") as f:
+                f.write(await audio.read())
+            
+            submission.audio_url = f"/uploads/submissions/{safe_audio_name}"
+            session.add(submission)
         
         session.commit()
         
@@ -917,7 +1011,8 @@ async def submit_assignment(
             "feedback": {
                 "comment": submission_refreshed.feedback.comment,
                 "rating": submission_refreshed.feedback.rating
-            } if submission_refreshed.feedback else None
+            } if submission_refreshed.feedback else None,
+            "audio_url": submission_refreshed.audio_url
         }
 
     except HTTPException as he:

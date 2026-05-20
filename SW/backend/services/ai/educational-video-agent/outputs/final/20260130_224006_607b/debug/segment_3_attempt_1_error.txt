@@ -1,0 +1,89 @@
+Segment: أنواع النجوم حسب اللون والدرجة الحرارية
+Scene Name: StellarClassification
+Attempt: 1
+
+======================================================================
+FULL ERROR MESSAGE:
+======================================================================
+
+Animation 0: FadeIn(Text('Types of Stars by Color and Temperature')), etc.:   0%|          | 0/15 [00:00<?, ?it/s]
+Animation 0: FadeIn(Text('Types of Stars by Color and Temperature')), etc.:  60%|██████    | 9/15 [00:00<00:00, 81.47it/s]
+                                                                                                                          
+╭─────────────────────────────── Traceback (most recent call last) ────────────────────────────────╮
+│ /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/manim/cli/render │
+│ /commands.py:125 in render                                                                       │
+│                                                                                                  │
+│   122 │   │   │   try:                                                                           │
+│   123 │   │   │   │   with tempconfig({}):                                                       │
+│   124 │   │   │   │   │   scene = SceneClass()                                                   │
+│ ❱ 125 │   │   │   │   │   scene.render()                                                         │
+│   126 │   │   │   except Exception:                                                              │
+│   127 │   │   │   │   error_console.print_exception()                                            │
+│   128 │   │   │   │   sys.exit(1)                                                                │
+│                                                                                                  │
+│ /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/manim/scene/scen │
+│ e.py:259 in render                                                                               │
+│                                                                                                  │
+│    256 │   │   """                                                                               │
+│    257 │   │   self.setup()                                                                      │
+│    258 │   │   try:                                                                              │
+│ ❱  259 │   │   │   self.construct()                                                              │
+│    260 │   │   except EndSceneEarlyException:                                                    │
+│    261 │   │   │   pass                                                                          │
+│    262 │   │   except RerunSceneException:                                                       │
+│                                                                                                  │
+│ /var/folders/pk/p94_s5cn5wv6g03n_9sr8v0r0000gn/T/tmpnv5hzkul.py:13 in construct                  │
+│                                                                                                  │
+│   10 │   │   self.wait(2)                                                                        │
+│   11 │   │                                                                                       │
+│   12 │   │   # Temperature scale                                                                 │
+│ ❱ 13 │   │   temp_scale = NumberLine(                                                            │
+│   14 │   │   │   x_range=[0, 50000, 10000],                                                      │
+│   15 │   │   │   length=10,                                                                      │
+│   16 │   │   │   include_numbers=True,                                                           │
+│                                                                                                  │
+│ /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/manim/mobject/gr │
+│ aphing/number_line.py:224 in __init__                                                            │
+│                                                                                                  │
+│   221 │   │   self.numbers_to_include = numbers_to_include                                       │
+│   222 │   │                                                                                      │
+│   223 │   │   self.scaling = scaling                                                             │
+│ ❱ 224 │   │   super().__init__(                                                                  │
+│   225 │   │   │   self.x_range[0] * RIGHT,                                                       │
+│   226 │   │   │   self.x_range[1] * RIGHT,                                                       │
+│   227 │   │   │   stroke_width=stroke_width,                                                     │
+│                                                                                                  │
+│ /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/manim/mobject/ge │
+│ ometry/line.py:107 in __init__                                                                   │
+│                                                                                                  │
+│    104 │   │   self.buff = buff                                                                  │
+│    105 │   │   self.path_arc = path_arc                                                          │
+│    106 │   │   self._set_start_and_end_attrs(start, end)                                         │
+│ ❱  107 │   │   super().__init__(**kwargs)                                                        │
+│    108 │                                                                                         │
+│    109 │   def generate_points(self) -> None:                                                    │
+│    110 │   │   self.set_points_by_ends(                                                          │
+│                                                                                                  │
+│ /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/manim/mobject/ge │
+│ ometry/arc.py:110 in __init__                                                                    │
+│                                                                                                  │
+│    107 │   │   self.tip_length: float = tip_length                                               │
+│    108 │   │   self.normal_vector = normal_vector                                                │
+│    109 │   │   self.tip_style: dict = tip_style                                                  │
+│ ❱  110 │   │   super().__init__(**kwargs)                                                        │
+│    111 │                                                                                         │
+│    112 │   # Adding, Creating, Modifying tips                                                    │
+│    113                                                                                           │
+│                                                                                                  │
+│ /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/manim/mobject/ty │
+│ pes/vectorized_mobject.py:160 in __init__                                                        │
+│                                                                                                  │
+│    157 │   │   │   0, 1, n_points_per_cubic_curve                                                │
+│    158 │   │   )                                                                                 │
+│    159 │   │   self.cap_style: CapStyleType = cap_style                                          │
+│ ❱  160 │   │   super().__init__(**kwargs)                                                        │
+│    161 │   │   self.submobjects: list[VMobject]                                                  │
+│    162 │   │                                                                                     │
+│    163 │   │   # TODO: Find where color overwrites are happening and remove the color doubling   │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+TypeError: Mobject.__init__() got an unexpected keyword argument 'numbers_to_show'

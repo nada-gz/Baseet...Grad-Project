@@ -81,6 +81,14 @@ def register(user: UserCreate, db: Session = Depends(get_session)):
         db.commit()
         db.refresh(student)
         student_id = student.id
+    
+    # If parent, create parent record
+    if role == RoleEnum.parent:
+        from models.parent import Parent
+        parent = Parent(user_id=new_user.id)
+        db.add(parent)
+        db.commit()
+        db.refresh(parent)
 
     token = create_access_token(
         {"sub": new_user.email, "role": new_user.role.value},

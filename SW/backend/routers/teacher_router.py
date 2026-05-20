@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional, List
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlmodel import Session, select, func
 from sqlalchemy.orm import selectinload
@@ -22,6 +23,11 @@ from models.feedback import Feedback
 from models.submission_file import SubmissionFile
 from models.content_assignment import ContentAssignment
 from models.content_assignment_file import ContentAssignmentFile
+from models.parent import Parent
+from models.parent_notification import ParentNotification
+from models.teacher_student_link import TeacherStudentLink
+from models.student_flag import StudentFlag
+from models.supervisor_message import SupervisorMessage
 from utils.dependencies import require_role
 
 from schemas.content_schema import (
@@ -68,6 +74,8 @@ def create_content_course(
     existing_course = session.exec(statement).first()
  
     if existing_course:
+        existing_course.title = course_data.title
+        existing_course.subject = course_data.subject
         existing_course.description = course_data.description
         existing_course.teacher_id = current_user.id # Claim it
         session.add(existing_course)
@@ -77,6 +85,8 @@ def create_content_course(
  
     new_course = ContentCourse(
         course_number=course_data.course_number,
+        title=course_data.title,
+        subject=course_data.subject,
         description=course_data.description,
         teacher_id=current_user.id
     )
@@ -90,13 +100,18 @@ def create_content_course(
 # Get All Students (with Course)
 # -----------------------
 @router.get("/students", response_model=list[StudentReadWithUser])
-def get_all_students(session: Session = Depends(get_session)):
-    # Join Student, User, Classroom, and Level
+def get_all_students(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["teacher"]))
+):
+    # Join Student, User, Classroom, and Level, and filter by Teacher Assignment
     statement = (
         select(Student, User, Classroom, ClassLevel)
         .join(User, Student.user_id == User.id)
         .outerjoin(Classroom, Student.classroom_id == Classroom.id)
         .outerjoin(ClassLevel, Classroom.level_id == ClassLevel.id)
+        .join(TeacherStudentLink, TeacherStudentLink.student_id == Student.id)
+        .where(TeacherStudentLink.teacher_id == current_user.id)
     )
     results = session.exec(statement).all()
     
@@ -145,9 +160,36 @@ def get_all_students(session: Session = Depends(get_session)):
             online=False,
             last_access=None,
             state="Stressed" if student.id % 2 == 0 else "Relaxed",
-            progress=avg_progress
+            progress=avg_progress,
+            is_flagged=student.is_flagged
         ))
     return students_list
+
+@router.post("/students/{student_id}/flag")
+def flag_student_manually(
+    student_id: int,
+    reason: str = Form(...),
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["teacher"]))
+):
+    student = session.get(Student, student_id)
+    if not student:
+        raise HTTPException(404, "Student not found")
+    
+    # Check if already flagged
+    if not student.is_flagged:
+        student.is_flagged = True
+        flag = StudentFlag(
+            student_id=student_id,
+            source="teacher",
+            reason=reason,
+            status="active"
+        )
+        session.add(student)
+        session.add(flag)
+        session.commit()
+    
+    return {"ok": True}
 
 
 # -----------------------
@@ -784,6 +826,9 @@ def get_student_educational_progress(student_id: int, session: Session = Depends
                 rating_val = None
                 file_url_val = None
                 submission = None
+                sub_method_val = None
+                sg_score_val = None
+                cc_count_val = None
                 
                 if student_assign:
                     # Fetch submission
@@ -803,15 +848,15 @@ def get_student_educational_progress(student_id: int, session: Session = Depends
                             sub_status = "resubmitted"
                             timing_val = submission.updated_at
                         
-                        # Check for evaluation
                         if submission.feedback:
-                            sub_status = "evaluated"
                             feedback_text = submission.feedback.comment
                             rating_val = submission.feedback.rating
-                            # timing_val remains submission.updated_at or submission.submitted_at
-                            # as per user request: "even if the state is evaluated, show state then submitted at date"
                         
-                        if submission.files:
+                        sub_method_val = submission.submission_method
+                        sg_score_val = submission.story_grammar_score
+                        cc_count_val = submission.causal_connective_count
+                        
+                        if submission.files and len(submission.files) > 0:
                             file_url_val = submission.files[0].file_url
 
                 assign_progress_list.append(StudentProgressAssignment(
@@ -823,6 +868,10 @@ def get_student_educational_progress(student_id: int, session: Session = Depends
                     timing=timing_val,
                     feedback=feedback_text,
                     rating=rating_val,
+                    submission_method=sub_method_val,
+                    story_grammar_score=sg_score_val,
+                    causal_connective_count=cc_count_val,
+                    audio_url=submission.audio_url if (student_assign and submission) else None,
                     deadline=ca.deadline,
                     file_url=file_url_val,
                     assignment_file_url=ca.file_url
@@ -889,3 +938,86 @@ def evaluate_submission(
     except Exception as e:
         logger.error(f"Error evaluating submission: {e}")
         raise e
+
+# -----------------------
+# Messaging Parent
+# -----------------------
+class NoteToParentRequest(BaseModel):
+    title: str
+    message: str
+    is_urgent: bool = False
+
+@router.post("/students/{student_id}/note-to-parent")
+def send_note_to_parent(
+    student_id: int,
+    note: NoteToParentRequest,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["teacher"]))
+):
+    student = session.get(Student, student_id)
+    if not student:
+        raise HTTPException(404, "Student not found")
+    
+    if not student.parent_id:
+        raise HTTPException(400, "This student does not have a linked parent yet")
+    
+    notification = ParentNotification(
+        parent_id=student.parent_id,
+        title=note.title,
+        message=note.message,
+        type="urgent" if note.is_urgent else "comment",
+        is_urgent=note.is_urgent
+    )
+    session.add(notification)
+    session.commit()
+    
+    return {"message": "Notification sent to parent"}
+
+@router.post("/students/{student_id}/lessons/{lesson_id}/comment")
+def send_lesson_comment_to_parent(
+    student_id: int,
+    lesson_id: int,
+    note: NoteToParentRequest,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(require_role(["teacher"]))
+):
+    student = session.get(Student, student_id)
+    if not student:
+        raise HTTPException(404, "Student not found")
+    
+    if not student.parent_id:
+        raise HTTPException(400, "This student does not have a linked parent yet")
+    
+    # Get lesson title for context
+    lesson = session.get(ContentLesson, lesson_id)
+    lesson_title = lesson.title if lesson else f"Lesson #{lesson_id}"
+    
+    full_title = f"Comment on {lesson_title}: {note.title}"
+    
+    notification = ParentNotification(
+        parent_id=student.parent_id,
+        title=full_title,
+        message=note.message,
+        type="feedback", # FEEDBACK for lesson-specific
+        is_urgent=note.is_urgent
+    )
+    session.add(notification)
+    session.commit()
+    
+    return {"message": "Lesson comment sent to parent"}
+
+# -----------------------
+# Supervisor Messages
+# -----------------------
+
+@router.get("/messages")
+def get_supervisor_messages(
+    session: Session = Depends(get_session), 
+    current_user: User = Depends(require_role(["teacher"]))
+):
+    statement = select(SupervisorMessage).where(SupervisorMessage.teacher_id == current_user.id).order_by(SupervisorMessage.created_at.desc())
+    messages = session.exec(statement).all()
+    return messages
+
+
+

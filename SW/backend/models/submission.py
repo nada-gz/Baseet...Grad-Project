@@ -21,6 +21,11 @@ class Submission(SQLModel, table=True):
     submitted_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None
 
+    submission_method: Optional[str] = Field(default="typed") # 'typed', 'voice', 'upload'
+    story_grammar_score: Optional[str] = None # e.g. "C,S,P"
+    causal_connective_count: Optional[int] = Field(default=0)
+    audio_url: Optional[str] = None
+
     assignment: Optional["Assignment"] = Relationship(back_populates="submissions")
 
     # ✅ ONE-TO-ONE
