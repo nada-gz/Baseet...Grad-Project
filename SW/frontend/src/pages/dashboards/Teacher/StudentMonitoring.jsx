@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import api from "../../../services/api";
 import { 
   Search, 
@@ -25,6 +24,7 @@ export default function StudentMonitoring() {
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [noteData, setNoteData] = useState({ title: "", message: "", is_urgent: false });
     const [noteStatus, setNoteStatus] = useState({ loading: false, error: null, success: false });
+    const [isFlagging, setIsFlagging] = useState(false);
 
     // Filters state
     const [searchTerm, setSearchTerm] = useState("");
@@ -108,6 +108,21 @@ export default function StudentMonitoring() {
 
     const handleFilterChange = (name, value) => {
         setFilters(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleFlagStudent = async (studentId, reason) => {
+        setIsFlagging(true);
+        try {
+            await api.post(`/teacher/students/${studentId}/flag`, `reason=${encodeURIComponent(reason)}`, {
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            });
+            setAllStudents(allStudents.map(s => s.id === studentId ? { ...s, is_flagged: true } : s));
+        } catch (err) {
+            console.error("Error flagging student:", err);
+            alert("Failed to send alert to supervisor.");
+        } finally {
+            setIsFlagging(false);
+        }
     };
 
     if (loading) return <div className="loading-state">Loading Students...</div>;
@@ -215,6 +230,34 @@ export default function StudentMonitoring() {
                                 >
                                     <MessageSquare size={14} />
                                     <span>Message Parent...</span>
+                                </button>
+                                <button 
+                                    title="Alert Supervisor"
+                                    onClick={() => {
+                                        const reason = prompt("Describe the urgent issue for the supervisor:");
+                                        if (reason) handleFlagStudent(student.id, reason);
+                                    }}
+                                    disabled={student.is_flagged || isFlagging}
+                                    className="supervisor-alert-btn"
+                                    style={{ 
+                                        background: student.is_flagged ? "var(--error-bg)" : "white", 
+                                        border: `2px solid ${student.is_flagged ? 'var(--error-bg)' : '#FF4757'}`, 
+                                        borderRadius: "12px", 
+                                        padding: "6px 14px", 
+                                        color: student.is_flagged ? "white" : "#FF4757", 
+                                        cursor: student.is_flagged ? "default" : "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "8px",
+                                        fontSize: "0.75rem",
+                                        fontWeight: "800",
+                                        transition: "all 0.3s ease",
+                                        width: "fit-content",
+                                        opacity: student.is_flagged ? 0.7 : 1
+                                    }}
+                                >
+                                    <AlertTriangle size={14} />
+                                    <span>{student.is_flagged ? 'Supervisor Alerted' : 'Alert Supervisor'}</span>
                                 </button>
                             </div>
 
