@@ -11,6 +11,8 @@ from gmqtt import Client as MQTTClient
 from typing import List, Optional
 from db.database import Session, get_session, engine
 from models.iot_reading import IOTReading
+from models.student import Student
+from models.student_flag import StudentFlag
 
 # --- CONFIGURATION ---
 MQTT_CONFIG = {
@@ -147,8 +149,24 @@ def on_message(client, topic, payload, qos, properties):
             })
             client.publish(MQTT_CONFIG["topic_control"], json.dumps(state["control_state"]))
 
-        # Notifications
+        # Notifications & Flagging
         if data.get('status') == 'stressed':
+            student_id = data.get("student_id", 1)
+            with Session(engine) as session:
+                student = session.get(Student, student_id)
+                if student and not student.is_flagged:
+                    student.is_flagged = True
+                    flag = StudentFlag(
+                        student_id=student_id,
+                        source="iot",
+                        reason="IoT detected stressed status",
+                        status="active"
+                    )
+                    session.add(student)
+                    session.add(flag)
+                    session.commit()
+                    print(f"🚩 Student {student_id} marked as FLAGGED due to stress.")
+
             current_time = time.time()
             if (current_time - state["last_notification_time"]) > NOTIFICATION_COOLDOWN:
                 requests.post(f"https://ntfy.sh/{NTFY_TOPIC}", data="⚠️ Stress Alert".encode('utf-8'))

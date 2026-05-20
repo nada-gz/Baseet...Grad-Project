@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react"; 
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../../services/api";
 import {
@@ -11,8 +11,15 @@ import {
     Star,
     MessageCircle,
     Download,
-    Eye
+    Eye,
+    Mic,
+    MessageSquare,
+    Send,
+    X,
+    AlertTriangle,
+    TrendingUp
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function StudentEducationalProgress() {
     const { studentId } = useParams();
@@ -28,6 +35,12 @@ export default function StudentEducationalProgress() {
     const [hoverRating, setHoverRating] = useState(0);
 
     const [errorMessage, setErrorMessage] = useState(null);
+
+    // Lesson Comment Modal State
+    const [showCommentModal, setShowCommentModal] = useState(false);
+    const [selectedLesson, setSelectedLesson] = useState(null);
+    const [commentData, setCommentData] = useState({ title: "", message: "", is_urgent: false });
+    const [commentStatus, setCommentStatus] = useState({ loading: false, error: null, success: false });
 
     useEffect(() => {
         fetchProgress();
@@ -63,6 +76,33 @@ export default function StudentEducationalProgress() {
             console.error("Evaluation error:", err);
             const msg = err.response?.data?.detail || "Error saving feedback";
             setErrorMessage(typeof msg === 'string' ? msg : JSON.stringify(msg));
+        }
+    };
+
+    const handleSendComment = async (e) => {
+        e.preventDefault();
+        if (!selectedLesson) return;
+        setCommentStatus({ loading: true, error: null, success: false });
+        
+        try {
+            await api.post(`/teacher/students/${studentId}/lessons/${selectedLesson.id}/comment`, {
+                title: commentData.title,
+                message: commentData.message,
+                is_urgent: commentData.is_urgent
+            });
+
+            setCommentStatus({ loading: false, error: null, success: true });
+            setTimeout(() => {
+                setShowCommentModal(false);
+                setCommentData({ title: "", message: "", is_urgent: false });
+                setCommentStatus({ loading: false, error: null, success: false });
+            }, 2000);
+        } catch (err) {
+            setCommentStatus({ 
+                loading: false, 
+                error: err.response?.data?.detail || "Could not send comment.", 
+                success: false 
+            });
         }
     };
 
@@ -187,18 +227,57 @@ export default function StudentEducationalProgress() {
                                     {milestone.lessons.map((lesson) => (
                                         <div key={lesson.id} className={`lesson-progress-card status-${lesson.status}`}>
                                             <div className="lesson-card-header">
-                                                <div>
-                                                    <h4>{lesson.title}</h4>
-                                                    <div className="progress-status-group mt-1">
-                                                        {lesson.status === 'completed' && <CheckCircle2 size={16} className="text-emerald-500" />}
-                                                        {lesson.status === 'in-progress' && <Clock size={16} className="text-amber-500" />}
-                                                        {lesson.status === 'locked' && <Lock size={16} className="text-slate-400" />}
-                                                        <span className="text-sm capitalize font-medium text-slate-500">{lesson.status}</span>
+                                                <div className="flex items-center justify-between w-full">
+                                                    {/* Left: Info */}
+                                                    <div>
+                                                        <h4 style={{ margin: 0, fontSize: "1.1rem" }}>{lesson.title}</h4>
+                                                        <div className="progress-status-group mt-1">
+                                                            {lesson.status === 'completed' && <CheckCircle2 size={16} className="text-emerald-500" />}
+                                                            {lesson.status === 'in-progress' && <Clock size={16} className="text-amber-500" />}
+                                                            {lesson.status === 'locked' && <Lock size={16} className="text-slate-400" />}
+                                                            <span className="text-sm capitalize font-medium text-slate-500">{lesson.status}</span>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <span className="text-lg font-black text-slate-700">{lesson.progress}%</span>
-                                                    <p className="text-[10px] uppercase font-bold text-slate-400">Lesson Progress</p>
+                                                    
+                                                    {/* Right: Button and Percentage below */}
+                                                    <div className="flex flex-col items-end gap-2">
+                                                        <button 
+                                                            title="Feedback for Parent"
+                                                            onClick={() => {
+                                                                setSelectedLesson(lesson);
+                                                                setShowCommentModal(true);
+                                                                setCommentData({ title: `Feedback on ${lesson.title}`, message: "", is_urgent: false });
+                                                            }}
+                                                            className="feedback-btn"
+                                                            style={{
+                                                                background: "var(--primary-bg)",
+                                                                border: "2px solid var(--neutral)",
+                                                                borderRadius: "10px",
+                                                                padding: "6px 12px",
+                                                                color: "var(--highlight)",
+                                                                cursor: "pointer",
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                gap: "6px",
+                                                                fontSize: "0.75rem",
+                                                                fontWeight: "800",
+                                                                transition: "all 0.2s"
+                                                            }}
+                                                        >
+                                                            <MessageSquare size={14} />
+                                                            <span>Feedback to Parent</span>
+                                                        </button>
+
+                                                        <div className="flex items-center" style={{ background: "var(--primary-bg)", padding: "5px 12px", borderRadius: "10px", border: "1px solid var(--neutral)", marginTop: "2px" }}>
+                                                            <TrendingUp size={14} style={{ color: "var(--highlight)", marginRight: "8px" }} />
+                                                            <span style={{ fontSize: "0.85rem", fontWeight: "950", color: "var(--highlight)", display: "flex", alignItems: "center" }}>
+                                                                {lesson.progress}% 
+                                                                <span style={{ fontSize: "0.65rem", opacity: 0.6, fontWeight: "900", marginLeft: "8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                                                    Progress
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -255,6 +334,42 @@ export default function StudentEducationalProgress() {
                                                                     )}
                                                                 </div>
                                                             </div>
+
+                                                            {/* Narrative Discovery Metrics (Using fixed CSS classes) */}
+                                                            {assign.submission_method === 'voice' && (
+                                                                <div className="narrative-analysis-card-fixed">
+                                                                    <div className="flex flex-col gap-4">
+                                                                        {/* Top Row: Info & AI Badge */}
+                                                                        <div className="flex items-center justify-between">
+                                                                            <span className="flex items-center gap-1.5 text-[11px] font-extrabold text-indigo-700 bg-white px-3 py-1.5 rounded-full border border-indigo-100 shadow-sm">
+                                                                                <Mic size={14} className="text-indigo-500" /> Voice Submission
+                                                                            </span>
+                                                                            <div className="ai-badge flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-md">
+                                                                                <Star size={12} className="fill-amber-400 text-amber-400" /> AI Assisted Analysis
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {/* Story Grammar Discovery removed as per request */}
+
+                                                                        {/* Bottom Row: Audio Player (Narrowed via class) */}
+                                                                        {assign.audio_url && (
+                                                                            <div className="audio-review-section pt-3 border-t border-indigo-50/50">
+                                                                                <span className="text-[10px] uppercase font-black text-slate-400 block mb-2 text-center">Oral Submission Recording</span>
+                                                                                <div className="audio-player-narrow-container">
+                                                                                    <div className="shrink-0 bg-indigo-600 p-2 rounded-full shadow-lg">
+                                                                                        <Mic size={14} className="text-white" />
+                                                                                    </div>
+                                                                                    <audio 
+                                                                                        src={`${api.defaults.baseURL}${assign.audio_url}`} 
+                                                                                        controls 
+                                                                                        className="w-full h-8 custom-audio-player"
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            )}
 
                                                             {/* 2. Evaluation Part (Underneath) */}
                                                             <div className="evaluation-row">
@@ -369,6 +484,127 @@ export default function StudentEducationalProgress() {
                     )}
                 </main>
             </div>
+
+            {/* Lesson Comment Modal */}
+            {showCommentModal && (
+                <div 
+                    style={{ 
+                        position: "fixed", top: 0, left: 0, width: "100%", height: "100%", 
+                        background: "rgba(0,0,0,0.7)", zIndex: 1000, display: "flex", 
+                        alignItems: "center", justifyContent: "center", padding: "20px",
+                        backdropFilter: "blur(12px)"
+                    }}
+                >
+                    <div 
+                            className="teacher-modal-box" 
+                            style={{ 
+                                width: "100%", 
+                                maxWidth: "700px", 
+                                minHeight: "500px",
+                                padding: "60px", 
+                                position: "relative", 
+                                background: "white", 
+                                borderRadius: "40px", 
+                                border: "10px solid var(--neutral)",
+                                boxShadow: "0 40px 80px rgba(0,0,0,0.3)",
+                                textAlign: "left",
+                                display: "flex",
+                                flexDirection: "column"
+                            }}
+                        >
+                            <button 
+                                onClick={() => setShowCommentModal(false)}
+                                style={{ position: "absolute", right: "25px", top: "25px", background: "var(--primary-bg)", border: "none", borderRadius: "15px", padding: "12px", cursor: "pointer", color: "var(--secondary-text)", transition: "all 0.2s" }}
+                            >
+                                <X size={24} />
+                            </button>
+
+                            <div style={{ marginBottom: "40px" }}>
+                                <h2 style={{ fontSize: "2.2rem", fontWeight: "950", color: "var(--highlight)", margin: "0 0 10px 0" }}>Lesson Feedback</h2>
+                                <p style={{ color: "var(--secondary-text)", fontSize: "1.1rem" }}>
+                                    Message for <strong>{student.username}</strong>'s parent regarding <strong>{selectedLesson?.title}</strong>.
+                                </p>
+                            </div>
+
+                            {/* Using display toggle instead of conditional rendering to prevent DOM removal crashes */}
+                            <div style={{ display: commentStatus.success ? 'none' : 'block', flex: 1 }}>
+                                <form 
+                                    onSubmit={handleSendComment}
+                                    style={{ display: "flex", flexDirection: "column", height: "100%" }}
+                                >
+                                    <div style={{ marginBottom: "25px" }}>
+                                        <label style={{ fontWeight: "800", display: "block", marginBottom: "12px", fontSize: "1rem", color: "var(--primary-text)" }}>Title</label>
+                                        <input 
+                                            type="text" 
+                                            placeholder="e.g. Lesson Performance" 
+                                            value={commentData.title}
+                                            onChange={(e) => setCommentData({ ...commentData, title: e.target.value })}
+                                            required
+                                            style={{ width: "100%", padding: "18px", borderRadius: "18px", border: "4px solid var(--neutral)", fontSize: "1.1rem", outline: "none" }}
+                                        />
+                                    </div>
+
+                                    <div style={{ marginBottom: "25px" }}>
+                                        <label style={{ fontWeight: "800", display: "block", marginBottom: "12px", fontSize: "1rem", color: "var(--primary-text)" }}>Comment Message</label>
+                                        <textarea 
+                                            placeholder="What would you like to share with the parent?" 
+                                            rows={6}
+                                            value={commentData.message}
+                                            onChange={(e) => setCommentData({ ...commentData, message: e.target.value })}
+                                            style={{ width: "100%", padding: "20px", borderRadius: "20px", border: "4px solid var(--neutral)", fontFamily: "inherit", fontSize: "1.1rem", outline: "none", resize: "none" }}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div style={{ 
+                                        marginBottom: "35px", 
+                                        display: "flex", 
+                                        alignItems: "center", 
+                                        gap: "15px", 
+                                        background: commentData.is_urgent ? "rgba(255, 71, 87, 0.05)" : "var(--primary-bg)", 
+                                        padding: "20px", 
+                                        borderRadius: "20px", 
+                                        border: `2px solid ${commentData.is_urgent ? 'rgba(255, 71, 87, 0.2)' : 'transparent'}`,
+                                        transition: "all 0.3s" 
+                                    }}>
+                                        <input 
+                                            type="checkbox" 
+                                            id="urgent-comment" 
+                                            checked={commentData.is_urgent}
+                                            onChange={(e) => setCommentData({ ...commentData, is_urgent: e.target.checked })}
+                                            style={{ width: "24px", height: "24px", margin: 0, cursor: "pointer" }}
+                                        />
+                                        <label htmlFor="urgent-comment" style={{ fontWeight: "900", color: commentData.is_urgent ? "#FF4757" : "var(--primary-text)", display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "1rem" }}>
+                                            {commentData.is_urgent && <AlertTriangle size={20} />}
+                                            Mark as Urgent
+                                        </label>
+                                    </div>
+
+                                    {commentStatus.error && (
+                                        <p style={{ color: "#FF4757", fontSize: "0.95rem", fontWeight: "800", marginBottom: "25px", textAlign: "center", padding: "10px", background: "rgba(255, 71, 87, 0.1)", borderRadius: "10px" }}>
+                                            {commentStatus.error}
+                                        </p>
+                                    )}
+
+                                    <button 
+                                        type="submit" 
+                                        className="btn btn-primary" 
+                                        style={{ width: "100%", padding: "20px", fontSize: "1.2rem", borderRadius: "20px" }}
+                                        disabled={commentStatus.loading}
+                                    >
+                                        {commentStatus.loading ? "Sending..." : <><Send size={22} style={{ marginRight: "12px" }} /> Send Feedback</>}
+                                    </button>
+                                </form>
+                            </div>
+
+                            <div style={{ display: commentStatus.success ? 'flex' : 'none', textAlign: "center", padding: "60px 0", flex: 1, flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+                                <CheckCircle2 size={80} color="#00F5D4" style={{ marginBottom: "25px" }} />
+                                <h3 style={{ color: "var(--primary-text)", fontSize: "2rem", fontWeight: "900" }}>Feedback Sent!</h3>
+                                <p style={{ color: "var(--secondary-text)", fontSize: "1.1rem", marginTop: "10px" }}>The guardian has been notified about this lesson.</p>
+                            </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

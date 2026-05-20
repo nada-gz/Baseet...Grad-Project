@@ -15,6 +15,9 @@ from routers.auth_router import router as auth_router
 from routers.dashboard_router import router as dashboard_router
 from routers.ai_router import router as ai_router
 from routers.iot_router import router as iot_router
+from routers.math_router import router as math_router
+from routers.parent_router import router as parent_router
+from routers.supervisor_router import router as supervisor_router
 from routers.iot_router import start_mqtt_connection, stop_mqtt_connection
 
 # --- LIFESPAN MANAGEMENT ---
@@ -56,6 +59,9 @@ app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(ai_router)
 app.include_router(iot_router)
+app.include_router(math_router)
+app.include_router(parent_router)
+app.include_router(supervisor_router)
 
 # Root route
 @app.get("/")

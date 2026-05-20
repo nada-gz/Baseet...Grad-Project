@@ -10,10 +10,15 @@ import {
   Users,
   School,
   Moon,
-  Sun
+  Sun,
+  LayoutDashboard,
+  Bell,
+  Settings,
+  Activity
 } from "lucide-react";
 import Logo from "../components/ui/logo";
 import HiBaseet from "../assets/hii_baseet.png";
+import VisualTimeStrip from "../components/ui/VisualTimeStrip";
 
 export default function MainLayout() {
   const { role, user, logout } = useAuth();
@@ -66,8 +71,26 @@ export default function MainLayout() {
 
       case "parent":
         return [
-          { label: "Child Progress", path: "/dashboard/parent/progress", icon: "📊" },
-          { label: "Reports", path: "/dashboard/parent/reports", icon: "📄" }
+          {
+            label: "Dashboard",
+            path: "/dashboard/parent",
+            icon: <LayoutDashboard size={20} />,
+          },
+          {
+            label: "Notifications",
+            path: "/dashboard/parent/notifications",
+            icon: <Bell size={20} />,
+          },
+          {
+            label: "Child Insights",
+            path: "/dashboard/parent/students",
+            icon: <Users size={20} />,
+          },
+          {
+            label: "Preferences",
+            path: "/dashboard/parent/settings",
+            icon: <Settings size={20} />,
+          },
         ];
 
       case "student":
@@ -107,8 +130,26 @@ export default function MainLayout() {
 
       case "supervisor":
         return [
-          { label: "Analytics", path: "/dashboard/supervisor/analytics", icon: "📈" },
-          { label: "Student List", path: "/dashboard/supervisor/students", icon: "👨‍🎓" }
+          {
+            label: "Dashboard",
+            path: "/dashboard/supervisor",
+            icon: <LayoutDashboard size={20} />
+          },
+          {
+            label: "Monitoring",
+            path: "/dashboard/supervisor/monitoring",
+            icon: <Activity size={20} />
+          },
+          {
+            label: "Teachers",
+            path: "/dashboard/supervisor/teachers",
+            icon: <ClipboardList size={20} />
+          },
+          {
+            label: "All Students",
+            path: "/students",
+            icon: <Users size={20} />
+          }
         ];
 
       default:
@@ -126,21 +167,31 @@ export default function MainLayout() {
   const renderTopbarExtras = () => {
     if (!user) return null;
 
-    if (role === "student") {
+    if (role === "student" || role === "parent") {
       return (
         <>
-          <Link to="/dashboard/student" className="topbar-continue">
-            <PlayCircle size={20} />
-            <span>Continue</span>
-          </Link>
+          {role === "student" && (
+            <Link to="/dashboard/student" className="topbar-continue">
+              <PlayCircle size={20} />
+              <span>Continue</span>
+            </Link>
+          )}
 
           <div className="topbar-actions">
-            <Link to="/dashboard/student/analytics" className="topbar-link">
-              Analytics
-            </Link>
-            <Link to={`/students/${user.id}/profile`} className="topbar-link">
-              My Profile
-            </Link>
+            {role === "student" ? (
+              <>
+                <Link to="/dashboard/student/analytics" className="topbar-link">
+                  Analytics
+                </Link>
+                <Link to={`/students/${user.id}/profile`} className="topbar-link">
+                  My Profile
+                </Link>
+              </>
+            ) : (
+              <Link to="/dashboard/parent/notifications" className="topbar-link">
+                Alerts Center
+              </Link>
+            )}
           </div>
         </>
       );
@@ -229,10 +280,29 @@ export default function MainLayout() {
                   location.pathname === item.path ||
                   location.pathname.startsWith(item.path + "/")
               );
-              return activeItem ? (activeItem.topbarLabel || activeItem.label) : (
+              const isHome = location.pathname === "/dashboard/parent" || 
+                             location.pathname === "/dashboard/student" || 
+                             location.pathname === "/dashboard/teacher" ||
+                             location.pathname === "/dashboard/supervisor";
+              
+              // For parents and supervisors, show greeting on all pages but style it differently
+              if (role === "parent" || role === "supervisor") {
+                if (isHome) {
+                  return (
+                    <span className="topbar-greeting">
+                      Hello, {user?.username || "there"}
+                      {role === "parent" && <img src={HiBaseet} alt="Hi Baseet" className="topbar-hi-icon" />}
+                    </span>
+                  );
+                } else {
+                  return <span style={{ fontWeight: 600, color: "var(--secondary-text)" }}>{role === "supervisor" ? "Supervisor Control" : "Parent Access"}</span>;
+                }
+              }
+
+              return (activeItem && !isHome) ? (activeItem.topbarLabel || activeItem.label) : (
                 <span className="topbar-greeting">
-                  Hi, {user?.username || "there"}
-                  {role === "student" && (
+                  Hello, {user?.username || "there"}
+                  {(role === "student" || role === "parent") && (
                     <img
                       src={HiBaseet}
                       alt="Hi Baseet"
@@ -252,7 +322,8 @@ export default function MainLayout() {
           </div>
         </header>
 
-        <div className="content">
+        <div className="content" style={{ marginTop: "80px" }}>
+          {role === "student" && <VisualTimeStrip initialMinutes={20} />}
           <Outlet />
         </div>
       </main>

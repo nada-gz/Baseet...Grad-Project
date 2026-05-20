@@ -1,7 +1,9 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional
 import datetime
+from pathlib import Path
 
 from services.ai.ai_service import (
     sessions,
@@ -11,6 +13,7 @@ from services.ai.ai_service import (
     process_voice_input,
     speak_text
 )
+from services.ai.educational_video_service import get_video_service
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
@@ -32,6 +35,45 @@ class BotResponse(BaseModel):
     message: str
     state: str
     progress: Optional[int] = 0
+
+
+# =========================
+# VIDEO GENERATION MODELS
+# =========================
+class GenerateVideoRequest(BaseModel):
+    """Unified video generation request (async by default)."""
+    lesson_id: int
+    student_id: int
+    duration: Optional[float] = None
+
+
+class VideoResponse(BaseModel):
+    """Response for video generation and status."""
+    success: bool
+    job_id: Optional[str] = None
+    status: Optional[str] = None
+    progress: Optional[int] = None
+    video_path: Optional[str] = None
+    video_url: Optional[str] = None
+    session_id: Optional[str] = None
+    message: str
+    error: Optional[str] = None
+
+
+# =========================
+# SCAFFOLD MODELS
+# =========================
+class ScaffoldRequest(BaseModel):
+    text: str
+
+class ScaffoldResponse(BaseModel):
+    success: bool
+    found: Optional[str] = ""
+    missing: Optional[list] = []
+    next_prompt: Optional[str] = ""
+    is_complete: bool = False
+    connective_count: int = 0
+    error: Optional[str] = None
 
 
 # =========================
@@ -226,3 +268,94 @@ async def interactive_lesson_endpoint(request: InteractiveLessonRequest):
             status_code=500, 
             detail=f"Interactive lesson error: {str(e)}"
         )
+
+
+# =========================
+# VIDEO GENERATION ENDPOINTS
+# =========================
+
+@router.post("/video/generate", response_model=VideoResponse)
+async def generate_video(request: GenerateVideoRequest):
+    """
+    Generate an educational video synchronously.
+    
+    - Fetches lesson topic and student context automatically
+    - WAITS for generation to complete (synchronous)
+    - Returns video_path and video_url directly in the response
+    - Download with GET /ai/video/download/{session_id}
+    """
+    try:
+        # 1. Fetch lesson content to use as topic
+        lesson_data = fetch_lesson_by_id(request.lesson_id)
+        if not lesson_data:
+            raise HTTPException(status_code=404, detail=f"Lesson {request.lesson_id} not found")
+        
+        # Use simple content (usually Title: Description) as the topic for generation
+        topic = lesson_data.get("content", "Educational Topic")
+        
+        # 2. Call video service synchronously
+        video_service = get_video_service()
+        result = await video_service.generate_video_sync(
+            topic=topic,
+            duration=request.duration,
+            lesson_id=request.lesson_id,
+            student_id=request.student_id
+        )
+        
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail=result.get("error", "Generation failed"))
+        
+        return VideoResponse(**result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
+@router.get("/video/download/{session_id}")
+async def download_video(session_id: str):
+    """Download the final MP4 video file."""
+    try:
+        video_service = get_video_service()
+        video_path = video_service.get_video_file_path(session_id)
+        
+        if not video_path or not video_path.exists():
+            raise HTTPException(status_code=404, detail=f"Video not found for session {session_id}")
+        
+        return FileResponse(
+            path=video_path,
+            media_type="video/mp4",
+            filename=f"educational_video_{session_id}.mp4"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/video/health")
+async def video_health():
+    """Health check for video generation service."""
+    try:
+        video_service = get_video_service()
+        prompt = video_service._read_prompt_file()
+        duration = video_service._read_duration_file()
+        
+        return {
+            "status": "healthy",
+            "prompt_available": prompt is not None,
+            "duration_available": duration is not None,
+            "default_duration": duration
+        }
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e)}
+@router.post("/scaffold/narrative", response_model=ScaffoldResponse)
+async def analyze_narrative(request: ScaffoldRequest):
+    """Analyze a story narrative for C/S/P/E/R elements."""
+    try:
+        result = orchestrator.analyze_narrative_scaffold(request.text)
+        return ScaffoldResponse(**result)
+    except Exception as e:
+        return ScaffoldResponse(success=False, error=str(e))

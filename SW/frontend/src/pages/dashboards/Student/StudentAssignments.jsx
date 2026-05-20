@@ -12,6 +12,10 @@ import {
   Frown,
   Upload,
   RefreshCcw,
+  Mic,
+  Send,
+  MessageCircle,
+  X,
 } from "lucide-react";
 
 const assignmentIcons = {
@@ -65,6 +69,23 @@ export default function StudentAssignments() {
   const [files, setFiles] = useState([]);
   const [description, setDescription] = useState("");
   const fileInputsRef = useRef({});
+
+  // Narrative Scaffold State
+  const [activeNarrativeId, setActiveNarrativeId] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [scaffoldData, setScaffoldData] = useState({
+    found: "",
+    missing: [],
+    next_prompt: "",
+    is_complete: false,
+    connective_count: 0
+  });
+  const [scaffoldLoading, setScaffoldLoading] = useState(false);
+  const recognitionRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const [audioBlob, setAudioBlob] = useState(null);
 
   // Course Filtering
   const [courses, setCourses] = useState([]);
@@ -127,12 +148,27 @@ export default function StudentAssignments() {
 
   const [errorMessage, setErrorMessage] = useState(null);
 
-  const submitAssignment = async (assignmentId, selectedFiles) => {
+  const submitAssignment = async (assignmentId, selectedFiles, narrativeMetadata = {}) => {
     setErrorMessage(null); // Clear previous errors
     try {
       const formData = new FormData();
-      formData.append("description", description);
-      selectedFiles.forEach((file) => formData.append("files", file));
+      formData.append("description", narrativeMetadata.transcript || description);
+      
+      if (selectedFiles && selectedFiles.length > 0) {
+        selectedFiles.forEach((file) => formData.append("files", file));
+      }
+
+      formData.append("submission_method", narrativeMetadata.method || "typed");
+      if (narrativeMetadata.story_grammar_score) {
+        formData.append("story_grammar_score", narrativeMetadata.story_grammar_score);
+      }
+      if (narrativeMetadata.causal_connective_count !== undefined) {
+        formData.append("causal_connective_count", narrativeMetadata.causal_connective_count);
+      }
+      
+      if (narrativeMetadata.audio) {
+        formData.append("audio", narrativeMetadata.audio, `submission_${assignmentId}.webm`);
+      }
 
       // Correct endpoint: /students/{student_id}/assignments/{assignment_id}/submit
       const res = await api.postForm(
@@ -190,6 +226,135 @@ export default function StudentAssignments() {
     setUploadingFor(assignmentId);
     setFiles(selectedFiles);
     submitAssignment(assignmentId, selectedFiles);
+  };
+
+  // --- NARRATIVE SCAFFOLD LOGIC ---
+  const startRecording = (assignmentId) => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setErrorMessage("Oh no! My ears are a bit sleepy right now (Browser doesn't support voice). Can you try typing for me? 😴✨");
+      return;
+    }
+
+    setActiveNarrativeId(assignmentId);
+    setTranscript("");
+    setIsRecording(true);
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "ar-SA";
+    recognition.interimResults = true;
+    recognition.continuous = true;
+
+    recognition.onresult = (event) => {
+      let finalTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        }
+      }
+      if (finalTranscript) {
+        setTranscript(prev => (prev + " " + finalTranscript).trim());
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech error", event.error);
+      setIsRecording(false);
+      if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
+      setErrorMessage("Oh no! My ears are a bit sleepy right now. Can you try again or type for me? 😴✨");
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+
+    // Start Audio Recording
+    try {
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) audioChunksRef.current.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          setAudioBlob(blob);
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        mediaRecorder.start();
+      });
+    } catch (err) {
+      console.error("MediaRecorder error:", err);
+    }
+  };
+
+  const stopRecording = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+  };
+
+  const analyzeNarrative = async (assignmentId) => {
+    if (!transcript.trim()) return;
+    setScaffoldLoading(true);
+    try {
+      const res = await api.post("/ai/scaffold/narrative", { text: transcript });
+      setScaffoldData(res.data);
+      if (res.data.is_complete) {
+        // Automatically submit if complete? Or let user confirm?
+        // Let's just update the state and show completion.
+      }
+    } catch (err) {
+      console.error("Scaffold error:", err);
+    } finally {
+      setScaffoldLoading(false);
+    }
+  };
+
+  const finishNarrativeSubmission = async (assignmentId) => {
+    if (!window.confirm("Ready to send your story to Baseet and your teacher? ✨")) return;
+    
+    setUploadingFor(assignmentId);
+    setScaffoldLoading(true);
+
+    let finalScaffoldData = scaffoldData;
+
+    // Perform one LAST analysis to make sure we capture everything added in the final recording/edit
+    try {
+      if (transcript.trim()) {
+        const res = await api.post("/ai/scaffold/narrative", { text: transcript });
+        finalScaffoldData = res.data;
+      }
+    } catch (err) {
+      console.error("Final analysis error:", err);
+      // Fallback to existing scaffoldData if final one fails
+    }
+
+    await submitAssignment(assignmentId, [], {
+      method: "voice",
+      transcript: transcript,
+      story_grammar_score: finalScaffoldData.found,
+      causal_connective_count: finalScaffoldData.connective_count,
+      audio: audioBlob
+    });
+
+    // Reset scaffold state
+    setActiveNarrativeId(null);
+    setTranscript("");
+    setAudioBlob(null);
+    setScaffoldData({ found: "", missing: [], next_prompt: "", is_complete: false, connective_count: 0 });
+    setScaffoldLoading(false);
   };
 
   return (
@@ -323,14 +488,38 @@ export default function StudentAssignments() {
                                                   </a>
                                                 ))}
 
-                                                {/* Upload/Resubmit */}
+                                                {/* Mic Button for Narrative */}
+                                                {assignment.assignment_type === "narrative" && !assignment.submission && (
+                                                  <button
+                                                    className="btn-circle-action mic-button-special"
+                                                    onClick={() => startRecording(assignment.id)}
+                                                    title="Talk to Baseet"
+                                                    style={{ backgroundColor: "#FF6B6B", color: "white" }}
+                                                  >
+                                                    <Mic size={18} />
+                                                  </button>
+                                                )}
+
+                                                {/* Upload/Resubmit File */}
                                                 <button
                                                   className={`btn-circle-action ${assignment.submission ? 'resubmit' : 'upload'}`}
                                                   onClick={() => handleUploadClick(assignment.id)}
-                                                  title={assignment.submission ? "Resubmit" : "Upload"}
+                                                  title={assignment.submission ? "Resubmit File" : "Upload File"}
                                                 >
                                                   {assignment.submission ? <RefreshCcw size={18} /> : <Upload size={18} />}
                                                 </button>
+
+                                                {/* Re-record Option for Narrative */}
+                                                {assignment.assignment_type === "narrative" && assignment.submission && (
+                                                  <button
+                                                    className="btn-circle-action mic-button-special"
+                                                    onClick={() => startRecording(assignment.id)}
+                                                    title="Re-record Story"
+                                                    style={{ backgroundColor: "#FF6B6B", color: "white" }}
+                                                  >
+                                                    <Mic size={18} />
+                                                  </button>
+                                                )}
                                               </>
                                             )}
                                           </div>
@@ -343,6 +532,72 @@ export default function StudentAssignments() {
                                             onChange={(e) => handleFileChange(assignment.id, e)}
                                           />
                                         </div>
+
+                                        {/* --- NARRATIVE SCAFFOLD OVERLAY --- */}
+                                        {activeNarrativeId === assignment.id && (
+                                          <div className="narrative-scaffold-overlay">
+                                            <div className="scaffold-card">
+                                              <div className="scaffold-header">
+                                                <h3><MessageCircle size={20} /> مساعد بسيط الذكي</h3>
+                                                <button onClick={() => setActiveNarrativeId(null)} className="close-btn"><X size={20} /></button>
+                                              </div>
+                                              
+                                              <div className="scaffold-content">
+                                                {isRecording ? (
+                                                  <div className="recording-status">
+                                                    <div className="pulse-mic"><Mic size={40} /></div>
+                                                    <p>بسيط بيسمعك دلوقتي... اتكلم يا بطل!</p>
+                                                    <button className="btn btn-stop" onClick={stopRecording}>خلصت كلام 👋</button>
+                                                  </div>
+                                                ) : (
+                                                  <>
+                                                    <div className="transcript-box scrollable-transcript">
+                                                      <p className="label">حكايتك:</p>
+                                                      <div className="text-content">
+                                                        {transcript || "مستني اسمع حكايتك..."}
+                                                      </div>
+                                                    </div>
+
+                                                    {scaffoldData.next_prompt && (
+                                                      <div className="ai-prompt-bubble">
+                                                        <div className="avatar">🤖</div>
+                                                        <div className="message">{scaffoldData.next_prompt}</div>
+                                                      </div>
+                                                    )}
+
+                                                    <div className="scaffold-actions">
+                                                      <button 
+                                                        className="btn btn-mic-again" 
+                                                        onClick={() => startRecording(assignment.id)}
+                                                      >
+                                                        <Mic size={18} /> اتكلم تاني
+                                                      </button>
+                                                      
+                                                      {transcript && (
+                                                        <button 
+                                                          className="btn btn-analyze" 
+                                                          onClick={() => analyzeNarrative(assignment.id)}
+                                                          disabled={scaffoldLoading}
+                                                        >
+                                                          {scaffoldLoading ? "بفكر..." : "بص كدة يا بسيط ✨"}
+                                                        </button>
+                                                      )}
+
+                                                      {transcript && (
+                                                        <button 
+                                                          className="btn btn-submit-narrative" 
+                                                          onClick={() => finishNarrativeSubmission(assignment.id)}
+                                                        >
+                                                          <Send size={18} /> {scaffoldData.is_complete ? "ابعت الواجب" : "خلصت حكايتي"}
+                                                        </button>
+                                                      )}
+                                                    </div>
+                                                  </>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )}
 
                                         {/* Status & Feedback */}
                                         {assignment.submission && (

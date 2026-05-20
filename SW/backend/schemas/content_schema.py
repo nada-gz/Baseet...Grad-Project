@@ -8,6 +8,7 @@ class ContentCourseRead(BaseModel):
     id: int
     course_number: int
     title: Optional[str] = None
+    subject: Optional[str] = "Generic"
     description: Optional[str] = None
 
     class Config:
@@ -16,6 +17,7 @@ class ContentCourseRead(BaseModel):
 class ContentCourseCreate(BaseModel):
     course_number: int
     title: Optional[str] = None
+    subject: Optional[str] = "Generic"
     description: Optional[str] = None
 
 
@@ -41,6 +43,7 @@ class StudentReadWithUser(BaseModel):
     level_name: Optional[str] = None
     status: Optional[str] = "Active"
     online: bool = False
+    is_flagged: bool = False
     last_access: Optional[datetime] = None
     state: Optional[str] = "Relaxed"
     progress: Optional[int] = 0
@@ -57,6 +60,10 @@ class StudentProgressAssignment(BaseModel):
     timing: Optional[datetime] = None # Relevant timestamp for the current status
     feedback: Optional[str] = None
     rating: Optional[int] = None
+    submission_method: Optional[str] = None
+    story_grammar_score: Optional[str] = None
+    causal_connective_count: Optional[int] = None
+    audio_url: Optional[str] = None
     file_url: Optional[str] = None
     assignment_file_url: Optional[str] = None
     deadline: Optional[datetime] = None
@@ -109,6 +116,7 @@ class ContentLessonRead(BaseModel):
     lesson_number: int
     title: str
     description: Optional[str] = None
+    duration_minutes: Optional[int] = None
     materials: List[ContentMaterialRead] = []
     assignments: List[ContentAssignmentRead] = []
 
@@ -121,3 +129,4 @@ class ContentLessonCreate(BaseModel):
     milestone_number: int
     lesson_number: int
     title: str
+    duration_minutes: Optional[int] = 20
