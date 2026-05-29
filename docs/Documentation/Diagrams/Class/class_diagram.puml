@@ -1,0 +1,151 @@
+@startuml class_diagram
+' === FORCE LANDSCAPE ORIENTATION ===
+left to right direction
+skinparam pageSize A3
+skinparam pageOrientation Landscape
+
+' === STYLE SETTINGS ===
+skinparam linetype ortho
+skinparam ArrowLollipop true
+skinparam ArrowThickness 1.3
+skinparam ArrowColor black
+skinparam lineStyle 1
+skinparam shadowing false
+skinparam roundcorner 0
+skinparam defaultTextAlignment center
+skinparam classAttributeIconSize 0
+
+' === READABILITY ===
+skinparam ArrowFontSize 14
+skinparam ArrowFontColor black
+skinparam ArrowMessageAlignment center
+skinparam ArrowHeadSize 15
+skinparam ClassBorderColor black
+skinparam ClassBackgroundColor white
+
+' === SPACING ===
+skinparam Padding 10
+
+
+' === CLASSES ===
+
+class Student {
+  - id: int
+  - name: String
+  - focusLevel: float
+  - stressLevel: float
+  - communicationMode: String
+  - progress: float
+  - badges: List<String>
+
+  + learnLesson()
+  + askQuestion(mode)
+  + earnBadge()
+  + uploadMaterial()
+  + getFeedback()
+}
+
+class Parent {
+  - name: String
+  - email: String
+  - childProfiles: List<Student>
+
+  + viewProgress()
+  + receiveAlert()
+  + adjustDifficulty(level)
+  + setTimeLimit(minutes)
+}
+
+class Teacher {
+  - name: String
+  - subject: String
+  - uploadedMaterials: List<Lesson>
+
+  + uploadMaterial()
+  + monitorEngagement()
+  + reviewInteractions()
+  + flagResponse()
+  + addCorrection()
+}
+
+class Supervisor {
+  - name: String
+  - role: String
+  - assignedStudents: List<Student>
+  - assignedTeachers: List<Teacher>
+
+  + trackProgress()
+  + monitorTeachers()
+  + reviewExperts()
+  + generateReports()
+}
+
+class Expert {
+  - name: String
+  - specialty: String
+  - submittedFeedback: List<String>
+
+  + provideFeedback()
+  + recommendChanges()
+}
+
+class AI_Tutor {
+  - lessonContent: Lesson
+  - tone: String
+  - visuals: String
+  - difficultyLevel: String
+
+  + analyzeEmotion(student)
+  + adaptLesson(student)
+  + giveFeedback(student)
+  + interactWithStudent()
+  + logInteraction()
+}
+
+class Dashboard {
+  - progressCharts: Map
+  - emotionTrends: Map
+  - recommendations: List<String>
+
+  + displayProgress(user)
+  + showAlerts(user)
+  + filterBySubject(subject)
+}
+
+class Lesson {
+  - title: String
+  - type: String
+  - difficulty: String
+  - uploader: String
+
+  + analyzeContent()
+  + adaptForStudent(student)
+}
+
+
+' === RELATIONSHIPS ===
+Student --> AI_Tutor : interacts with
+AI_Tutor --> Lesson : analyzes/adapts
+Teacher --> Lesson : uploads
+Parent --> Student : monitors
+Supervisor --> Student : tracks
+Supervisor --> Teacher : oversees
+Supervisor --> Expert : collaborates with
+Expert --> Supervisor : provides feedback
+Parent --> Dashboard : views data
+Teacher --> Dashboard : views data
+Supervisor --> Dashboard : views data
+AI_Tutor --> Dashboard : updates insights
+
+
+' === INVISIBLE SPACERS (to extend width without layering changes) ===
+' Student -[hidden]-> AI_Tutor
+' AI_Tutor -[hidden]-> Lesson
+' Lesson -[hidden]-> Teacher
+' Teacher -[hidden]-> Supervisor
+' Supervisor -[hidden]-> Expert
+' Expert -[hidden]-> Dashboard
+' Dashboard -[hidden]-> Parent
+
+
+@enduml

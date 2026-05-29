@@ -1,0 +1,131 @@
+Segment: أهمية الطاقة المستدامة
+Scene Name: ImportanceOfSustainableEnergy
+Attempt: 1
+
+======================================================================
+FULL ERROR MESSAGE:
+======================================================================
+
+Animation 0: FadeIn(Text('Importance of Sustainable Energy')), etc.:   0%|          | 0/15 [00:00<?, ?it/s]
+Animation 0: FadeIn(Text('Importance of Sustainable Energy')), etc.:  60%|██████    | 9/15 [00:00<00:00, 84.17it/s]
+                                                                                                                   
+
+Animation 2: FadeIn(Text('Fossil Fuels -> Harmful Emissions')):   0%|          | 0/15 [00:00<?, ?it/s]
+Animation 2: FadeIn(Text('Fossil Fuels -> Harmful Emissions')): 100%|██████████| 15/15 [00:00<00:00, 142.35it/s]
+                                                                                                                
+
+Animation 4: FadeOut(Text('Fossil Fuels -> Harmful Emissions')), etc.:   0%|          | 0/15 [00:00<?, ?it/s]
+Animation 4: FadeOut(Text('Fossil Fuels -> Harmful Emissions')), etc.:  53%|█████▎    | 8/15 [00:00<00:00, 79.79it/s]
+                                                                                                                     
+
+Animation 6: Create(Circle), etc.:   0%|          | 0/15 [00:00<?, ?it/s]
+                                                                         
+╭─────────────────────────────── Traceback (most recent call last) ────────────────────────────────╮
+│ /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/manim/cli/render │
+│ /commands.py:125 in render                                                                       │
+│                                                                                                  │
+│   122 │   │   │   try:                                                                           │
+│   123 │   │   │   │   with tempconfig({}):                                                       │
+│   124 │   │   │   │   │   scene = SceneClass()                                                   │
+│ ❱ 125 │   │   │   │   │   scene.render()                                                         │
+│   126 │   │   │   except Exception:                                                              │
+│   127 │   │   │   │   error_console.print_exception()                                            │
+│   128 │   │   │   │   sys.exit(1)                                                                │
+│                                                                                                  │
+│ /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/manim/scene/scen │
+│ e.py:259 in render                                                                               │
+│                                                                                                  │
+│    256 │   │   """                                                                               │
+│    257 │   │   self.setup()                                                                      │
+│    258 │   │   try:                                                                              │
+│ ❱  259 │   │   │   self.construct()                                                              │
+│    260 │   │   except EndSceneEarlyException:                                                    │
+│    261 │   │   │   pass                                                                          │
+│    262 │   │   except RerunSceneException:                                                       │
+│                                                                                                  │
+│ /var/folders/pk/p94_s5cn5wv6g03n_9sr8v0r0000gn/T/tmpo4_q0fh0.py:32 in construct                  │
+│                                                                                                  │
+│   29 │   │   self.wait(3)                                                                        │
+│   30 │   │                                                                                       │
+│   31 │   │   # Combine into equation-like structure                                              │
+│ ❱ 32 │   │   equation = MathTex("Solar + Wind = ", "Clean Energy", font_size=36).move_to(ORIG    │
+│   33 │   │   self.play(ReplacementTransform(sustainable_energy, equation[0]))                    │
+│   34 │   │   self.wait(2)                                                                        │
+│   35                                                                                             │
+│                                                                                                  │
+│ /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/manim/mobject/te │
+│ xt/tex_mobject.py:277 in __init__                                                                │
+│                                                                                                  │
+│   274 │   │   self.brace_notation_split_occurred = False                                         │
+│   275 │   │   self.tex_strings = self._break_up_tex_strings(tex_strings)                         │
+│   276 │   │   try:                                                                               │
+│ ❱ 277 │   │   │   super().__init__(                                                              │
+│   278 │   │   │   │   self.arg_separator.join(self.tex_strings),                                 │
+│   279 │   │   │   │   tex_environment=self.tex_environment,                                      │
+│   280 │   │   │   │   tex_template=self.tex_template,                                            │
+│                                                                                                  │
+│ /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/manim/mobject/te │
+│ xt/tex_mobject.py:78 in __init__                                                                 │
+│                                                                                                  │
+│    75 │   │   self.tex_template: TexTemplate = tex_template                                      │
+│    76 │   │                                                                                      │
+│    77 │   │   self.tex_string = tex_string                                                       │
+│ ❱  78 │   │   file_name = tex_to_svg_file(                                                       │
+│    79 │   │   │   self._get_modified_expression(tex_string),                                     │
+│    80 │   │   │   environment=self.tex_environment,                                              │
+│    81 │   │   │   tex_template=self.tex_template,                                                │
+│                                                                                                  │
+│ /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/manim/utils/tex_ │
+│ file_writing.py:65 in tex_to_svg_file                                                            │
+│                                                                                                  │
+│    62 │   if svg_file.exists():                                                                  │
+│    63 │   │   return svg_file                                                                    │
+│    64 │                                                                                          │
+│ ❱  65 │   dvi_file = compile_tex(                                                                │
+│    66 │   │   tex_file,                                                                          │
+│    67 │   │   tex_template.tex_compiler,                                                         │
+│    68 │   │   tex_template.output_format,                                                        │
+│                                                                                                  │
+│ /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/site-packages/manim/utils/tex_ │
+│ file_writing.py:208 in compile_tex                                                               │
+│                                                                                                  │
+│   205 │   │   │   tex_file,                                                                      │
+│   206 │   │   │   tex_dir,                                                                       │
+│   207 │   │   )                                                                                  │
+│ ❱ 208 │   │   cp = subprocess.run(command, stdout=subprocess.DEVNULL)                            │
+│   209 │   │   if cp.returncode != 0:                                                             │
+│   210 │   │   │   log_file = tex_file.with_suffix(".log")                                        │
+│   211 │   │   │   print_all_tex_errors(log_file, tex_compiler, tex_file)                         │
+│                                                                                                  │
+│ /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/subprocess.py:548 in run       │
+│                                                                                                  │
+│    545 │   │   kwargs['stdout'] = PIPE                                                           │
+│    546 │   │   kwargs['stderr'] = PIPE                                                           │
+│    547 │                                                                                         │
+│ ❱  548 │   with Popen(*popenargs, **kwargs) as process:                                          │
+│    549 │   │   try:                                                                              │
+│    550 │   │   │   stdout, stderr = process.communicate(input, timeout=timeout)                  │
+│    551 │   │   except TimeoutExpired as exc:                                                     │
+│                                                                                                  │
+│ /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/subprocess.py:1026 in __init__ │
+│                                                                                                  │
+│   1023 │   │   │   │   │   self.stderr = io.TextIOWrapper(self.stderr,                           │
+│   1024 │   │   │   │   │   │   │   encoding=encoding, errors=errors)                             │
+│   1025 │   │   │                                                                                 │
+│ ❱ 1026 │   │   │   self._execute_child(args, executable, preexec_fn, close_fds,                  │
+│   1027 │   │   │   │   │   │   │   │   pass_fds, cwd, env,                                       │
+│   1028 │   │   │   │   │   │   │   │   startupinfo, creationflags, shell,                        │
+│   1029 │   │   │   │   │   │   │   │   p2cread, p2cwrite,                                        │
+│                                                                                                  │
+│ /Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/subprocess.py:1950 in          │
+│ _execute_child                                                                                   │
+│                                                                                                  │
+│   1947 │   │   │   │   │   │   err_filename = orig_executable                                    │
+│   1948 │   │   │   │   │   if errno_num != 0:                                                    │
+│   1949 │   │   │   │   │   │   err_msg = os.strerror(errno_num)                                  │
+│ ❱ 1950 │   │   │   │   │   raise child_exception_type(errno_num, err_msg, err_filename)          │
+│   1951 │   │   │   │   raise child_exception_type(err_msg)                                       │
+│   1952                                                                                           │
+│   1953                                                                                           │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+FileNotFoundError: [Errno 2] No such file or directory: 'latex'

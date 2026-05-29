@@ -203,6 +203,7 @@ class TalkingHead(BaseTool):
             "--result_dir", str(result_dir),
             "--expression_scale", str(expression_scale),
             "--preprocess", preprocess,
+            "--cpu",  # Force CPU to prevent CUDA OOM on 4GB VRAM
         ]
 
         if still_mode:

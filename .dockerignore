@@ -1,0 +1,17 @@
+# Ignore AI vector DB (very large)
+ai_rag_db/
+**/chroma.sqlite3
+
+# Ignore uploaded files
+SW/backend/uploads/
+
+# Ignore Python cache
+**/__pycache__/
+**/*.pyc
+
+# Ignore node modules (frontend)
+SW/frontend/node_modules/
+
+# Ignore git & docs
+.git/
+docs/

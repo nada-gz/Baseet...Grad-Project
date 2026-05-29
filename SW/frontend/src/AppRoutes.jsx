@@ -1,0 +1,178 @@
+import { createBrowserRouter, Navigate } from "react-router-dom";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+// Layout
+import MainLayout from "./layouts/MainLayout";
+
+// Pages - Public
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+import NotAllowed from "./pages/auth/NotAllowed";
+
+// Pages - Protected - Dashboards
+import MyAccount from "./pages/account/MyAccount";
+import StudentProfile from "./pages/dashboards/Common/StudentProfile";
+
+import TeacherDashboard from "./pages/dashboards/Teacher/TeacherDashboard";
+import LessonPreparation from "./pages/dashboards/Teacher/LessonsPreparation";
+import StudentMonitoring from "./pages/dashboards/Teacher/StudentMonitoring";
+import StudentEducationalProgress from "./pages/dashboards/Teacher/StudentEducationalProgress";
+import StudentLiveMonitoring from "./pages/dashboards/Teacher/StudentLiveMonitoring";
+import ClassManagement from "./pages/dashboards/Teacher/ClassManagement";
+
+import StudentDashboard from "./pages/dashboards/Student/StudentDashboard";
+import LessonPlayer from "./pages/dashboards/Student/LessonPlayer";
+import LessonChat from "./pages/dashboards/Student/LessonChat";
+import LessonVoice from "./pages/dashboards/Student/LessonVoice";
+import StudentLessons from "./pages/dashboards/Student/StudentLessons";
+import StudentCourses from "./pages/dashboards/Student/StudentCourses";
+import StudentMaterials from "./pages/dashboards/Student/StudentMaterials";
+import StudentAssignments from "./pages/dashboards/Student/StudentAssignments";
+import StudentQuizzes from "./pages/dashboards/Student/StudentQuizzes";
+import StudentAnalytics from "./pages/dashboards/Student/StudentAnalytics";
+import BreakPage from "./pages/dashboards/Student/BreakPage";
+import MathTutor from "./pages/dashboards/Student/MathTutor/MathTutor";
+
+import ParentHome from "./pages/dashboards/Parent/ParentHome";
+import ParentNotifications from "./pages/dashboards/Parent/ParentNotifications";
+import ChildInsights from "./pages/dashboards/Parent/ChildInsights";
+import ChildSettings from "./pages/dashboards/Parent/ChildSettings";
+import ChildList from "./pages/dashboards/Parent/ChildList";
+
+import SupervisorHome from "./pages/dashboards/Supervisor/SupervisorHome";
+import SupervisorMonitoring from "./pages/dashboards/Supervisor/SupervisorMonitoring";
+import TeachersManagement from "./pages/dashboards/Supervisor/TeachersManagement";
+import StudentInvestigation from "./pages/dashboards/Supervisor/StudentInvestigation"; // To be created
+import AllStudents from "./pages/dashboards/Common/AllStudents";
+
+const router = createBrowserRouter([
+  // Public routes
+  { path: "/login", element: <Login /> },
+  { path: "/register", element: <Register /> },
+  { path: "/not-allowed", element: <NotAllowed /> },
+
+  // Protected routes - Teacher
+  {
+    element: <ProtectedRoute allowedRoles={["teacher"]} />,
+    children: [
+      {
+        element: <MainLayout />,
+        children: [
+          { path: "/dashboard/teacher", element: <TeacherDashboard /> },
+
+          // New route: Lesson Preparation
+          { path: "/dashboard/teacher/lessons-prep", element: <LessonPreparation /> },
+          { path: "/dashboard/teacher/students", element: <StudentMonitoring /> },
+          { path: "/dashboard/teacher/students/:studentId/progress", element: <StudentEducationalProgress /> },
+          { path: "/dashboard/teacher/students/:studentId/live", element: <StudentLiveMonitoring /> },
+          { path: "/dashboard/teacher/classrooms", element: <ClassManagement /> },
+        ],
+      },
+    ],
+  },
+
+  // Protected routes - Student
+  {
+    element: <ProtectedRoute allowedRoles={["student"]} />,
+    children: [
+      {
+        element: <MainLayout />,
+        children: [
+          { path: "/dashboard/student", element: <StudentDashboard /> },
+          { path: "/dashboard/student/courses", element: <StudentCourses /> },
+          { path: "/dashboard/student/courses/:courseId", element: <StudentLessons /> },
+          { path: "/dashboard/student/lesson/:lessonId", element: <LessonChat /> },
+          { path: "/dashboard/student/lesson/:lessonId/voice", element: <LessonVoice /> },
+          { path: "/dashboard/student/lesson/:lessonId/video", element: <LessonPlayer /> },
+          { path: "/dashboard/student/materials", element: <StudentMaterials /> },
+          { path: "/dashboard/student/assignments", element: <StudentAssignments /> },
+          { path: "/dashboard/student/quizzes", element: <StudentQuizzes /> },
+          { path: "/dashboard/student/analytics", element: <StudentAnalytics /> },
+          { path: "/dashboard/student/math-tutor", element: <MathTutor /> },
+        ],
+      },
+      { path: "/dashboard/student/break", element: <BreakPage /> },
+    ],
+  },
+
+  // Protected routes - Parent
+  {
+    element: <ProtectedRoute allowedRoles={["parent"]} />,
+    children: [
+      {
+        element: <MainLayout />,
+        children: [
+          { path: "/dashboard/parent", element: <ParentHome /> },
+          { path: "/dashboard/parent/notifications", element: <ParentNotifications /> },
+          { path: "/dashboard/parent/students", element: <ChildList /> },
+          { path: "/dashboard/parent/settings", element: <ChildSettings /> },
+          { path: "/dashboard/parent/child/:studentId/settings", element: <ChildSettings /> },
+        ],
+      },
+    ],
+  },
+
+  // Protected routes - Supervisor
+  {
+    element: <ProtectedRoute allowedRoles={["supervisor"]} />,
+    children: [
+      {
+        element: <MainLayout />,
+        children: [
+          { path: "/dashboard/supervisor", element: <SupervisorHome /> },
+          { path: "/dashboard/supervisor/monitoring", element: <SupervisorMonitoring /> },
+          { path: "/dashboard/supervisor/teachers", element: <TeachersManagement /> },
+          { path: "/dashboard/supervisor/investigation/:studentId", element: <StudentInvestigation /> },
+        ],
+      },
+    ],
+  },
+
+  // Protected routes - all students (and insights)
+  {
+    element: <ProtectedRoute allowedRoles={["teacher", "parent", "supervisor"]} />,
+    children: [
+      {
+        element: <MainLayout />,
+        children: [
+          { path: "/students", element: <AllStudents /> },
+          { path: "/students/:studentId/insights", element: <ChildInsights /> },
+          // Keep the old route for parent compatibility if needed
+          { path: "/dashboard/parent/students/:studentId/insights", element: <ChildInsights /> }
+        ],
+      },
+    ],
+  },
+
+  // Protected routes - Profile (student / parent / teacher)
+  {
+    element: <ProtectedRoute allowedRoles={["student", "parent", "teacher", "supervisor"]} />,
+    children: [
+      {
+        element: <MainLayout />,
+        children: [
+          { path: "/students/:studentId/profile", element: <StudentProfile /> },
+        ],
+      },
+    ],
+  },
+
+  // Protected routes - Account (student / parent / teacher / supervisor)
+  {
+    element: <ProtectedRoute allowedRoles={["student", "parent", "teacher", "supervisor"]} />,
+    children: [
+      {
+        element: <MainLayout />,
+        children: [{ path: "/account", element: <MyAccount /> }],
+      },
+    ],
+  },
+
+  // Default redirect
+  { path: "/", element: <Navigate to="/login" replace /> },
+
+  // Catch-all redirect
+  { path: "*", element: <Navigate to="/login" replace /> },
+]);
+
+export default router;

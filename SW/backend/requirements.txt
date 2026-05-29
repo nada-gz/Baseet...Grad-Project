@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+sqlmodel
+python-jose[cryptography]
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+python-dotenv
+email-validator
+psycopg2-binary
+google-generativeai
+numpy
+gmqtt
+PyMuPDF
+edge-tts
+serpapi

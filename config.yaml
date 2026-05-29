@@ -1,8 +1,9 @@
 # OpenMontage - Global Configuration
 
 llm:
-  provider: anthropic            # anthropic | openai | gemini | openrouter | ollama | mistral | minimax
-  model: null                    # null = use provider default
+  provider: groq
+  model: llama-3.1-70b-versatile   
+  system_prompt_path: "prompts/egyptian_kids.txt"        # null = use provider default
   temperature: 0.7
   max_tokens: 4096
 
@@ -31,3 +32,7 @@ paths:
   styles_dir: styles
   skills_dir: skills
   output_dir: output
+tts:
+  provider: elevenlabs
+  voice_id: "21m00Tcm4TlvDq8ikWAM" # This is "Rachel", which sounds very clear in Arabic, but I'll show you how to find a more "Egyptian" one in the next step.
+  model_id: "eleven_multilingual_v2" # CRITICAL: This model supports Egyptian Arabic

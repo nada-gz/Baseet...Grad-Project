@@ -1,0 +1,169 @@
+@startuml StateDiagram
+title Adaptive Learning System – State Diagram 
+
+' ======== VISUAL STYLE ========
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam monochrome false
+skinparam linetype ortho
+
+skinparam ArrowColor Black
+skinparam ArrowThickness 1.1
+skinparam ArrowFontColor Black
+skinparam ArrowFontSize 13
+skinparam ArrowFontStyle bold
+
+skinparam state {
+  BackgroundColor #F5F5F5
+  BorderColor Black
+  FontColor Black
+  RoundCorner 12
+  FontSize 13
+  FontStyle plain
+}
+
+skinparam stateDiagram {
+  ArrowDirection orthogonal
+  Padding 50
+  Margin 60
+  NodeSpacing 80
+  RankSpacing 100
+}
+
+' Add extra blank states as spacers to widen layout
+state "__Spacer1" as Spacer1 #FFFFFF
+Spacer1 -[hidden]-> Spacer1
+state "__Spacer2" as Spacer2 #FFFFFF
+Spacer2 -[hidden]-> Spacer2
+
+' ========== STUDENT ==========
+state "Student with Autism" as Student {
+  [*] --> Focused
+  Focused --> Engaged : consistent attention
+  Engaged --> Reward : sustained calm
+  Reward : show positive feedback & badge
+
+  Focused --> Stressed : stress↑
+  Stressed : slow pace + start calming activity
+  Stressed --> Relaxed : calming success
+  Relaxed --> Engaged
+
+  Focused --> Distracted : gaze away
+  Distracted : repeat with visuals
+  Distracted --> Focused : attention regained
+
+  state "Communication Mode" as Comm {
+    [*] --> Voice
+    Voice --> Text : prefers typing
+    Text --> Touch : prefers touch
+    Touch --> Voice : changes mode
+  }
+
+  Engaged --> Comm : asks question
+  Comm --> Engaged : receives reply
+
+  Engaged --> ModuleComplete : finishes module
+  ModuleComplete --> Success : accuracy ≥ threshold
+  ModuleComplete --> Retry : accuracy < threshold
+  Success : display message + gentle animation
+  Retry : suggest easier tasks
+  Success --> Milestone : progress ≥ 90% for 3 sessions
+  Milestone : show celebration animation
+  Milestone --> Engaged
+}
+
+' ========== PARENT ==========
+state "Parent" as Parent {
+  [*] --> ViewProgress
+  ViewProgress : open dashboard
+  ViewProgress --> FilterReport : select view type
+  FilterReport --> ProgressByTime : daily/weekly/monthly
+  FilterReport --> ProgressBySubject : subject filter
+  FilterReport --> ChildSwitch : switch profile
+  ProgressByTime --> ViewProgress
+  ProgressBySubject --> ViewProgress
+  ChildSwitch --> ViewProgress
+
+  ViewProgress --> AlertCheck : stress threshold exceeded
+  AlertCheck --> MobileAlert : send notification
+  AlertCheck --> SilentReport : opted out
+  AlertCheck --> SummaryOnLogin : missed alert
+  MobileAlert --> ViewProgress
+  SilentReport --> ViewProgress
+  SummaryOnLogin --> ViewProgress
+
+  ViewProgress --> AdjustSettings
+  AdjustSettings --> DifficultyDown : reduce difficulty
+  AdjustSettings --> DifficultyUp : increase difficulty
+  AdjustSettings --> TimeLimit : set session limit
+  TimeLimit --> SessionEnd : limit reached
+  SessionEnd : save progress + show "Time’s up"
+  DifficultyDown --> ViewProgress
+  DifficultyUp --> ViewProgress
+}
+
+' ========== TEACHER ==========
+state "Teacher" as Teacher {
+  [*] --> UploadMaterial
+  UploadMaterial : upload lesson (PDF)
+  UploadMaterial --> AIAnalyze : analyze for adaptation
+  AIAnalyze --> InteractiveLesson : generate personalized lecture
+  InteractiveLesson --> DashboardMonitor
+
+  state DashboardMonitor {
+    [*] --> StudentList
+    StudentList : color-coded engagement (G/Y/R)
+    StudentList --> DetailedView : click indicator
+    DetailedView : shows engagement log + AI actions
+    DetailedView --> StudentList
+  }
+
+  DashboardMonitor --> ReviewLogs
+  ReviewLogs --> FlagIssue : flag inaccurate reply
+  ReviewLogs --> AddCorrection : add correction
+  FlagIssue : marked for admin review
+  AddCorrection : update AI model
+  AddCorrection --> ReviewLogs
+}
+
+' ========== SUPERVISOR ==========
+state "Institute Supervisor" as Supervisor {
+  [*] --> StudentTracking
+  StudentTracking : view student metrics (progress, emotion)
+  StudentTracking --> AlertFollowUp : stress high
+  AlertFollowUp : suggest teacher/expert review
+  StudentTracking --> TeacherManagement
+
+  TeacherManagement : view teacher uploads + activity
+  TeacherManagement --> NotifyInactivity : long inactivity
+  NotifyInactivity : send reminder
+  TeacherManagement --> MaterialUtilization : analyze usage
+  MaterialUtilization --> TeacherManagement
+
+  TeacherManagement --> ExpertCollab
+  ExpertCollab : review expert feedback
+  ExpertCollab --> ApproveUpdate : approve insights
+  ExpertCollab --> TrackImpact : check outcomes
+  ExpertCollab --> ShareReport : institution summary
+  ApproveUpdate --> TrackImpact
+  TrackImpact --> ShareReport
+  ShareReport --> ExpertCollab
+}
+
+' ========== GLOBAL ARROWS ==========
+Student -right-> Spacer1
+Spacer1 -right-> Parent : progress shared / alert triggered
+
+Student -down-> Spacer2
+Spacer2 -down-> Teacher : engagement & adaptation logs
+
+Teacher -right-> Supervisor : reports & AI usage summary
+Supervisor -left-> Teacher : feedback & insights
+
+Parent -left-> Student : adjusted settings affect next session
+Supervisor -down-> Spacer2
+Spacer2 -left-> Parent : shared reports & summaries
+
+[*] -down-> Student
+
+@enduml
