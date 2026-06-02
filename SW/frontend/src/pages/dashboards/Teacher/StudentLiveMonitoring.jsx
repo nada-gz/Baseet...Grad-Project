@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../../services/api';
+import { WS_BASE_URL } from '../../../config';
 import { ArrowLeft, Activity, Zap, Music, Thermometer, Droplets, User, Heart } from 'lucide-react';
 import '../../../styles/index.css';
 
@@ -159,8 +160,7 @@ export default function StudentLiveMonitoring() {
         fetchInitialData();
 
         // 2. WebSocket Connection for Real-time Updates
-        // Assuming backend is at 127.0.0.1:8000. 
-        const wsUrl = `ws://127.0.0.1:8000/iot/ws/${studentId}`;
+        const wsUrl = `${WS_BASE_URL}/iot/ws/${studentId}`;
         const ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
