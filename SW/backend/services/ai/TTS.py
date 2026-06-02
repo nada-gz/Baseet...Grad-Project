@@ -1,12 +1,14 @@
 import os
+import sys
+import subprocess
 import json
 import time
 import re
-from elevenlabs import VoiceSettings
-from elevenlabs.client import ElevenLabs
 from colorama import Fore, init
 from dotenv import load_dotenv
 import base64
+from gradio_client import Client
+
 
 # 1. تهيئة البيئة
 load_dotenv()
@@ -17,9 +19,6 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 env_path = os.path.join(current_dir, ".env")
 SHARED_FILE = os.path.join(current_dir, "shared_data.json")
 if os.path.exists(env_path): load_dotenv(dotenv_path=env_path)
-
-ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
-VOICE_ID = os.getenv("VOICE_ID")
 
 class TextPostProcessor:
     def __init__(self):
@@ -130,12 +129,10 @@ class TextPostProcessor:
 
 class TTSGenerator:
     def __init__(self):
-        print(Fore.YELLOW + "👄 Connecting to ElevenLabs...")
-        if not ELEVENLABS_API_KEY: return
+        print(Fore.YELLOW + "👄 Connecting to Gradio TTS API...")
         try:
-            self.client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
-            self.voice_id = VOICE_ID if VOICE_ID else "EXAVITQu4vr4xnSDxMaL"
-            print(Fore.GREEN + f"✅ TTS System Online (Voice ID: {self.voice_id})")
+            self.client = Client("niletts-tts/niletts-api")
+            print(Fore.GREEN + "✅ TTS System Online (Gradio)")
         except Exception as e:
             print(Fore.RED + f"❌ Connection Error: {e}")
 
@@ -143,26 +140,26 @@ class TTSGenerator:
         if not text: return None
         print(Fore.MAGENTA + f"\n🗣️  Speaking: {text}")
         try:
-            audio_generator = self.client.text_to_speech.convert(
+            filepath = self.client.predict(
                 text=text,
-                voice_id=self.voice_id,
-                model_id="eleven_multilingual_v2",
-                voice_settings=VoiceSettings(
-                    stability=0.90,       # رفعنا الثبات عشان يهدى وما يسرعش
-                    similarity_boost=0.50, # قللنا التعزيز عشان الصوت يبقى أوضح وأهدى
-                    style=0.0,
-                    use_speaker_boost=True
-                )
+                api_name="/generate_speech",
             )
             
-            audio_bytes = b"".join(audio_generator)
+            with open(filepath, "rb") as f:
+                audio_bytes = f.read()
             
             try:
                 print(Fore.YELLOW + "🔊 Playing audio locally...")
                 temp_file = os.path.join(current_dir, "temp_voice.mp3")
                 with open(temp_file, "wb") as f:
                     f.write(audio_bytes)
-                os.startfile(temp_file)
+                
+                if sys.platform == "win32":
+                    os.startfile(temp_file)
+                elif sys.platform == "darwin":
+                    subprocess.call(["open", temp_file])
+                else:
+                    subprocess.call(["xdg-open", temp_file])
             except: pass
             
             return base64.b64encode(audio_bytes).decode("utf-8")
