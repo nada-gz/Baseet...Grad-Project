@@ -11,5 +11,7 @@ google-generativeai
 numpy
 gmqtt
 PyMuPDF
-edge-tts
+gradio_client
 serpapi
+colorama
+sounddevice

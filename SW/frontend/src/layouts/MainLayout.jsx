@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -27,6 +27,20 @@ export default function MainLayout() {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem("teacher-theme") === "dark";
   });
+  const [topbarHeight, setTopbarHeight] = useState(80);
+  const topbarRef = useRef(null);
+
+  useEffect(() => {
+    const updateTopbarHeight = () => {
+      if (topbarRef.current) {
+        setTopbarHeight(topbarRef.current.offsetHeight);
+      }
+    };
+    // Initial check
+    setTimeout(updateTopbarHeight, 100);
+    window.addEventListener("resize", updateTopbarHeight);
+    return () => window.removeEventListener("resize", updateTopbarHeight);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (role === "teacher") {
@@ -272,7 +286,7 @@ export default function MainLayout() {
 
       {/* Main Content */}
       <main className="main">
-        <header className="topbar">
+        <header className="topbar" ref={topbarRef}>
           <h2 className="topbar-title">
             {(() => {
               const activeItem = sidebarItems.find(
@@ -322,7 +336,7 @@ export default function MainLayout() {
           </div>
         </header>
 
-        <div className="content" style={{ marginTop: "80px" }}>
+        <div className="content" style={{ paddingTop: `${topbarHeight + 10}px` }}>
           {role === "student" && <VisualTimeStrip initialMinutes={20} />}
           <Outlet />
         </div>
