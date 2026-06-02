@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import api from "../../../services/api";
+import { API_BASE_URL } from "../../../config";
 import useAuth from "../../../hooks/useAuth";
 import {
   FileText,
@@ -478,7 +479,7 @@ export default function StudentAssignments() {
                                                 {(assignment.files || []).map((f) => (
                                                   <a
                                                     key={f.id}
-                                                    href={`http://127.0.0.1:8000${f.file_url}`}
+                                                    href={`${API_BASE_URL}${f.file_url}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="btn-circle-action"

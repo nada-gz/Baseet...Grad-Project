@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../../services/api";
+import { API_BASE_URL } from "../../../config";
 import useAuth from "../../../hooks/useAuth";
 import {
   FileText,
@@ -207,7 +208,7 @@ export default function StudentMaterials() {
                                         <div className="material-bubble-actions">
                                           {status !== "locked" && (
                                             <a
-                                              href={material.file_url ? `http://127.0.0.1:8000${material.file_url}` : "#"}
+                                              href={material.file_url ? `${API_BASE_URL}${material.file_url}` : "#"}
                                               target="_blank"
                                               rel="noopener noreferrer"
                                               className="btn-circle-action"
