@@ -6310,9 +6310,8 @@ a:hover {
 
 /* TIME STRIP ENHANCEMENTS */
 .visual-time-strip-container {
-  margin-top: 25px; /* lower it from the topbar */
-  position: relative;
-  z-index: 50;
+  position: sticky;
+  z-index: 100;
   border: 3px solid #f1f4ff;
 }
 
