@@ -1,0 +1,11 @@
+# Egyptian Arabic Kids Explainer — Python dependencies
+# Install with: pip install -r requirements.txt
+
+# Loads .env file
+python-dotenv
+
+# HTTP requests (Groq API calls)
+requests
+
+# NileTTS — calls niletts-tts/niletts-api HuggingFace Space
+gradio_client
