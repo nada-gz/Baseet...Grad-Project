@@ -50,3 +50,11 @@ test.db
 SW/backend/services/ai/arat5_model/
 SW/backend/services/ai/splitter_model/
 SW/backend/services/ai/autism_rag_db/
+
+# AI Video pipeline generated files and assets
+SW/backend/services/ai/video/projects/
+SW/backend/services/ai/video/remotion-composer/node_modules/
+SW/backend/services/ai/video/remotion-composer/out/
+*.mp4
+*.wav
+*.mp3
