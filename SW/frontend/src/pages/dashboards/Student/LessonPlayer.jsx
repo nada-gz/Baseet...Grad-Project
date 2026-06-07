@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import api from "../../../services/api";
+import { API_BASE_URL } from "../../../config";
 import useAuth from "../../../hooks/useAuth"; // <-- added
 import { Play, Pause, Mic, Send, HelpCircle } from "lucide-react";
 
@@ -48,7 +49,7 @@ export default function LessonPlayer() {
             // Prepend base URL if it's a relative path
             const url = videoRes.data.video_url.startsWith("http")
               ? videoRes.data.video_url
-              : `http://127.0.0.1:8000${videoRes.data.video_url}`;
+              : `${API_BASE_URL}${videoRes.data.video_url}`;
             setVideoUrl(url);
           }
         } catch (videoError) {

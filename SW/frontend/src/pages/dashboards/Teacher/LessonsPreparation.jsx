@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"; 
 import api from "../../../services/api";
+import { API_BASE_URL } from "../../../config";
 import { Trash2, FileText, Plus, File } from "lucide-react";
 
 export default function LessonPreparation() {
@@ -1004,7 +1005,7 @@ export default function LessonPreparation() {
                         <div className="flex items-center gap-2 flex-grow min-w-0">
                           <FileText size={18} className="text-secondary shrink-0" />
                           <a
-                            href={f.file ? f.url : `http://127.0.0.1:8000${f.url}`}
+                            href={f.file ? f.url : `${API_BASE_URL}${f.url}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="clickable-file-link text-sm truncate"
@@ -1061,7 +1062,7 @@ export default function LessonPreparation() {
                             </div>
                             <div className="flex flex-col">
                               <a
-                                href={asg.files[0]?.file ? asg.files[0]?.url : `http://127.0.0.1:8000${asg.files[0]?.url}`}
+                                href={asg.files[0]?.file ? asg.files[0]?.url : `${API_BASE_URL}${asg.files[0]?.url}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="clickable-file-link text-sm font-black text-slate-700"
