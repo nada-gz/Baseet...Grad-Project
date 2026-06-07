@@ -15,3 +15,5 @@ gradio_client
 serpapi
 colorama
 sounddevice
+# Video pipeline (services/ai/video/)
+requests
