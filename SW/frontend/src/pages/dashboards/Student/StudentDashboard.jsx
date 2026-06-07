@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import api from "../../../services/api";
 import useAuth from "../../../hooks/useAuth";
 import { Link } from "react-router-dom";
+import { API_BASE_URL } from "../../../config";
 import { PlayCircle, BookOpen, FileText, Edit3, Eye, Brain } from "lucide-react";
 
 export default function StudentDashboard() {
@@ -183,7 +184,7 @@ export default function StudentDashboard() {
                             </span>
                           </div>
                           <a
-                            href={`http://127.0.0.1:8000${mat.file_url}`}
+                            href={`${API_BASE_URL}${mat.file_url}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="btn-icon-small"
@@ -232,7 +233,7 @@ export default function StudentDashboard() {
                               </span>
                             </div>
                             <a
-                              href={`http://127.0.0.1:8000${ass.file_url}`}
+                              href={`${API_BASE_URL}${ass.file_url}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="btn-icon-small ml-2 shrink-0"

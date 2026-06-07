@@ -1,8 +1,9 @@
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
-// Use localhost consistently to match FastAPI CORS
+// Base URL comes from src/config.js — change it there when deploying
 const api = axios.create({
-  baseURL: "http://127.0.0.1:8000",
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
