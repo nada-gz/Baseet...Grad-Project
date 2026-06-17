@@ -7763,7 +7763,7 @@ a:hover {
 
 .supervisor-header {
     margin-bottom: 15px;
-    margin-top: -20px;
+    margin-top: 0;
 }
 
 .supervisor-title {
