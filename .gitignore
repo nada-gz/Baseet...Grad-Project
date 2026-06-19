@@ -58,3 +58,6 @@ SW/backend/services/ai/video/remotion-composer/out/
 *.mp4
 *.wav
 *.mp3
+
+Baseet...Grad-Project/SW/backend/services/ai/.ai_service.py.swp
+Baseet...Grad-Project/SW/backend/services/ai/engagement_detection/model/model.safetensors
