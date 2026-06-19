@@ -39,10 +39,9 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="repla
 
 from dotenv import load_dotenv
 load_dotenv()
-if not os.environ.get("GEMINI_API_KEY"):
-    backend_env = Path(__file__).parent.parent.parent.parent / ".env"
-    if backend_env.exists():
-        load_dotenv(dotenv_path=backend_env)
+backend_env = Path(__file__).parent.parent.parent.parent / ".env"
+if backend_env.exists():
+    load_dotenv(dotenv_path=backend_env)
 
 PROJECT_ROOT = Path(__file__).parent
 REMOTION_DIR = PROJECT_ROOT / "remotion-composer"
@@ -112,70 +111,27 @@ Each scene object MUST have:
 """
 
     api_key = os.environ.get("GROQ_API_KEY")
-    if api_key:
-        log("GROQ", "Generating video script from lecture text using Groq...")
-        payload = {
-            "model": "llama-3.3-70b-versatile",
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Lecture Text:\n{lecture_text}"},
-            ],
-            "temperature": 0.7,
-            "response_format": {"type": "json_object"},
-        }
-        resp = req_lib.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json=payload,
-            timeout=60,
-        )
-        resp.raise_for_status()
-        content = resp.json()["choices"][0]["message"]["content"]
-    else:
-        log("GEMINI", "GROQ_API_KEY not found. Falling back to Gemini...")
-        gemini_key = os.environ.get("GEMINI_API_KEY")
-        if not gemini_key:
-            raise RuntimeError("Neither GROQ_API_KEY nor GEMINI_API_KEY is set in .env")
-        
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_key}"
-        headers = {"Content-Type": "application/json"}
-        payload = {
-            "contents": [{
-                "parts": [
-                    {"text": system_prompt},
-                    {"text": f"Lecture Text:\n{lecture_text}"}
-                ]
-            }],
-            "generationConfig": {
-                "responseMimeType": "application/json",
-                "responseSchema": {
-                    "type": "OBJECT",
-                    "properties": {
-                        "scenes": {
-                            "type": "ARRAY",
-                            "items": {
-                                "type": "OBJECT",
-                                "properties": {
-                                    "id":           {"type": "STRING"},
-                                    "label":        {"type": "STRING"},
-                                    "display_text": {"type": "STRING"},
-                                    "subtitle":     {"type": "STRING"},
-                                    "emoji":        {"type": "STRING"},
-                                    "pexels_query": {"type": "STRING"},
-                                    "scene_type":   {"type": "STRING"}
-                                },
-                                "required": ["id", "display_text", "subtitle", "emoji", "pexels_query", "scene_type"]
-                            }
-                        }
-                    },
-                    "required": ["scenes"]
-                },
-                "temperature": 0.7
-            }
-        }
-        resp = req_lib.post(url, headers=headers, json=payload, timeout=60)
-        resp.raise_for_status()
-        content = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY is not set in .env. Video generation script requires GROQ_API_KEY.")
+    
+    log("GROQ", "Generating video script from lecture text using Groq...")
+    payload = {
+        "model": "llama-3.3-70b-versatile",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Lecture Text:\n{lecture_text}"},
+        ],
+        "temperature": 0.7,
+        "response_format": {"type": "json_object"},
+    }
+    resp = req_lib.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        json=payload,
+        timeout=60,
+    )
+    resp.raise_for_status()
+    content = resp.json()["choices"][0]["message"]["content"]
 
     scenes = _parse_scenes_from_content(content)
     if not scenes:
@@ -260,6 +216,8 @@ def step2_generate_tts(scenes: list[dict]) -> tuple[list[dict], list[str]]:
     client = None
     last_err = None
     hf_token = os.environ.get("HF_TOKEN")
+    if not hf_token:
+        raise RuntimeError("HF_TOKEN is not set in .env. Video voice generation requires HF_TOKEN.")
     for attempt in range(5):
         try:
             client = Client("niletts-tts/niletts-api", token=hf_token, httpx_kwargs={"timeout": 120})
@@ -381,8 +339,7 @@ def _pixabay_video_search(query: str, min_duration: int = 4) -> dict | None:
 def step4_video_clips(scenes: list[dict]) -> dict[str, str]:
     log("PIXABAY", "Fetching background video clips from Pixabay...")
     if not _PIXABAY_VIDEO_KEY:
-        log("PIXABAY", "WARNING: PIXABAY_API_KEY not set — video clips will be skipped.")
-        return {}
+        raise RuntimeError("PIXABAY_API_KEY is not set in .env. Pixabay search requires PIXABAY_API_KEY.")
 
     video_files: dict[str, str] = {}
     for s in scenes:

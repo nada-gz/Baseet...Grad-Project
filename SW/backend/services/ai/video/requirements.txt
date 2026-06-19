@@ -8,16 +8,15 @@
 # Node.js packages (auto-installed via npm inside remotion-composer/):
 #   Run once:  cd remotion-composer && npm install
 #
-# Optional API keys in .env:
+# Required API keys in backend/.env:
 #   GROQ_API_KEY      — Groq LLM for fast script generation (https://console.groq.com)
-#   GEMINI_API_KEY    — Google Gemini fallback (already in backend .env)
 #   PIXABAY_API_KEY   — Royalty-free background video clips (https://pixabay.com/api/docs/)
-#   HF_TOKEN          — HuggingFace token for NileTTS wakeup (optional, improves reliability)
+#   HF_TOKEN          — HuggingFace token for NileTTS Egyptian Arabic speech generation
 
 # Loads .env file
 python-dotenv
 
-# HTTP requests (Groq and Gemini API calls)
+# HTTP requests (Groq API calls)
 requests
 
 # NileTTS — calls niletts-tts/niletts-api HuggingFace Space for Egyptian Arabic TTS
