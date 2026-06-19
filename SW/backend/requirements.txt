@@ -17,3 +17,7 @@ colorama
 sounddevice
 # Video pipeline (services/ai/video/)
 requests
+openai
+sentence_transformers
+chromadb
+torch

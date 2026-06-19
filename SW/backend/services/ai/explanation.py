@@ -1,19 +1,26 @@
 import os
 import json
 import chromadb
-from google import genai
+from openai import OpenAI          # DashScope uses an OpenAI-compatible endpoint
 from sentence_transformers import SentenceTransformer
 import torch
 import textwrap
+from types import SimpleNamespace
 from dotenv import load_dotenv
 
 load_dotenv()
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
 
-CHROMA_DB_PATH = os.path.join(os.path.dirname(__file__), "autism_rag_db")  # Full path to local autism_rag_db
+CHROMA_DB_PATH = os.path.join(os.path.dirname(__file__), "autism_rag_db")
 COLLECTION_NAME = "autism_content_arabic"
 EMBEDDING_MODEL_NAME = 'intfloat/multilingual-e5-large'
-GENERATION_MODEL = 'gemini-2.5-flash'
+GENERATION_MODEL = 'qwen3.7-plus'
+
+def get_qwen_client():
+    return OpenAI(
+        api_key=DASHSCOPE_API_KEY,
+        base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+    )
 
 
 def setup_retrieval_model():
@@ -48,12 +55,26 @@ def get_context_from_db(chroma_client, query_text, embed_model, k=3):
 
 
 def initialize_chat_session(client, system_instruction):
-    """Initializes a persistent chat session with Gemini."""
-    chat = client.chats.create(
-        model=GENERATION_MODEL,
-        config=dict(system_instruction=system_instruction)
-    )
-    return chat
+    """Initializes a persistent chat session with Qwen (DashScope)."""
+    return QwenChatSession(client, GENERATION_MODEL, system_instruction)
+
+
+class QwenChatSession:
+    """Mimics Gemini's chat.send_message(prompt) -> response.text interface."""
+    def __init__(self, client, model, system_instruction):
+        self.client = client
+        self.model = model
+        self.messages = [{"role": "system", "content": system_instruction}]
+
+    def send_message(self, prompt, model_override=None):
+        self.messages.append({"role": "user", "content": prompt})
+        response = self.client.chat.completions.create(
+            model=model_override or self.model,
+            messages=self.messages,
+        )
+        reply_text = response.choices[0].message.content
+        self.messages.append({"role": "assistant", "content": reply_text})
+        return SimpleNamespace(text=reply_text)
 
 
 FRIENDLY_ERROR_AR = "بسيط بياخد استراحة قصيرة عشان يفكر بعمق في كلامك الجميل.. خلينا نراجع اللي قلناه سوا يا بطل! 🌟"
@@ -80,16 +101,14 @@ def generate_rag_answer_with_chat(chat_session, query_text, context_string, is_c
 
     import time
     # Try models in order of preference
-    models_to_try = [GENERATION_MODEL, "gemini-2.0-flash-exp", "gemini-1.5-flash"]
-    
+################ change the model names###################
+    models_to_try = [GENERATION_MODEL, "qwen3-max", "qwen3.6-flash"]
+        
     for model_name in models_to_try:
         print(f"🤖 Attempting generation with {model_name}...")
-        for attempt in range(2): # 2 retries per model
+        for attempt in range(2):
             try:
-                # If we are failing over, we might need a new session or force model change
-                # For simplicity in this structure, we assume chat_session is bound to a model, 
-                # but we can try to send with the existing session first.
-                response = chat_session.send_message(prompt)
+                response = chat_session.send_message(prompt, model_override=model_name)
                 return response.text
             except Exception as e:
                 err_str = str(e).lower()
@@ -149,11 +168,11 @@ def generate_mcq(client, context_string, previous_questions=None):
     """)
 
     try:
-        response = client.models.generate_content(
+        response = client.chat.completions.create(
             model=GENERATION_MODEL,
-            contents=[prompt]
+            messages=[{"role": "user", "content": prompt}],
         )
-        text = response.text.strip()
+        text = response.choices[0].message.content.strip()
         if text.startswith("```json"):
             text = text[len("```json"):]
             if text.endswith("```"):
@@ -180,11 +199,11 @@ def generate_mcq(client, context_string, previous_questions=None):
     """)
 
     try:
-        response = client.models.generate_content(
+        response = client.chat.completions.create(
             model=GENERATION_MODEL,
-            contents=[prompt]
+            messages=[{"role": "user", "content": prompt}]
         )
-        text = response.text.strip()
+        text = response.choices[0].message.content.strip()
         if text.startswith("```json"):
             text = text[len("```json"):]
             if text.endswith("```"):
@@ -238,11 +257,11 @@ def generate_batch_mcqs(client, context_string, count=2, previous_questions=None
     """)
 
     try:
-        response = client.models.generate_content(
+        response = client.chat.completions.create(
             model=GENERATION_MODEL,
-            contents=[prompt]
+            messages=[{"role": "user", "content": prompt}],
         )
-        text = response.text.strip()
+        text = response.choices[0].message.content.strip()
         if text.startswith("```json"):
             text = text[len("```json"):]
             if text.endswith("```"):
@@ -255,20 +274,45 @@ def generate_batch_mcqs(client, context_string, count=2, previous_questions=None
 
 # --- Backend-ready Utilities (No CLI / No local JSONL logging) ---
 def prepare_system_instruction():
-    """Returns the default system instruction for initializing a chat session."""
-    return textwrap.dedent("""
-        أنت مساعد تعليمي متخصص في شرح المحتوى العلمي بلهجة مصرية بسيطة جدًا ومناسبة للأطفال ذوي طيف التوحد (Autistic children).
-        يجب أن تكون إجابتك مباشرة، وودودة، وبلهجة عامية مصرية (Egyptian Colloquial Arabic).
-        
-        **قواعد التفاعل:**
-        1. **الرد الأولي/موضوع جديد:** استخدم المعلومات المتوفرة في 'البيانات المرجعية' لتقديم إجابتك. يجب أن تكون الإجابة قصيرة، إيجابية، ومركزة.
-        2. **التعامل مع 'مش فاهم' (Clarification):** إذا قال الطفل عبارة تدل على عدم الفهم، **يجب عليك تغيير طريقة الشرح** بالكامل لنفس الموضوع الذي تم شرحه سابقاً.
-            - استخدم تشبيهاً مختلفاً أو مثالاً يومياً لم يتم ذكره سابقاً.
-            - يمكنك استخدام طريقة "سؤال وجواب" بسيطة لتبسيط المفهوم.
-            - **لا تكرر الإجابة السابقة أبداً.**
-        3. **اللغة:** صيغ الإجابة لتكون بلهجة مصرية عامية (ECA).
+    """Returns the persona-driven system instruction for initializing a chat session."""
+    persona_blueprint = textwrap.dedent("""
+        ### الشخصية: مدرّس العلوم (لهجة مصرية)
+
+        **العادات اللغوية وأسلوب الإلقاء**
+        - حلقة أمر-تأكيد: تبدأ كل خطوة بأمر مباشر، يتبعها سؤال للتحقق، وتُختم بعلامة إيقاع (يلا → كام؟ → تمام؟).
+        - العد بصوت عالٍ أثناء أي خطوة عملية، بنفس الإيقاع المتوقع من الطفل.
+        - ذكر القاعدة أولاً قبل بدء حل أي مسألة.
+        - دمج التكرار داخل الشرح نفسه بدل فصله.
+
+        **عبارات وألفاظ مصرية متكررة**
+        - "يلا نعد مع بعض" للانتقال أو بدء العد.
+        - "تمام؟ / بقت واضحه اكتر؟  " كعلامة تحقق من الفهم قبل المتابعة.
+        - "كده" كإشارة بصرية-مكانية للتوضيح.
+        - "ملناش دعوة" لتجاوز إجابة خاطئة دون لوم.
+        - "برافو / شاطر / احسنت يا يطل " كعلامات تشجيع سريعة.
+        - "الشاطر يقول لي" كتحدي مرح لتحفيز الاستدعاء السريع.
+        - "ركز معايا" لجذب الانتباه قبل خطوة جديدة.
+
+        **الروتين الهيكلي**
+        - تعالى نفهم اكتر سوا/سؤال ذكي يا بطل! تعالى نعرف / كل تفاعل يبدأ بتشجيع واضح للطالب: "سؤال جميل! تعالى اقولك".
+        - عند الخطأ: لا تصحيح ولا انتقاد، بل الانتقال المباشر للحالة الصحيحة: "تعالى نعرف ايه الصح".
+        - لغة جماعية شاملة: "احنا"، "مع بعض"، "برافو"، لتأطير التعلم كرحلة مشتركة.
     """)
 
+    return textwrap.dedent(f"""
+        أنت مدرّس متخصص في شرح المحتوى العلمي بلهجة مصرية بسيطة جدًا ومناسبة للأطفال ذوي طيف التوحد (Autistic children).
+        يجب عليك الالتزام الصارم بشخصية "{persona_blueprint.strip().splitlines()[0]}" الموصوفة أدناه في كل ردودك — أسلوبها، عباراتها، وروتينها الهيكلي — دون استثناء.
+
+        {persona_blueprint}
+
+        **قواعد التفاعل:**
+        1. **الرد الأولي/موضوع جديد:** استخدم المعلومات المتوفرة في 'البيانات المرجعية' لتقديم إجابتك، مطبقًا حلقة أمر-تأكيد والعد الصوتي إن وُجد إجراء عملي. يجب أن تكون الإجابة قصيرة، إيجابية، ومركزة.
+        2. **التعامل مع 'مش فاهم' (Clarification):** غيّر طريقة الشرح بالكامل لنفس الموضوع.
+            - استخدم تشبيهاً مختلفاً أو مثالاً يومياً لم يُذكر سابقاً.
+            - يمكنك استخدام طريقة "سؤال وجواب" بسيطة.
+            - لا تكرر الإجابة السابقة أبداً.
+        3. **اللغة:** التزم بلهجة مصرية عامية (ECA) وبكل عبارات الشخصية المذكورة أعلاه.
+    """)
 # ==========================================
 # 5. GEMINI AGENT TOOLS (for agentic architecture)
 # ==========================================
@@ -350,16 +394,16 @@ EXPLANATION_TOOLS = [
     }
 ]
 
-def execute_explanation_tool(tool_name, args, chroma_client=None, embed_model=None, gemini_client=None):
+def execute_explanation_tool(tool_name, args, chroma_client=None, embed_model=None, qwen_client =None):
     """
-    Execute an explanation tool based on Gemini function call
+    Execute an explanation tool based on Qwen function call
     
     Args:
         tool_name: Name of the tool to execute
         args: Dictionary of arguments for the tool
         chroma_client: ChromaDB client (required for retrieve_context)
         embed_model: Embedding model (required for retrieve_context)
-        gemini_client: Gemini client (required for other tools)
+        qwen_client: Qwen client (required for other tools)
     
     Returns:
         Tool execution result
@@ -379,22 +423,22 @@ def execute_explanation_tool(tool_name, args, chroma_client=None, embed_model=No
             }
         
         elif tool_name == "generate_mcq_question":
-            if not gemini_client:
-                return {"error": "Gemini client required", "success": False}
+            if not qwen_client :
+                return {"error": "Qwen client required", "success": False}
             
             context = args.get("context", "")
-            mcq = generate_mcq(gemini_client, context)
+            mcq = generate_mcq(qwen_client , context)
             if mcq:
                 return {"mcq": mcq, "success": True}
             else:
                 return {"error": "Failed to generate MCQ", "success": False}
         
         elif tool_name == "create_chat_session":
-            if not gemini_client:
-                return {"error": "Gemini client required", "success": False}
+            if not qwen_client :
+                return {"error": "Qwen client required", "success": False}
             
             system_instruction = args.get("system_instruction") or prepare_system_instruction()
-            chat = initialize_chat_session(gemini_client, system_instruction)
+            chat = initialize_chat_session(qwen_client , system_instruction)
             return {"chat_id": id(chat), "success": True, "chat_session": chat}
         
         elif tool_name == "generate_explanation":
