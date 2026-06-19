@@ -8,6 +8,8 @@ import MainLayout from "./layouts/MainLayout";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import NotAllowed from "./pages/auth/NotAllowed";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 
 // Pages - Protected - Dashboards
 import MyAccount from "./pages/account/MyAccount";
@@ -47,9 +49,11 @@ import AllStudents from "./pages/dashboards/Common/AllStudents";
 
 const router = createBrowserRouter([
   // Public routes
-  { path: "/login", element: <Login /> },
-  { path: "/register", element: <Register /> },
-  { path: "/not-allowed", element: <NotAllowed /> },
+  { path: "/login",            element: <Login /> },
+  { path: "/register",         element: <Register /> },
+  { path: "/not-allowed",      element: <NotAllowed /> },
+  { path: "/forgot-password",  element: <ForgotPassword /> },
+  { path: "/reset-password",   element: <ResetPassword /> },
 
   // Protected routes - Teacher
   {
