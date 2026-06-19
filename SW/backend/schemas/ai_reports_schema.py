@@ -29,6 +29,10 @@ class SessionTelemetry(BaseModel):
     engagement_data: EngagementModelInput
     stress_data: StressModelInput
     website_tracking_data: WebTrackerInput
+    recent_readings: List[Any] = []
+    # Real org-wide counts queried from the DB — included in the prompt so Gemini
+    # sees actual numbers instead of inventing them.
+    org_stats: dict = {}
 
 # ==========================================
 # 2. OUTPUT SCHEMAS (Dashboards)

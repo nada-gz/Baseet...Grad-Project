@@ -7,6 +7,7 @@ import { PlayCircle, BookOpen, FileText, Edit3, Eye, Brain } from "lucide-react"
 
 export default function StudentDashboard() {
   const { user: student, loading: authLoading, error: authError } = useAuth();
+  const studentId = student?.student_id || student?.id;
 
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,9 +18,9 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     const loadData = async () => {
-      if (!student?.id) return;
+      if (!studentId) return;
       try {
-        const coursesRes = await api.get(`/students/${student.id}/assigned-courses`);
+        const coursesRes = await api.get(`/students/${studentId}/assigned-courses`);
         if (coursesRes.data.length === 0) {
           setLoading(false);
           return;
@@ -31,7 +32,7 @@ export default function StudentDashboard() {
         let activeCourseId = null;
 
         for (const course of coursesRes.data) {
-          const res = await api.get(`/students/${student.id}/lessons`, {
+          const res = await api.get(`/students/${studentId}/lessons`, {
             params: { course_id: course.id }
           });
           if (res.data.length > 0) {
@@ -39,7 +40,7 @@ export default function StudentDashboard() {
             activeCourseId = course.id;
             setCurrentCourse(course);
             // If one of these is in-progress, we are done
-            if (res.data.some(l => l.status === 'in-progress')) {
+            if (res.data.some(l => l.status === 'in-progress' || l.status === 'in_progress')) {
               break;
             }
           }
@@ -54,18 +55,18 @@ export default function StudentDashboard() {
     };
 
     loadData();
-  }, [student?.id]);
+  }, [studentId]);
 
   // ✅ find current in-progress lesson or default to first
-  const currentLesson = lessons.find((l) => l.status === "in-progress") || lessons[0];
+  const currentLesson = lessons.find((l) => l.status === "in-progress" || l.status === "in_progress") || lessons[0];
 
   useEffect(() => {
-    if (!currentLesson) return;
+    if (!currentLesson || !studentId) return;
 
     const fetchAssignmentsAndStatus = async () => {
       try {
         const res = await api.get(
-          `/students/${student.id}/lessons/${currentLesson.id}/assignments`
+          `/students/${studentId}/lessons/${currentLesson.id}/assignments`
         );
         setCurrentAssignments(res.data);
 
@@ -74,7 +75,7 @@ export default function StudentDashboard() {
           // Assuming one assignment per lesson for simplicity as per UI
           try {
             const subRes = await api.get(
-              `/students/${student.id}/assignments/${res.data[0].id}/submission`
+              `/students/${studentId}/assignments/${res.data[0].id}/submission`
             );
             if (subRes.data) {
               setAssignmentStatus(
@@ -97,7 +98,7 @@ export default function StudentDashboard() {
     };
 
     fetchAssignmentsAndStatus();
-  }, [currentLesson, student?.id]);
+  }, [currentLesson, studentId]);
 
   if (authLoading || loading) {
     return <div className="dashboard-loading">Loading...</div>;

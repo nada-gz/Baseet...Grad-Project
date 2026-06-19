@@ -62,6 +62,7 @@ function renderStars(rating) {
 
 export default function StudentAssignments() {
   const { user: student } = useAuth();
+  const studentId = student?.student_id || student?.id;
 
   const [milestones, setMilestones] = useState({});
   const [openMilestones, setOpenMilestones] = useState({});
@@ -94,9 +95,9 @@ export default function StudentAssignments() {
 
   useEffect(() => {
     const fetchCourses = async () => {
-      if (!student?.id) return;
+      if (!studentId) return;
       try {
-        const res = await api.get(`/students/${student.id}/assigned-courses`);
+        const res = await api.get(`/students/${studentId}/assigned-courses`);
         const sortedCourses = res.data.sort((a, b) => {
           const titleA = (a.title || `Course ${a.course_number}`).toLowerCase();
           const titleB = (b.title || `Course ${b.course_number}`).toLowerCase();
@@ -109,12 +110,12 @@ export default function StudentAssignments() {
       }
     };
     fetchCourses();
-  }, [student?.id]);
+  }, [studentId]);
 
   useEffect(() => {
     const loadLessonsAssignmentsAndSubmissions = async () => {
       const params = selectedCourse ? { course_id: selectedCourse } : {};
-      const res = await api.get(`/students/${student.id}/lessons`, { params });
+      const res = await api.get(`/students/${studentId}/lessons`, { params });
 
       const grouped = {};
       const initialOpenMilestones = {};
@@ -122,7 +123,7 @@ export default function StudentAssignments() {
 
       for (let lesson of res.data) {
         const assRes = await api.get(
-          `/students/${student.id}/lessons/${lesson.id}/assignments`
+          `/students/${studentId}/lessons/${lesson.id}/assignments`
         );
         // Submissions are now included in the assignments response from the backend
         lesson.assignments = assRes.data;
@@ -138,8 +139,8 @@ export default function StudentAssignments() {
       setOpenMilestones(initialOpenMilestones);
       setOpenLessons(initialOpenLessons);
     };
-    if (student?.id && selectedCourse) loadLessonsAssignmentsAndSubmissions();
-  }, [student?.id, selectedCourse]);
+    if (studentId && selectedCourse) loadLessonsAssignmentsAndSubmissions();
+  }, [studentId, selectedCourse]);
 
   const getLessonStatus = (lesson) => {
     if (lesson.progress === 100) return "completed";
@@ -173,7 +174,7 @@ export default function StudentAssignments() {
 
       // Correct endpoint: /students/{student_id}/assignments/{assignment_id}/submit
       const res = await api.postForm(
-        `/students/${student.id}/assignments/${assignmentId}/submit`,
+        `/students/${studentId}/assignments/${assignmentId}/submit`,
         formData
       );
 

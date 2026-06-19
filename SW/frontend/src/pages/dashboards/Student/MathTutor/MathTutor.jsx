@@ -11,6 +11,7 @@ const NODE_ORDER = ["subitizing", "number_line", "place_value", "fact_retrieval"
 
 const MathTutor = () => {
   const { user: student } = useAuth();
+  const studentId = student?.student_id || student?.id;
   const [session, setSession] = useState(null);
   const [currentProblem, setCurrentProblem] = useState(null);
   const [userAnswer, setUserAnswer] = useState("");
@@ -26,10 +27,10 @@ const MathTutor = () => {
   // Step 2: Input Answer
 
   useEffect(() => {
-    if (student?.id) {
+    if (studentId) {
       loadNextProblem();
     }
-  }, [student?.id]);
+  }, [studentId]);
 
   const loadNextProblem = async () => {
     setLoading(true);
@@ -37,7 +38,7 @@ const MathTutor = () => {
     setUserAnswer("");
     setCurrentStep(0);
     try {
-      const res = await api.get(`/api/math/next/${student.id}`);
+      const res = await api.get(`/api/math/next/${studentId}`);
       
       // Check if finished entire adventure
       if (res.data.mastery.current_node === 'word_problems' && res.data.mastery.word_problems >= 1.0) {
@@ -58,7 +59,7 @@ const MathTutor = () => {
     setSubmitting(true);
     try {
       const res = await api.post("/api/math/submit", {
-        student_id: student.id,
+        student_id: studentId,
         answer: parseFloat(userAnswer),
         correct_answer: currentProblem?.answer
       });
