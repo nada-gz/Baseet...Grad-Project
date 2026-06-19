@@ -32,6 +32,7 @@ const materialIcons = {
 
 export default function StudentMaterials() {
   const { user: student } = useAuth();
+  const studentId = student?.student_id || student?.id;
 
   const [milestones, setMilestones] = useState({});
   const [openMilestones, setOpenMilestones] = useState({});
@@ -42,9 +43,9 @@ export default function StudentMaterials() {
   useEffect(() => {
     // 1. Fetch Courses
     const fetchCourses = async () => {
-      if (!student?.id) return;
+      if (!studentId) return;
       try {
-        const res = await api.get(`/students/${student.id}/assigned-courses`);
+        const res = await api.get(`/students/${studentId}/assigned-courses`);
         const sortedCourses = res.data.sort((a, b) => {
           const titleA = (a.title || `Course ${a.course_number}`).toLowerCase();
           const titleB = (b.title || `Course ${b.course_number}`).toLowerCase();
@@ -58,13 +59,13 @@ export default function StudentMaterials() {
       }
     };
     fetchCourses();
-  }, [student?.id]);
+  }, [studentId]);
 
   useEffect(() => {
     const loadLessonsAndMaterials = async () => {
       // Fetch lessons filtered by selected course
       const params = selectedCourse ? { course_id: selectedCourse } : {};
-      const res = await api.get(`/students/${student.id}/lessons`, { params });
+      const res = await api.get(`/students/${studentId}/lessons`, { params });
 
       const grouped = {};
       const initialOpenMilestones = {};
@@ -73,7 +74,7 @@ export default function StudentMaterials() {
       for (let lesson of res.data) {
         // fetch materials for each lesson
         const matRes = await api.get(
-          `/students/${student.id}/lessons/${lesson.id}/materials`
+          `/students/${studentId}/lessons/${lesson.id}/materials`
         );
         lesson.materials = matRes.data;
 
@@ -90,8 +91,8 @@ export default function StudentMaterials() {
       setOpenLessons(initialOpenLessons);
     };
 
-    if (student?.id && selectedCourse) loadLessonsAndMaterials();
-  }, [student?.id, selectedCourse]);
+    if (studentId && selectedCourse) loadLessonsAndMaterials();
+  }, [studentId, selectedCourse]);
 
   const getLessonStatus = (lesson) => {
     if (lesson.progress === 100) return "completed";

@@ -14,7 +14,8 @@ import {
   LayoutDashboard,
   Bell,
   Settings,
-  Activity
+  Activity,
+  BarChart2
 } from "lucide-react";
 import Logo from "../components/ui/logo";
 import HiBaseet from "../assets/hii_baseet.png";
@@ -80,6 +81,12 @@ export default function MainLayout() {
             topbarLabel: "Students Monitoring",
             path: "/dashboard/teacher/students",
             icon: <Users size={20} />
+          },
+          {
+            label: "Analytics",
+            topbarLabel: "Student Analytics",
+            path: "/dashboard/teacher/analytics",
+            icon: <BarChart2 size={20} />
           }
         ];
 
@@ -150,6 +157,11 @@ export default function MainLayout() {
             icon: <LayoutDashboard size={20} />
           },
           {
+            label: "Analytics",
+            path: "/dashboard/supervisor/analytics",
+            icon: <BarChart2 size={20} />
+          },
+          {
             label: "Monitoring",
             path: "/dashboard/supervisor/monitoring",
             icon: <Activity size={20} />
@@ -197,7 +209,7 @@ export default function MainLayout() {
                 <Link to="/dashboard/student/analytics" className="topbar-link">
                   Analytics
                 </Link>
-                <Link to={`/students/${user.id}/profile`} className="topbar-link">
+                <Link to={`/students/${user.student_id || user.id}/profile`} className="topbar-link">
                   My Profile
                 </Link>
               </>

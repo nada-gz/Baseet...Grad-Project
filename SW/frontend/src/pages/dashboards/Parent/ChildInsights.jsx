@@ -16,11 +16,12 @@ import {
   Compass,
   Lightbulb,
   Clock,
-  Activity,
   Heart,
   Info,
   Calendar,
-  FileText
+  FileText,
+  Users,
+  Activity
 } from "lucide-react";
 import api from "../../../services/api";
 import Logo from "../../../components/ui/logo";
@@ -35,6 +36,14 @@ export default function ChildInsights() {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [childrenList, setChildrenList] = useState([]);
+
+  useEffect(() => {
+    // Fetch parent's children for the dropdown
+    api.get("/parent/my-children")
+      .then(res => setChildrenList(res.data))
+      .catch(err => console.error("Failed to load children list:", err));
+  }, []);
 
   useEffect(() => {
     const fetchInsights = async () => {
@@ -84,10 +93,26 @@ export default function ChildInsights() {
           </div>
         </div>
         
-        <button className="btn btn-primary" style={{ padding: "15px 30px" }} onClick={handlePrint}>
-          <Download size={20} />
-          Download PDF Report
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+          {childrenList.length > 0 && (
+            <div style={{ background: "white", padding: "10px 20px", borderRadius: "16px", display: "flex", alignItems: "center", gap: "12px", boxShadow: "0 4px 15px rgba(0,0,0,0.05)", border: "1px solid var(--neutral)" }}>
+              <Users size={20} color="var(--highlight)" />
+              <select 
+                value={studentId} 
+                onChange={(e) => navigate(`/students/${e.target.value}/insights${location.search}`)}
+                style={{ border: "none", outline: "none", fontSize: "1.05rem", fontWeight: 700, color: "var(--primary-text)", background: "transparent", cursor: "pointer", paddingRight: "10px" }}
+              >
+                {childrenList.map(c => (
+                  <option key={c.id} value={c.id}>{c.username} (ID: {c.id})</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <button className="btn btn-primary" style={{ padding: "15px 30px" }} onClick={handlePrint}>
+            <Download size={20} />
+            Download PDF Report
+          </button>
+        </div>
       </div>
 
       {/* Print-only Professional Header */}

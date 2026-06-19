@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select, func
@@ -38,6 +38,8 @@ def get_all_students_for_supervisor(session: Session = Depends(get_session), cur
         students = session.exec(select(Student)).all()
         result = []
         for s in students:
+            if s.id is None:
+                continue
             u = session.get(User, s.user_id)
             if not u: continue
             
@@ -67,8 +69,45 @@ def get_flagged_students(session: Session = Depends(get_session), current_user: 
     statement = select(StudentFlag).where(StudentFlag.status != "resolved")
     flags = session.exec(statement).all()
     
-    # We might need to populate student info manually if relationship is not eager
-    return flags
+    result = []
+    for flag in flags:
+        if flag.id is None:
+            continue
+        s = flag.student
+        if not s or s.id is None:
+            continue
+        u = session.get(User, s.user_id)
+        if not u:
+            continue
+            
+        cl = session.get(Classroom, s.classroom_id) if s.classroom_id else None
+        lvl = session.get(ClassLevel, cl.level_id) if (cl and cl.level_id) else None
+        
+        student_data = StudentReadWithUser(
+            id=s.id,
+            user_id=s.user_id,
+            username=u.username,
+            email=u.email,
+            age=s.age,
+            is_flagged=s.is_flagged,
+            online=(s.id % 2 == 0),
+            status="Active",
+            classroom_id=s.classroom_id,
+            classroom_name=cl.name if cl else None,
+            level_name=lvl.name if lvl else None
+        )
+        
+        result.append(StudentFlagRead(
+            id=flag.id,
+            student_id=flag.student_id,
+            source=flag.source,
+            reason=flag.reason,
+            status=flag.status,
+            created_at=flag.created_at,
+            supervisor_notes=flag.supervisor_notes,
+            student=student_data
+        ))
+    return result
 
 @router.post("/flags/{flag_id}/resolve")
 def resolve_student_flag(
@@ -85,7 +124,7 @@ def resolve_student_flag(
     flag.supervisor_notes = req.notes
     flag.supervisor_id = current_user.id
     if req.status == "resolved":
-        flag.resolved_at = datetime.utcnow()
+        flag.resolved_at = datetime.now(timezone.utc).replace(tzinfo=None)
         
         # Check if there are other active flags for this student
         other_flags = session.exec(select(StudentFlag).where(
@@ -115,6 +154,8 @@ def get_teachers_with_load(session: Session = Depends(get_session), current_user
     
     result = []
     for t in teachers:
+        if t.id is None:
+            continue
         links = session.exec(select(TeacherStudentLink).where(TeacherStudentLink.teacher_id == t.id)).all()
         student_ids = [link.student_id for link in links]
         result.append(TeacherWithLoad(
