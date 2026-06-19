@@ -132,11 +132,6 @@ export default function MainLayout() {
             icon: <ClipboardList size={20} />
           },
           {
-            label: "Quizzes",
-            path: "/dashboard/student/quizzes",
-            icon: <HelpCircle size={20} />
-          },
-          {
             label: "Ask Baseet",
             path: "/dashboard/student/ask-baseet",
             icon: (
@@ -349,7 +344,7 @@ export default function MainLayout() {
         </header>
 
         <div className="content" style={{ paddingTop: `${topbarHeight + 10}px` }}>
-          {role === "student" && <VisualTimeStrip initialMinutes={20} />}
+          {role === "student" && !location.pathname.includes("ask-baseet") && <VisualTimeStrip initialMinutes={20} />}
           <Outlet />
         </div>
       </main>

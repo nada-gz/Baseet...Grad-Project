@@ -35,6 +35,7 @@ import StudentQuizzes from "./pages/dashboards/Student/StudentQuizzes";
 import StudentAnalytics from "./pages/dashboards/Student/StudentAnalytics";
 import BreakPage from "./pages/dashboards/Student/BreakPage";
 import MathTutor from "./pages/dashboards/Student/MathTutor/MathTutor";
+import AskBaseet from "./pages/dashboards/Student/AskBaseet";
 
 import ParentHome from "./pages/dashboards/Parent/ParentHome";
 import ParentNotifications from "./pages/dashboards/Parent/ParentNotifications";
@@ -93,6 +94,7 @@ const router = createBrowserRouter([
           { path: "/dashboard/student/assignments", element: <StudentAssignments /> },
           { path: "/dashboard/student/quizzes", element: <StudentQuizzes /> },
           { path: "/dashboard/student/analytics", element: <StudentAnalytics /> },
+          { path: "/dashboard/student/ask-baseet", element: <AskBaseet /> },
           { path: "/dashboard/student/math-tutor", element: <MathTutor /> },
         ],
       },
