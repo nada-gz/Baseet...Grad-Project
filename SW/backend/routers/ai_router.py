@@ -1,9 +1,10 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 import datetime
 from pathlib import Path
+from google.genai import types
 
 from services.ai.ai_service import (
     sessions,
@@ -11,7 +12,9 @@ from services.ai.ai_service import (
     orchestrator,
     process_text_input,
     process_voice_input,
-    speak_text
+    speak_text,
+    gemini_client,
+    GENERATION_MODEL
 )
 from services.ai.educational_video_service import get_video_service
 
@@ -214,8 +217,90 @@ async def orchestrator_health():
 
 
 # =========================
-# INTERACTIVE LESSON (UNIFIED LOOP)
+# GENERAL CHAT (Ask Baseet — no lesson context)
 # =========================
+
+_BASEET_SYSTEM_PROMPT = """أنت "بسيط"، مساعد تعليمي ذكي وودود لطفل يتعلم في مرحلة الطفولة المبكرة.
+شخصيتك: مرح، صبور، مشجّع، تتكلم بالعامية المصرية البسيطة.
+مهمتك: تساعد الطالب في أي سؤال يسألك — علوم، رياضيات، قراءة، أو أي فضول عام.
+
+القواعد:
+1. اتكلم دايماً بالعامية المصرية البسيطة التي يفهمها طفل في المرحلة الابتدائية.
+2. اجعل إجاباتك قصيرة وممتعة وسهلة (3-5 جمل كحد أقصى).
+3. استخدم إيموجي بشكل لطيف لجعل الكلام حيوياً.
+4. إذا لم تفهم السؤال، اطلب من الطالب يوضح أكثر بطريقة مرحة.
+5. شجّع الطالب دايماً وعبّر عن فخرك بيه.
+6. لا تتكلم عن أي موضوع غير مناسب للأطفال.
+"""
+
+# In-memory per-student conversation history (list of dicts: role + text)
+_general_chat_histories: dict[str, List[dict]] = {}
+
+
+class GeneralChatRequest(BaseModel):
+    student_id: int
+    message: str
+
+
+class GeneralChatResponse(BaseModel):
+    reply: str
+    session_id: str
+
+
+@router.post("/general-chat", response_model=GeneralChatResponse)
+async def general_chat(request: GeneralChatRequest):
+    """General-purpose Ask Baseet chat endpoint (not lesson-specific)."""
+    if not request.message or not request.message.strip():
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+    session_id = f"baseet_chat_{request.student_id}"
+    history = _general_chat_histories.setdefault(session_id, [])
+
+    # Build the contents list for Gemini
+    contents = []
+    for h in history[-20:]:  # Keep last 20 turns to avoid token bloat
+        contents.append({"role": h["role"], "parts": [{"text": h["text"]}]})
+    # Add the new user message
+    contents.append({"role": "user", "parts": [{"text": request.message.strip()}]})
+
+    try:
+        # Build typed content list for Gemini
+        typed_contents = []
+        for h in history[-20:]:
+            typed_contents.append(
+                types.Content(
+                    role=h["role"],
+                    parts=[types.Part(text=h["text"])]
+                )
+            )
+        typed_contents.append(
+            types.Content(
+                role="user",
+                parts=[types.Part(text=request.message.strip())]
+            )
+        )
+
+        response = gemini_client.models.generate_content(
+            model=GENERATION_MODEL,
+            contents=typed_contents,
+            config=types.GenerateContentConfig(
+                system_instruction=_BASEET_SYSTEM_PROMPT,
+                temperature=0.75,
+                max_output_tokens=512,
+            )
+        )
+        reply = response.text.strip() if response.text else "آسف، مش قادر أرد دلوقتي. جرّب تاني! 😅"
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI error: {str(e)}")
+
+    # Save to history
+    history.append({"role": "user", "text": request.message.strip()})
+    history.append({"role": "model", "text": reply})
+
+    return GeneralChatResponse(reply=reply, session_id=session_id)
+
+
+
 
 class InteractiveLessonRequest(BaseModel):
     """Request model for starting/continuing an interactive lesson."""
