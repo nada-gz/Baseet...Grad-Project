@@ -5,6 +5,8 @@ from typing import Optional, List
 import datetime
 from pathlib import Path
 from google.genai import types
+from fastapi import UploadFile, File
+from services.ai.engagement_detection.engagement_service import run_engagement_check
 
 from services.ai.ai_service import (
     sessions,
@@ -444,3 +446,17 @@ async def analyze_narrative(request: ScaffoldRequest):
         return ScaffoldResponse(**result)
     except Exception as e:
         return ScaffoldResponse(success=False, error=str(e))
+
+# =========================
+# ENGAGEMENT DETECTION
+# =========================
+
+@router.post("/engagement/check")
+async def check_engagement(file: UploadFile = File(...)):
+    """Receive a webcam frame and return engagement prediction."""
+    try:
+        contents = await file.read()
+        result = run_engagement_check(contents)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
