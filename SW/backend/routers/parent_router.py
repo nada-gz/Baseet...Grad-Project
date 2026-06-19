@@ -119,7 +119,26 @@ def get_child_insights(
     child_user = db.get(User, student.user_id)
     child_name = child_user.username if child_user else "Ahmad"
 
-    # Try to get real report from DB
+    # Try to get real report from DB or generate a fresh one
+    try:
+        from services.ai.report import generate_baseet_report, get_telemetry_for_student
+        telemetry = get_telemetry_for_student(student_id, db)
+        report_str = generate_baseet_report("parent", telemetry)
+        report_json = json.loads(report_str)
+
+        # Save to DB for historical records
+        db_report = StudentReport(
+            student_id=student_id,
+            report_data=report_str
+        )
+        db.add(db_report)
+        db.commit()
+
+        return report_json
+    except Exception as e:
+        print(f"[WARN] Failed to generate live AI insights for student {student_id}: {e}. Checking for existing records...")
+
+    # Fallback to last saved report in DB
     report = db.exec(
         select(StudentReport)
         .where(StudentReport.student_id == student_id)

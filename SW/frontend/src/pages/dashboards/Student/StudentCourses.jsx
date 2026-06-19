@@ -6,14 +6,15 @@ import { BookOpen, ChevronRight } from "lucide-react";
 
 export default function StudentCourses() {
     const { user: student } = useAuth();
+    const studentId = student?.student_id || student?.id;
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchCourses = async () => {
-            if (!student?.id) return;
+            if (!studentId) return;
             try {
-                const res = await api.get(`/students/${student.id}/assigned-courses`);
+                const res = await api.get(`/students/${studentId}/assigned-courses`);
                 const sortedCourses = res.data.sort((a, b) => {
                     const nameA = (a.title || `Course ${a.course_number}`).toLowerCase();
                     const nameB = (b.title || `Course ${b.course_number}`).toLowerCase();
@@ -27,7 +28,7 @@ export default function StudentCourses() {
             }
         };
         fetchCourses();
-    }, [student?.id]);
+    }, [studentId]);
 
     if (loading) return <div className="p-8">Loading courses...</div>;
 

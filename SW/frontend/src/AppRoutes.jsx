@@ -21,6 +21,7 @@ import StudentMonitoring from "./pages/dashboards/Teacher/StudentMonitoring";
 import StudentEducationalProgress from "./pages/dashboards/Teacher/StudentEducationalProgress";
 import StudentLiveMonitoring from "./pages/dashboards/Teacher/StudentLiveMonitoring";
 import ClassManagement from "./pages/dashboards/Teacher/ClassManagement";
+import TeacherAnalytics from "./pages/dashboards/Teacher/TeacherAnalytics";
 
 import StudentDashboard from "./pages/dashboards/Student/StudentDashboard";
 import LessonPlayer from "./pages/dashboards/Student/LessonPlayer";
@@ -44,7 +45,8 @@ import ChildList from "./pages/dashboards/Parent/ChildList";
 import SupervisorHome from "./pages/dashboards/Supervisor/SupervisorHome";
 import SupervisorMonitoring from "./pages/dashboards/Supervisor/SupervisorMonitoring";
 import TeachersManagement from "./pages/dashboards/Supervisor/TeachersManagement";
-import StudentInvestigation from "./pages/dashboards/Supervisor/StudentInvestigation"; // To be created
+import StudentInvestigation from "./pages/dashboards/Supervisor/StudentInvestigation";
+import SupervisorAnalytics from "./pages/dashboards/Supervisor/SupervisorAnalytics";
 import AllStudents from "./pages/dashboards/Common/AllStudents";
 
 const router = createBrowserRouter([
@@ -63,8 +65,7 @@ const router = createBrowserRouter([
         element: <MainLayout />,
         children: [
           { path: "/dashboard/teacher", element: <TeacherDashboard /> },
-
-          // New route: Lesson Preparation
+          { path: "/dashboard/teacher/analytics", element: <TeacherAnalytics /> },
           { path: "/dashboard/teacher/lessons-prep", element: <LessonPreparation /> },
           { path: "/dashboard/teacher/students", element: <StudentMonitoring /> },
           { path: "/dashboard/teacher/students/:studentId/progress", element: <StudentEducationalProgress /> },
@@ -124,6 +125,7 @@ const router = createBrowserRouter([
         element: <MainLayout />,
         children: [
           { path: "/dashboard/supervisor", element: <SupervisorHome /> },
+          { path: "/dashboard/supervisor/analytics", element: <SupervisorAnalytics /> },
           { path: "/dashboard/supervisor/monitoring", element: <SupervisorMonitoring /> },
           { path: "/dashboard/supervisor/teachers", element: <TeachersManagement /> },
           { path: "/dashboard/supervisor/investigation/:studentId", element: <StudentInvestigation /> },
