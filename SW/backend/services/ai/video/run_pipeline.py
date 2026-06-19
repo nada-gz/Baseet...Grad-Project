@@ -608,6 +608,41 @@ def main() -> None:
             "بمرور الوقت، تكبر النبتة وتصبح شجرة كبيرة ومفيدة تعطينا الأكسجين لنتنفس."
         )
 
+    # Check if the lecture text has changed to invalidate the cache
+    last_lecture_file = PROJECT_DIR / "artifacts" / "last_lecture.txt"
+    should_clean = False
+    if last_lecture_file.exists():
+        try:
+            last_text = last_lecture_file.read_text(encoding="utf-8").strip()
+            if last_text != lecture_text:
+                should_clean = True
+        except Exception:
+            should_clean = True
+    else:
+        should_clean = True
+
+    if should_clean:
+        log("PIPELINE", "Input text changed or no cache found. Cleaning old cached assets...")
+        # Clear directories
+        for folder in ["assets/audio", "assets/video", "temp_remotion_assets", "renders"]:
+            dir_path = PROJECT_DIR / folder
+            if dir_path.exists():
+                for item in dir_path.iterdir():
+                    if item.is_file():
+                        # Keep background music to save bandwidth
+                        if item.name == "background.mp3":
+                            continue
+                        try:
+                            item.unlink()
+                        except Exception:
+                            pass
+        try:
+            last_lecture_file.write_text(lecture_text, encoding="utf-8")
+        except Exception:
+            pass
+    else:
+        log("PIPELINE", "Resuming previous run (input text unchanged).")
+
     t0 = time.time()
 
     scenes                   = step1_generate_script(lecture_text)
