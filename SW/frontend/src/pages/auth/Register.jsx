@@ -114,17 +114,17 @@ export default function Register() {
       </div>
 
       {/* Right: Form */}
-      <div className="form-right">
-        <div className="form-inner card">
-          <h2 className="card-title">Join the Waitlist</h2>
-          <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginBottom: "20px" }}>
+      <div className="form-right" style={{ width: '600px', maxWidth: '100%' }}>
+        <div className="form-inner card" style={{ padding: '1.5rem 2.5rem', gap: '0.75rem' }}>
+          <h2 className="card-title" style={{ marginBottom: '0.25rem' }}>Join the Waitlist</h2>
+          <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginBottom: "8px" }}>
             Register your interest and we will notify you as soon as a spot opens up!
           </p>
           {error && <p className="error-message">{error}</p>}
 
-          <form onSubmit={handleRegister} className="form">
+          <form onSubmit={handleRegister} className="form" style={{ gap: 0 }}>
             {/* Username */}
-            <label htmlFor="reg-username">Username</label>
+            <label htmlFor="reg-username" style={{ marginTop: '0.75rem', display: 'block' }}>Username</label>
             <input
               id="reg-username"
               type="text"
@@ -132,6 +132,7 @@ export default function Register() {
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Enter your username"
               required
+              style={{ marginBottom: '8px', padding: '0.65rem 1rem' }}
             />
 
             {/* Email */}
@@ -143,6 +144,7 @@ export default function Register() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
               required
+              style={{ marginBottom: '8px', padding: '0.65rem 1rem' }}
             />
 
             {/* Password */}
@@ -167,6 +169,7 @@ export default function Register() {
                 onChange={(e) => { setPassword(e.target.value); setGenerated(false); }}
                 placeholder="Create a strong password"
                 required
+                style={{ marginBottom: '8px', padding: '0.65rem 1rem' }}
               />
               <button
                 type="button"
@@ -223,7 +226,7 @@ export default function Register() {
             )}
 
             {/* Role */}
-            <label htmlFor="reg-role">Role</label>
+            <label htmlFor="reg-role" style={{ marginTop: '2px', display: 'block' }}>Role</label>
             <select
               id="reg-role"
               value={role}
