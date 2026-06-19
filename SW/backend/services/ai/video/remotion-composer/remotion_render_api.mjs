@@ -38,14 +38,12 @@ function copyToPublic(filePath) {
   const name = basename(filePath);
   const dest = resolve(publicAssetsDir, name);
   
-  if (!existsSync(dest)) {
-    try {
-      copyFileSync(filePath, dest);
-      console.log(`[Remotion API] Copied ${name} → public/assets/`);
-    } catch (e) {
-      console.warn(`[Remotion API] Warning: could not copy ${filePath}: ${e.message}`);
-      return filePath;
-    }
+  try {
+    copyFileSync(filePath, dest);
+    console.log(`[Remotion API] Copied ${name} → public/assets/`);
+  } catch (e) {
+    console.warn(`[Remotion API] Warning: could not copy ${filePath}: ${e.message}`);
+    return filePath;
   }
   
   // Return the path that staticFile() will serve: relative to public/
