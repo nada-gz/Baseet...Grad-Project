@@ -18,6 +18,7 @@ from routers.iot_router import router as iot_router
 from routers.math_router import router as math_router
 from routers.parent_router import router as parent_router
 from routers.supervisor_router import router as supervisor_router
+from routers.orchestrator_router import router as orchestrator_router
 from routers.iot_router import start_mqtt_connection, stop_mqtt_connection
 
 # --- LIFESPAN MANAGEMENT ---
@@ -27,13 +28,19 @@ async def lifespan(app: FastAPI):
     # Startup
     create_tables()
     
-    # Start MQTT connection
-    await start_mqtt_connection()
+    # Start MQTT connection (non-fatal — server works without IoT)
+    try:
+        await start_mqtt_connection()
+    except Exception as mqtt_err:
+        print(f"⚠️  MQTT connection failed (server continues without IoT): {mqtt_err}")
     
     yield
     
     # Shutdown
-    await stop_mqtt_connection()
+    try:
+        await stop_mqtt_connection()
+    except Exception:
+        pass
 
 app = FastAPI(title="My Backend Project", lifespan=lifespan)
 
@@ -62,6 +69,7 @@ app.include_router(iot_router)
 app.include_router(math_router)
 app.include_router(parent_router)
 app.include_router(supervisor_router)
+app.include_router(orchestrator_router)
 
 # Root route
 @app.get("/")
