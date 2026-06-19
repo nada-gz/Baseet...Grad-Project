@@ -116,7 +116,10 @@ export default function Register() {
       {/* Right: Form */}
       <div className="form-right">
         <div className="form-inner card">
-          <h2 className="card-title">Register</h2>
+          <h2 className="card-title">Join the Waitlist</h2>
+          <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginBottom: "20px" }}>
+            Register your interest and we will notify you as soon as a spot opens up!
+          </p>
           {error && <p className="error-message">{error}</p>}
 
           <form onSubmit={handleRegister} className="form">
