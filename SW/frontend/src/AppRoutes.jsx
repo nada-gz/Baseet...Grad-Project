@@ -5,6 +5,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import MainLayout from "./layouts/MainLayout";
 
 // Pages - Public
+import LandingPage from "./pages/public/LandingPage";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import NotAllowed from "./pages/auth/NotAllowed";
@@ -176,11 +177,11 @@ const router = createBrowserRouter([
     ],
   },
 
-  // Default redirect
-  { path: "/", element: <Navigate to="/login" replace /> },
+  // Default root route (Landing Page)
+  { path: "/", element: <LandingPage /> },
 
   // Catch-all redirect
-  { path: "*", element: <Navigate to="/login" replace /> },
+  { path: "*", element: <Navigate to="/" replace /> },
 ]);
 
 export default router;
