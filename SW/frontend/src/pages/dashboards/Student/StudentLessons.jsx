@@ -7,6 +7,7 @@ import { Lock, RotateCcw, Play, Brain, Sparkles } from "lucide-react";
 
 export default function StudentLessons() {
   const { user: student } = useAuth();
+  const studentId = student?.student_id || student?.id;
   const { courseId } = useParams();
   const navigate = useNavigate();
 
@@ -29,16 +30,16 @@ export default function StudentLessons() {
   };
 
   const loadLessons = async () => {
-    if (!student?.id || !courseId) return;
+    if (!studentId || !courseId) return;
     try {
-      const res = await api.get(`/students/${student.id}/lessons`, {
+      const res = await api.get(`/students/${studentId}/lessons`, {
         params: { course_id: courseId }
       });
       const grouped = groupByMilestone(res.data);
       setMilestones(grouped);
 
       // Fetch course subject
-      const coursesRes = await api.get(`/students/${student.id}/assigned-courses`);
+      const coursesRes = await api.get(`/students/${studentId}/assigned-courses`);
       const currentCourse = coursesRes.data.find(c => c.id === parseInt(courseId));
       if (currentCourse) {
         setCourseSubject(currentCourse.subject || 'Generic');
@@ -50,11 +51,11 @@ export default function StudentLessons() {
 
   useEffect(() => {
     loadLessons();
-  }, [student?.id, courseId]);
+  }, [studentId, courseId]);
 
   const resetLesson = async (lessonId) => {
     try {
-      await api.patch(`/students/${student.id}/lessons/${lessonId}`, {
+      await api.patch(`/students/${studentId}/lessons/${lessonId}`, {
         progress: 0
       });
       setConfirmLesson(null);
@@ -152,7 +153,7 @@ export default function StudentLessons() {
                 whileTap={{ scale: 0.95 }}
                 onClick={async () => {
                   try {
-                    await api.post(`/api/math/reset/${student.id}`);
+                    await api.post(`/api/math/reset/${studentId}`);
                     navigate("/dashboard/student/math-tutor");
                   } catch (err) {
                     console.error("Failed to reset math mastery:", err);

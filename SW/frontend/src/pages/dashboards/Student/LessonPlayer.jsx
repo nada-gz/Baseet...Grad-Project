@@ -8,6 +8,7 @@ import { Play, Pause, Mic, Send, HelpCircle } from "lucide-react";
 export default function LessonPlayer() {
   const { lessonId } = useParams();
   const { user: student, loading: authLoading } = useAuth(); // <-- get logged-in student
+  const studentId = student?.student_id || student?.id;
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,11 +31,11 @@ export default function LessonPlayer() {
   // Fetch Lesson & Generate Video
   useEffect(() => {
     const loadLessonAndVideo = async () => {
-      if (!student) return;
+      if (!studentId) return;
 
       try {
         // 1. Load Lesson Details
-        const res = await api.get(`/students/${student.id}/lessons/${lessonId}`);
+        const res = await api.get(`/students/${studentId}/lessons/${lessonId}`);
         console.log("Lesson loaded:", res.data);
         setLesson(res.data);
 
@@ -44,7 +45,7 @@ export default function LessonPlayer() {
           // This endpoint now waits for generation to complete (~1 min)
           const videoRes = await api.post("/ai/video/generate", {
             lesson_id: parseInt(lessonId),
-            student_id: student.id,
+            student_id: studentId,
             duration: 1.0 // Default duration
           });
 
@@ -71,7 +72,7 @@ export default function LessonPlayer() {
     };
 
     loadLessonAndVideo();
-  }, [lessonId, student]);
+  }, [lessonId, studentId]);
 
   // Cycle Loading Messages
   useEffect(() => {

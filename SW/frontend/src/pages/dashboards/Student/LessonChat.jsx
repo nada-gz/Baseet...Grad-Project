@@ -8,6 +8,7 @@ import ReactMarkdown from "react-markdown";
 export default function LessonChat() {
   const { lessonId } = useParams();
   const { user: student } = useAuth();
+  const studentId = student?.student_id || student?.id;
 
   const [lesson, setLesson] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -28,7 +29,7 @@ export default function LessonChat() {
 
   // Load lesson + start explanation
   useEffect(() => {
-    if (!student || hasStarted.current) return;
+    if (!studentId || hasStarted.current) return;
     hasStarted.current = true;
 
     const startLesson = async () => {
@@ -36,13 +37,13 @@ export default function LessonChat() {
         setLoadingAI(true);
 
         const res = await api.get(
-          `/students/${student.id}/lessons/${lessonId}`
+          `/students/${studentId}/lessons/${lessonId}`
         );
         setLesson(res.data);
 
         const aiRes = await api.post("/ai/lesson/start", {
           lesson_id: lessonId,
-          student_id: student.id,
+          student_id: studentId,
         });
 
         if (aiRes.data.progress !== undefined) {
@@ -57,7 +58,7 @@ export default function LessonChat() {
     };
 
     startLesson();
-  }, [lessonId, student]);
+  }, [lessonId, studentId]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -70,7 +71,7 @@ export default function LessonChat() {
     try {
       const res = await api.post("/ai/lesson/chat", {
         lesson_id: lessonId,
-        student_id: student.id,
+        student_id: studentId,
         message: input,
       });
 
@@ -151,7 +152,7 @@ export default function LessonChat() {
     try {
       setIsRecording(true);
       setLoadingAI(true);
-      const res = await api.post("/ai/voice", { session_id: `student_${student.id}_lesson_${lessonId}` });
+      const res = await api.post("/ai/voice", { session_id: `student_${studentId}_lesson_${lessonId}` });
 
       if (res.data.success && res.data.transcription) {
         setInput(res.data.transcription);

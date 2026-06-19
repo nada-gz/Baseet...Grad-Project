@@ -14,6 +14,7 @@ const LOADING_MESSAGES = [
 export default function LessonVoice() {
     const { lessonId } = useParams();
     const { user: student } = useAuth();
+    const studentId = student?.student_id || student?.id;
     const navigate = useNavigate();
 
     const [lesson, setLesson] = useState(null);
@@ -31,7 +32,7 @@ export default function LessonVoice() {
         // Load lesson info
         const loadLesson = async () => {
             try {
-                const res = await api.get(`/students/${student.id}/lessons/${lessonId}`);
+                const res = await api.get(`/students/${studentId}/lessons/${lessonId}`);
                 setLesson(res.data);
 
                 // Start lesson automatically in Voice mode
@@ -41,7 +42,7 @@ export default function LessonVoice() {
             }
         };
 
-        if (student && lessonId && !hasStarted.current) {
+        if (studentId && lessonId && !hasStarted.current) {
             hasStarted.current = true;
             loadLesson();
         }
@@ -50,7 +51,7 @@ export default function LessonVoice() {
             if (msgIntervalRef.current) clearInterval(msgIntervalRef.current);
             if (audioRef.current) audioRef.current.pause();
         };
-    }, [lessonId, student]);
+    }, [lessonId, studentId]);
 
     const startVoiceInteraction = async () => {
         setStatus("processing");
@@ -59,7 +60,7 @@ export default function LessonVoice() {
         try {
             const res = await api.post("/ai/interactive-lesson", {
                 lesson_id: lessonId,
-                student_id: student.id,
+                student_id: studentId,
                 user_input: null, // First call to start
                 enable_tts: true,
                 enable_stt: false // We just want the initial greeting
@@ -167,7 +168,7 @@ export default function LessonVoice() {
         try {
             // Call the voice recognition endpoint
             const voiceRes = await api.post("/ai/voice", {
-                session_id: `student_${student.id}_lesson_${lessonId}`
+                session_id: `student_${studentId}_lesson_${lessonId}`
             });
 
             if (voiceRes.data.success && voiceRes.data.transcription) {
@@ -176,7 +177,7 @@ export default function LessonVoice() {
 
                 const res = await api.post("/ai/interactive-lesson", {
                     lesson_id: lessonId,
-                    student_id: student.id,
+                    student_id: studentId,
                     user_input: voiceRes.data.transcription,
                     enable_tts: true,
                     enable_stt: false
