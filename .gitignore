@@ -61,3 +61,6 @@ SW/backend/services/ai/video/remotion-composer/out/
 
 Baseet...Grad-Project/SW/backend/services/ai/.ai_service.py.swp
 Baseet...Grad-Project/SW/backend/services/ai/engagement_detection/model/model.safetensorsSW/backend/services/ai/engagement_detection/model/
+SW/backend/services/ai/engagement_detection/model/config.json
+SW/backend/services/ai/engagement_detection/model/model.safetensors
+SW/backend/services/ai/engagement_detection/model/preprocessor_config.json
