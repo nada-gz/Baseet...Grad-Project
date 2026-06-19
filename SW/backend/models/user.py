@@ -1,7 +1,8 @@
 from typing import Optional, List
 from datetime import datetime
 from enum import Enum
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import SQLModel, Field, Relationship, Column
+import sqlalchemy as sa
 from .teacher_student_link import TeacherStudentLink
 
 
@@ -21,6 +22,10 @@ class User(SQLModel, table=True):
     hashed_password: str
     role: RoleEnum = Field(default=RoleEnum.student)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Password reset fields
+    reset_token: Optional[str] = Field(default=None, sa_column=Column(sa.String, nullable=True))
+    reset_token_expires: Optional[datetime] = Field(default=None, sa_column=Column(sa.DateTime, nullable=True))
 
     student: Optional["Student"] = Relationship(back_populates="user")
     parent: Optional["Parent"] = Relationship(back_populates="user")
