@@ -19,7 +19,7 @@ export default function ChildList() {
     const fetchChildren = async () => {
       try {
         const res = await api.get("/parent/my-children");
-        setChildren(res.data);
+        setChildren(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error("Error fetching children:", err);
       } finally {

@@ -31,8 +31,8 @@ export default function ParentHome() {
         api.get("/parent/my-children"),
         api.get("/parent/notifications")
       ]);
-      setChildren(childrenRes.data);
-      setNotifications(notifyRes.data);
+      setChildren(Array.isArray(childrenRes.data) ? childrenRes.data : []);
+      setNotifications(Array.isArray(notifyRes.data) ? notifyRes.data : []);
     } catch (err) {
       console.error("Error fetching parent home data:", err);
     } finally {

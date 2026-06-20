@@ -13,7 +13,7 @@ export default function TeacherDashboard() {
     const fetchMessages = async () => {
       try {
         const response = await api.get("/teacher/messages");
-        setMessages(response.data);
+        setMessages(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         console.error("Error fetching supervisor messages:", err);
       } finally {

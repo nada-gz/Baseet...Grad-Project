@@ -41,7 +41,7 @@ export default function ChildInsights() {
   useEffect(() => {
     // Fetch parent's children for the dropdown
     api.get("/parent/my-children")
-      .then(res => setChildrenList(res.data))
+      .then(res => setChildrenList(Array.isArray(res.data) ? res.data : []))
       .catch(err => console.error("Failed to load children list:", err));
   }, []);
 
@@ -74,8 +74,10 @@ export default function ChildInsights() {
 
   if (!data) return <div className="parent-card p-10 text-center">No data available for this profile.</div>;
 
-  const sentimentData = data.sentiment_trend.values.map((val, idx) => ({
-    day: data.sentiment_trend.labels[idx],
+  const sentimentValues = Array.isArray(data.sentiment_trend?.values) ? data.sentiment_trend.values : [];
+  const sentimentLabels = Array.isArray(data.sentiment_trend?.labels) ? data.sentiment_trend.labels : [];
+  const sentimentData = sentimentValues.map((val, idx) => ({
+    day: sentimentLabels[idx],
     value: val
   }));
 
@@ -180,7 +182,7 @@ export default function ChildInsights() {
                 A granular breakdown of the student's learning path today, highlighting successful milestones and areas requiring reinforcement.
               </p>
               <div style={{ padding: "10px 0" }}>
-                {data.learning_journey_map.map((item, idx) => (
+                {(Array.isArray(data.learning_journey_map) ? data.learning_journey_map : []).map((item, idx) => (
                   <div key={idx} style={{ display: "flex", gap: "30px", marginBottom: "40px", borderLeft: "5px dashed var(--neutral)", paddingLeft: "45px", position: "relative" }}>
                     <div style={{ position: "absolute", left: "-18px", top: "0", width: "32px", height: "32px", borderRadius: "50%", background: item.success === true ? "var(--success-bg)" : item.success === false ? "var(--error-bg)" : "var(--neutral)", border: "5px solid white", boxShadow: "0 4px 15px rgba(0,0,0,0.1)" }} />
                     <div style={{ flex: 1 }}>
@@ -268,7 +270,7 @@ export default function ChildInsights() {
                  <p style={{ fontSize: "1.2rem", lineHeight: "1.8", color: "#333" }}>
                    Data suggests that {data.child_name} is currently performing at an optimal cognitive load. 
                    The concentration score of {data.time_well_spent.focus_score} indicates strong task persistence. 
-                   We observed the highest engagement during the "{data.learning_journey_map[0].activity}" module.
+                   We observed the highest engagement during the "{Array.isArray(data.learning_journey_map) && data.learning_journey_map[0]?.activity}" module.
                  </p>
                </div>
                <div style={{ padding: "40px", border: "2px solid #eee", borderRadius: "25px" }}>
@@ -308,7 +310,7 @@ export default function ChildInsights() {
             <div>
               <p style={{ fontSize: "0.9rem", fontWeight: "900", opacity: 0.6, textTransform: "uppercase", letterSpacing: "2px", marginBottom: "20px" }}>Active Vocabulary</p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
-                {data.parent_toolkit.new_words.map((w, i) => (
+                {(Array.isArray(data.parent_toolkit?.new_words) ? data.parent_toolkit.new_words : []).map((w, i) => (
                   <span key={i} style={{ background: "var(--highlight)", color: "white", padding: "10px 20px", borderRadius: "15px", fontSize: "1rem", fontWeight: "800" }}>{w}</span>
                 ))}
               </div>

@@ -32,12 +32,14 @@ export default function TeachersManagement() {
         api.get("/supervisor/teachers"),
         api.get("/supervisor/students/all")
       ]);
-      setTeachers(teachersRes.data);
-      setAllStudents(studentsRes.data);
+      const safeTeachers = Array.isArray(teachersRes.data) ? teachersRes.data : [];
+      const safeStudents = Array.isArray(studentsRes.data) ? studentsRes.data : [];
+      setTeachers(safeTeachers);
+      setAllStudents(safeStudents);
       
       // Keep selected teacher reference updated with new data
       if (selectedTeacher) {
-        const updated = teachersRes.data.find(t => t.id === selectedTeacher.id);
+        const updated = safeTeachers.find(t => t.id === selectedTeacher.id);
         if (updated) setSelectedTeacher(updated);
       }
     } catch (err) {

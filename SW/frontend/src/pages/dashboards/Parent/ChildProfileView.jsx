@@ -52,8 +52,10 @@ export default function ChildProfileView() {
 
   if (!data) return <div className="p-8 text-center text-slate-500">No data found for this student.</div>;
 
-  const sentimentData = data.sentiment_trend.values.map((val, idx) => ({
-    day: data.sentiment_trend.labels[idx],
+  const sentimentValues = Array.isArray(data.sentiment_trend?.values) ? data.sentiment_trend.values : [];
+  const sentimentLabels = Array.isArray(data.sentiment_trend?.labels) ? data.sentiment_trend.labels : [];
+  const sentimentData = sentimentValues.map((val, idx) => ({
+    day: sentimentLabels[idx],
     value: val
   }));
 
@@ -135,7 +137,7 @@ export default function ChildProfileView() {
                 <div className="relative">
                   <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-slate-100"></div>
                   <div className="space-y-8">
-                    {data.learning_journey_map.map((item, idx) => (
+                    {(Array.isArray(data.learning_journey_map) ? data.learning_journey_map : []).map((item, idx) => (
                       <motion.div 
                         key={idx}
                         initial={{ opacity: 0, x: -10 }}
@@ -251,7 +253,7 @@ export default function ChildProfileView() {
               <div>
                 <h4 className="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-3">New Words Learned</h4>
                 <div className="flex flex-wrap gap-2">
-                  {data.parent_toolkit.new_words.map((word, i) => (
+                  {(Array.isArray(data.parent_toolkit?.new_words) ? data.parent_toolkit.new_words : []).map((word, i) => (
                     <span key={i} className="px-4 py-1.5 bg-white/20 rounded-full text-sm font-bold border border-white/10">
                       {word}
                     </span>

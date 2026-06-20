@@ -33,13 +33,17 @@ export default function SupervisorHome() {
           api.get("/supervisor/students/flagged")
         ]);
 
+        const students = Array.isArray(studentsRes.data) ? studentsRes.data : [];
+        const teachers = Array.isArray(teachersRes.data) ? teachersRes.data : [];
+        const flags = Array.isArray(flagsRes.data) ? flagsRes.data : [];
+
         setStats({
-          totalStudents: studentsRes.data.length || 0,
-          activeStudents: studentsRes.data.filter(s => s.online).length || 0,
-          flaggedStudents: studentsRes.data.filter(s => s.is_flagged).length || 0,
-          totalTeachers: teachersRes.data.length || 0
+          totalStudents: students.length || 0,
+          activeStudents: students.filter(s => s.online).length || 0,
+          flaggedStudents: students.filter(s => s.is_flagged).length || 0,
+          totalTeachers: teachers.length || 0
         });
-        setRecentFlags(flagsRes.data.slice(0, 5));
+        setRecentFlags(flags.slice(0, 5));
       } catch (err) {
         console.error("Error fetching supervisor data:", err);
         setError("Failed to sync with central server. Please check connection.");

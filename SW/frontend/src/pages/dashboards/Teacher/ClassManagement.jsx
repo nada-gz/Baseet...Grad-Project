@@ -23,7 +23,7 @@ export default function ClassManagement() {
         setLoading(true);
         try {
             const res = await api.get("/teacher/class-management/levels");
-            setLevels(res.data);
+            setLevels(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
             console.error("Error fetching levels:", err);
         } finally {

@@ -40,7 +40,7 @@ export default function TeacherAnalytics() {
     // Fetch available students once
     api.get("/teacher/students")
       .then(res => {
-        if (res.data && res.data.length > 0) {
+        if (res.data && Array.isArray(res.data) && res.data.length > 0) {
           setStudents(res.data);
           setSelectedStudentId(res.data[0].id);
         }
@@ -104,14 +104,14 @@ export default function TeacherAnalytics() {
     fill: skillColor(val)
   }));
 
-  const biometric = (data?.biometric_correlation_chart ?? []).map(r => ({
+  const biometric = (Array.isArray(data?.biometric_correlation_chart) ? data.biometric_correlation_chart : []).map(r => ({
     task: r.task,
     hr: r.hr,
     gsr: Math.round(r.gsr * 100),
     status: r.status
   }));
 
-  const connectives = data?.skill_gap_analysis?.connective_usage ?? [];
+  const connectives = Array.isArray(data?.skill_gap_analysis?.connective_usage) ? data.skill_gap_analysis.connective_usage : [];
   const maxCount = Math.max(...connectives.map(c => c.count), 1);
 
   return (

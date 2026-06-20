@@ -16,7 +16,7 @@ export default function AllStudents() {
       try {
         const response = await api.get("/supervisor/students/all");
         console.log("Supervisor Students All:", response.data);
-        setStudents(response.data);
+        setStudents(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         console.error("Error fetching students:", err);
       } finally {

@@ -40,7 +40,7 @@ export default function SupervisorAnalytics() {
     // Fetch available students
     api.get("/supervisor/students/all")
       .then(res => {
-        if (res.data && res.data.length > 0) {
+        if (res.data && Array.isArray(res.data) && res.data.length > 0) {
           setStudents(res.data);
           // Don't auto-select to show org-wide by default, or auto-select the first if needed.
           // Let's keep it null by default for org-wide view.

@@ -43,8 +43,9 @@ export default function StudentMonitoring() {
         setLoading(true);
         try {
             const res = await api.get("/teacher/students");
-            setAllStudents(res.data);
-            setFilteredStudents(res.data);
+            const students = Array.isArray(res.data) ? res.data : [];
+            setAllStudents(students);
+            setFilteredStudents(students);
         } catch (err) {
             console.error("Error fetching students:", err);
         } finally {

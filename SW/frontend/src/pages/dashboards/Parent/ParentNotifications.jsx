@@ -20,7 +20,7 @@ export default function ParentNotifications() {
     const fetchNotifications = async () => {
       try {
         const response = await api.get("/parent/notifications");
-        setNotifications(response.data);
+        setNotifications(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         console.error("Error fetching notifications:", err);
       } finally {
