@@ -53,13 +53,13 @@ Grad-Project/
 │               ├── Explanation Agent
 │               ├── Report Agent
 │               ├── Video Generation Agent
-│               ├── IOT.py (Biometric Analysis)
-│               ├── TTS.py & STT (Speech processing)
+│               ├── IOT (Biometric Analysis)
+│               ├── TTS & STT (Speech processing)
 │               └── STS (Speech-to-Speech)
 │
-├── docs/                # Architecture diagrams, API specs, and project documentation
+├── docs/ 
 ├── deploy.sh            # Production deployment script for baseet.tech
-└── README.md            # You are here!
+└── README.md            
 ```
 
 ---
