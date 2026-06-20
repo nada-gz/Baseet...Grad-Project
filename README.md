@@ -38,9 +38,24 @@ The project is architected as a modular ecosystem. Below is a guide to navigatin
 Grad-Project/
 │
 ├── SW/
-│   ├── frontend/        # React.js web application (Dashboards for Student, Teacher, Parent, Supervisor)
-│   └── backend/         # FastAPI Python server (REST API, WebSockets, Database, AI Orchestration)
-│       └── services/ai/ # Includes Video Generation Agent, Explanation Agent, Report Agent, IOT, TTS, STT, and STS
+│   ├── frontend/        # React.js SPA (Web Dashboards)
+│   │   ├── src/pages/   # Role-based dashboards (Student, Teacher, Parent, Supervisor)
+│   │   ├── src/components/ # Reusable UI components
+│   │   └── src/services/ # API and WebSocket communication handlers
+│   │
+│   └── backend/         # FastAPI Server (REST API, Data layer, AI Orchestration)
+│       ├── routers/     # API Endpoints (e.g., student_router, teacher_router, ai_router)
+│       ├── models/      # SQLModel Database Models representing core entities
+│       ├── schemas/     # Pydantic Schemas for data validation and API serialization
+│       ├── db/          # Database configuration and connection setup
+│       └── services/    # Core business logic and external integrations
+│           └── ai/      # Intelligent Agentic Services:
+│               ├── Explanation Agent
+│               ├── Report Agent
+│               ├── Video Generation Agent
+│               ├── IOT.py (Biometric Analysis)
+│               ├── TTS.py & STT (Speech processing)
+│               └── STS (Speech-to-Speech)
 │
 ├── docs/                # Architecture diagrams, API specs, and project documentation
 ├── deploy.sh            # Production deployment script for baseet.tech
