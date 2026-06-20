@@ -1,6 +1,6 @@
 <div align="center">
   
-# 🌟 BASEET (بسيط)
+# ✨ BASEET (بسيط) ✨
 **An Agentic AI & Sensor-Integrated Solution for Adaptive Special Education**
 
 [![Live Deployment](https://img.shields.io/badge/Live_Deployment-baseet.tech-success?style=for-the-badge&logo=vercel)](https://baseet.tech)
