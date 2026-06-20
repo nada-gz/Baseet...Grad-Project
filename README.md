@@ -7,7 +7,6 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
 [![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
 </div>
 
@@ -41,7 +40,7 @@ Grad-Project/
 ├── SW/
 │   ├── frontend/        # React.js web application (Dashboards for Student, Teacher, Parent, Supervisor)
 │   └── backend/         # FastAPI Python server (REST API, WebSockets, Database, AI Orchestration)
-│       └── services/ai/ # Includes Video Generation Agent, Explanation Agent, Report Agent, IOT.py, TTS.py, and STT
+│       └── services/ai/ # Includes Video Generation Agent, Explanation Agent, Report Agent, IOT, TTS, STT, and STS
 │
 ├── docs/                # Architecture diagrams, API specs, and project documentation
 ├── deploy.sh            # Production deployment script for baseet.tech
