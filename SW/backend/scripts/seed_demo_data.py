@@ -43,6 +43,13 @@ def cleanup_demo_data(session: Session):
     along with all linked student, parent, submission, telemetry, flag, and notification records.
     All custom data (e.g., student nada, teacher/parent nada, supervisor super) is left completely untouched.
     """
+    def safe_delete(sql_text: str, **kwargs):
+        try:
+            session.exec(text(sql_text).bindparams(**kwargs))
+            session.commit()
+        except Exception:
+            session.rollback()
+
     print("🧹 Starting selective cleanup of old demo data...")
     
     # Get all demo users
@@ -65,56 +72,55 @@ def cleanup_demo_data(session: Session):
 
     if demo_student_ids:
         # Delete student-specific linked data
-        session.exec(text("DELETE FROM iot_readings WHERE student_id IN :ids").bindparams(ids=tuple(demo_student_ids)))
-        session.exec(text("DELETE FROM quiz_attempts WHERE quiz_id IN (SELECT id FROM quizzes WHERE student_id IN :ids)").bindparams(ids=tuple(demo_student_ids)))
-        session.exec(text("DELETE FROM quizzes WHERE student_id IN :ids").bindparams(ids=tuple(demo_student_ids)))
-        session.exec(text("DELETE FROM linking_codes WHERE student_id IN :ids").bindparams(ids=tuple(demo_student_ids)))
-        session.exec(text("DELETE FROM student_reports WHERE student_id IN :ids").bindparams(ids=tuple(demo_student_ids)))
-        session.exec(text("DELETE FROM student_flags WHERE student_id IN :ids").bindparams(ids=tuple(demo_student_ids)))
-        session.exec(text("DELETE FROM supervisor_reports WHERE student_id IN :ids").bindparams(ids=tuple(demo_student_ids)))
-        session.exec(text("DELETE FROM supervisormessage WHERE student_id IN :ids").bindparams(ids=tuple(demo_student_ids)))
-        session.exec(text("DELETE FROM ask_baseet WHERE student_id IN :ids").bindparams(ids=tuple(demo_student_ids)))
-        session.exec(text("DELETE FROM student_math_mastery WHERE student_id IN :ids").bindparams(ids=tuple(demo_student_ids)))
+        safe_delete("DELETE FROM iot_readings WHERE student_id IN :ids", ids=tuple(demo_student_ids))
+        safe_delete("DELETE FROM quiz_attempts WHERE quiz_id IN (SELECT id FROM quizzes WHERE student_id IN :ids)", ids=tuple(demo_student_ids))
+        safe_delete("DELETE FROM quizzes WHERE student_id IN :ids", ids=tuple(demo_student_ids))
+        safe_delete("DELETE FROM linking_codes WHERE student_id IN :ids", ids=tuple(demo_student_ids))
+        safe_delete("DELETE FROM student_reports WHERE student_id IN :ids", ids=tuple(demo_student_ids))
+        safe_delete("DELETE FROM student_flags WHERE student_id IN :ids", ids=tuple(demo_student_ids))
+        safe_delete("DELETE FROM supervisor_reports WHERE student_id IN :ids", ids=tuple(demo_student_ids))
+        safe_delete("DELETE FROM supervisormessage WHERE student_id IN :ids", ids=tuple(demo_student_ids))
+        safe_delete("DELETE FROM ask_baseet WHERE student_id IN :ids", ids=tuple(demo_student_ids))
+        safe_delete("DELETE FROM student_math_mastery WHERE student_id IN :ids", ids=tuple(demo_student_ids))
         
         # Delete feedback and submission files linked to demo student submissions
-        session.exec(text("DELETE FROM feedback WHERE submission_id IN (SELECT id FROM submissions WHERE student_id IN :ids)").bindparams(ids=tuple(demo_student_ids)))
-        session.exec(text("DELETE FROM submission_files WHERE submission_id IN (SELECT id FROM submissions WHERE student_id IN :ids)").bindparams(ids=tuple(demo_student_ids)))
-        session.exec(text("DELETE FROM submissions WHERE student_id IN :ids").bindparams(ids=tuple(demo_student_ids)))
+        safe_delete("DELETE FROM feedback WHERE submission_id IN (SELECT id FROM submissions WHERE student_id IN :ids)", ids=tuple(demo_student_ids))
+        safe_delete("DELETE FROM submission_files WHERE submission_id IN (SELECT id FROM submissions WHERE student_id IN :ids)", ids=tuple(demo_student_ids))
+        safe_delete("DELETE FROM submissions WHERE student_id IN :ids", ids=tuple(demo_student_ids))
         
         # Delete assignments and materials linked to demo student lessons
-        session.exec(text("DELETE FROM assignments WHERE lesson_id IN (SELECT id FROM lessons WHERE student_id IN :ids)").bindparams(ids=tuple(demo_student_ids)))
-        session.exec(text("DELETE FROM materials WHERE lesson_id IN (SELECT id FROM lessons WHERE student_id IN :ids)").bindparams(ids=tuple(demo_student_ids)))
-        session.exec(text("DELETE FROM log_table WHERE topic_id IN (SELECT id FROM lessons WHERE student_id IN :ids)").bindparams(ids=tuple(demo_student_ids)))
-        session.exec(text("DELETE FROM lessons WHERE student_id IN :ids").bindparams(ids=tuple(demo_student_ids)))
-        session.exec(text("DELETE FROM milestones WHERE student_id IN :ids").bindparams(ids=tuple(demo_student_ids)))
-        session.exec(text("DELETE FROM teacher_student_links WHERE student_id IN :ids").bindparams(ids=tuple(demo_student_ids)))
+        safe_delete("DELETE FROM assignments WHERE lesson_id IN (SELECT id FROM lessons WHERE student_id IN :ids)", ids=tuple(demo_student_ids))
+        safe_delete("DELETE FROM materials WHERE lesson_id IN (SELECT id FROM lessons WHERE student_id IN :ids)", ids=tuple(demo_student_ids))
+        safe_delete("DELETE FROM log_table WHERE topic_id IN (SELECT id FROM lessons WHERE student_id IN :ids)", ids=tuple(demo_student_ids))
+        safe_delete("DELETE FROM lessons WHERE student_id IN :ids", ids=tuple(demo_student_ids))
+        safe_delete("DELETE FROM milestones WHERE student_id IN :ids", ids=tuple(demo_student_ids))
+        safe_delete("DELETE FROM teacher_student_links WHERE student_id IN :ids", ids=tuple(demo_student_ids))
 
     if demo_parent_ids:
-        session.exec(text("DELETE FROM parent_notifications WHERE parent_id IN :ids").bindparams(ids=tuple(demo_parent_ids)))
+        safe_delete("DELETE FROM parent_notifications WHERE parent_id IN :ids", ids=tuple(demo_parent_ids))
 
     # Delete teacher links for demo teachers
-    session.exec(text("DELETE FROM teacher_student_links WHERE teacher_id IN :ids").bindparams(ids=tuple(demo_user_ids)))
+    safe_delete("DELETE FROM teacher_student_links WHERE teacher_id IN :ids", ids=tuple(demo_user_ids))
 
     # Delete main profile records
     if demo_student_ids:
-        session.exec(text("DELETE FROM students WHERE id IN :ids").bindparams(ids=tuple(demo_student_ids)))
+        safe_delete("DELETE FROM students WHERE id IN :ids", ids=tuple(demo_student_ids))
     if demo_parent_ids:
-        session.exec(text("DELETE FROM parents WHERE id IN :ids").bindparams(ids=tuple(demo_parent_ids)))
+        safe_delete("DELETE FROM parents WHERE id IN :ids", ids=tuple(demo_parent_ids))
 
     # Delete classroom links and classrooms that are demo-related
     demo_class = session.exec(select(Classroom).where(Classroom.name == "Demo Class 1A")).first()
     if demo_class:
-        session.exec(text("DELETE FROM classroom_course_links WHERE classroom_id = :cid").bindparams(cid=demo_class.id))
-        session.exec(text("DELETE FROM classrooms WHERE id = :cid").bindparams(cid=demo_class.id))
+        safe_delete("DELETE FROM classroom_course_links WHERE classroom_id = :cid", cid=demo_class.id)
+        safe_delete("DELETE FROM classrooms WHERE id = :cid", cid=demo_class.id)
         
     demo_level = session.exec(select(ClassLevel).where(ClassLevel.name == "Demo Level 1")).first()
     if demo_level:
-        session.exec(text("DELETE FROM class_levels WHERE id = :lid").bindparams(lid=demo_level.id))
+        safe_delete("DELETE FROM class_levels WHERE id = :lid", lid=demo_level.id)
 
     # Finally delete the users
-    session.exec(text("DELETE FROM users WHERE id IN :ids").bindparams(ids=tuple(demo_user_ids)))
+    safe_delete("DELETE FROM users WHERE id IN :ids", ids=tuple(demo_user_ids))
     
-    session.commit()
     print("   Cleanup of old demo data finished successfully.")
 
 def reset_db_sequences(session: Session):
@@ -303,6 +309,7 @@ def seed_demo_data():
             }
         ]
 
+        courses_map = {}
         content_courses_map = {}
         for cdata in courses_curriculum:
             # Check if ContentCourse with this course_number already exists
@@ -331,6 +338,8 @@ def seed_demo_data():
                 legacy_c = Course(title=cdata["title"], subject=cdata["subject"], description=cdata["description"])
                 session.add(legacy_c)
                 session.commit()
+                session.refresh(legacy_c)
+            courses_map[cdata["course_number"]] = legacy_c
 
             # Seed Content Lessons
             for ldata in cdata["lessons"]:
@@ -435,12 +444,12 @@ def seed_demo_data():
 
             # Create Milestones for the student
             # Science Milestones
-            milestone_sci1 = Milestone(student_id=s.id, course_id=content_courses_map[1].id, title="عالم النباتات", number=1, description="دراسة النبات وأجزائه وعملية البناء الضوئي")
-            milestone_sci2 = Milestone(student_id=s.id, course_id=content_courses_map[1].id, title="الفضاء والمجموعة الشمسية", number=2, description="استكشاف الكواكب والنجوم والأرض")
-            milestone_sci3 = Milestone(student_id=s.id, course_id=content_courses_map[1].id, title="جسم الإنسان", number=3, description="التعرف على الحواس والهيكل العظمي")
+            milestone_sci1 = Milestone(student_id=s.id, course_id=courses_map[1].id, title="عالم النباتات", number=1, description="دراسة النبات وأجزائه وعملية البناء الضوئي")
+            milestone_sci2 = Milestone(student_id=s.id, course_id=courses_map[1].id, title="الفضاء والمجموعة الشمسية", number=2, description="استكشاف الكواكب والنجوم والأرض")
+            milestone_sci3 = Milestone(student_id=s.id, course_id=courses_map[1].id, title="جسم الإنسان", number=3, description="التعرف على الحواس والهيكل العظمي")
             # Math Milestones
-            milestone_math1 = Milestone(student_id=s.id, course_id=content_courses_map[3].id, title="الأرقام والعد", number=1, description="العد من ١ إلى ١٠ ومقارنة الأعداد")
-            milestone_math2 = Milestone(student_id=s.id, course_id=content_courses_map[3].id, title="العمليات الحسابية البسيطة", number=2, description="عمليات الجمع والطرح البسيطة")
+            milestone_math1 = Milestone(student_id=s.id, course_id=courses_map[3].id, title="الأرقام والعد", number=1, description="العد من ١ إلى ١٠ ومقارنة الأعداد")
+            milestone_math2 = Milestone(student_id=s.id, course_id=courses_map[3].id, title="العمليات الحسابية البسيطة", number=2, description="عمليات الجمع والطرح البسيطة")
             
             session.add(milestone_sci1)
             session.add(milestone_sci2)
