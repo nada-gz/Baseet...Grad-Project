@@ -18,7 +18,7 @@ export default function SupervisorMonitoring() {
     const fetchStudents = async () => {
       try {
         const response = await api.get("/supervisor/students/all");
-        setStudents(response.data);
+        setStudents(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         console.error("Error fetching students:", err);
       } finally {
