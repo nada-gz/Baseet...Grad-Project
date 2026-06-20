@@ -41,9 +41,7 @@ Grad-Project/
 ├── SW/
 │   ├── frontend/        # React.js web application (Dashboards for Student, Teacher, Parent, Supervisor)
 │   └── backend/         # FastAPI Python server (REST API, WebSockets, Database, AI Orchestration)
-│
-├── AI/                  
-│   └── video/           # Automated video generation, TTS, and Speech-to-Text pipelines
+│       └── services/ai/ # Automated video generation, TTS, and Speech-to-Text pipelines
 │
 ├── docs/                # Architecture diagrams, API specs, and project documentation
 ├── deploy.sh            # Production deployment script for baseet.tech
